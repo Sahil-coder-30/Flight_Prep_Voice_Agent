@@ -1,0 +1,82 @@
+/* ─── Default Onyx/Obsidian Dark Theme ───────────────────────────── */
+:root {
+  /* Surface System */
+  --bg-canvas:  #07080B;
+  --bg-surface: #0E1017;
+  --bg-overlay: #161929;
+  --bg-element: #202438;
+  --bg-active:  rgba(255, 255, 255, 0.08);
+
+  /* Border System */
+  --border:        #252A40;
+  --border-strong: #353A56;
+  --border-glow:   rgba(59, 130, 246, 0.15);
+
+  /* Brand & Accent */
+  --brand-primary: #10B981; /* Emerald */
+  --brand-hover:   #34D399;
+  --brand-subtle:  rgba(16, 185, 129, 0.1);
+
+  --accent-primary: #3B82F6; /* Azure Blue */
+  --accent-hover:   #60A5FA;
+  --accent-subtle:  rgba(59, 130, 246, 0.1);
+
+  /* Typography Hierarchy */
+  --text-primary:   #FFFFFF;
+  --text-secondary: #E2E8F0;
+  --text-muted:     #94A3B8;
+  --text-disabled:  #475569;
+
+  --color-rgb-text: 255, 255, 255;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ─── 5-Layer Surface Codespace Light Theme ─────────────────────── */
+:root.light-theme {
+  --surface-canvas:  #ffffff;
+  --surface-chrome:  #f4f4f6;
+  --surface-sunken:  #f1f5f9;
+  --surface-overlay: #ffffff;
+
+  --bg-canvas:  var(--surface-canvas);
+  --bg-surface: var(--surface-canvas);
+  --bg-sidebar: var(--surface-chrome);
+  --bg-overlay: var(--surface-overlay);
+  --bg-element: var(--surface-sunken);
+  --bg-active:  rgba(5, 150, 105, 0.1);
+
+  --border-subtle:      #e4e4e7;
+  --border:             #d0d7de;
+  --border-strong:      #8c8c94;
+  --border-glow:        rgba(5, 150, 105, 0.2);
+
+  --brand-primary: #059669;
+  --brand-hover:   #047857;
+  --brand-subtle:  rgba(5, 150, 105, 0.1);
+
+  --accent-primary: #0969da;
+  --accent-hover:   #0850b8;
+  --accent-subtle:  rgba(9, 105, 218, 0.1);
+
+  --text-primary:   #1a1a1e;
+  --text-secondary: #57606a;
+  --text-muted:     #6e7781;
+  --text-disabled:  #afb8c1;
+
+  --color-rgb-text: 26, 26, 30;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}

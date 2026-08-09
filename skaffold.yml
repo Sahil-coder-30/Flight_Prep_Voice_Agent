@@ -1,0 +1,73 @@
+# skaffold.yml — ATC Voice Simulator Platform
+# Manages hot-reload dev builds for all microservices.
+# tagPolicy: sha256 ensures consistent image IDs with Skaffold's local docker daemon.
+# Never use gitCommit or dateTime — they break IfNotPresent pull policy.
+
+apiVersion: skaffold/v4beta2
+kind: Config
+
+build:
+  tagPolicy:
+    sha256: {}
+  artifacts:
+    - image: auth
+      context: Auth
+      docker:
+        dockerfile: dockerfile
+      sync:
+        infer:
+          - "app/**"
+          - "config/**"
+          - "controllers/**"
+          - "middleware/**"
+          - "models/**"
+          - "routes/**"
+          - "services/**"
+          - "utils/**"
+          - "scripts/**"
+          - "keys/**"
+          - "server.js"
+          - "package.json"
+
+    - image: ai-service
+      context: Ai-service
+      docker:
+        dockerfile: dockerfile
+      sync:
+        infer:
+          - "app/**"
+          - "config/**"
+          - "controllers/**"
+          - "middleware/**"
+          - "models/**"
+          - "routes/**"
+          - "services/**"
+          - "server.js"
+          - "package.json"
+
+    - image: backend
+      context: Backend
+      docker:
+        dockerfile: dockerfile
+      sync:
+        infer:
+          - "app/**"
+          - "config/**"
+          - "controllers/**"
+          - "middleware/**"
+          - "models/**"
+          - "routes/**"
+          - "services/**"
+          - "server.js"
+          - "package.json"
+
+manifests:
+  rawYaml:
+    - k8s/auth.deployment.yml
+    - k8s/auth.service.yml
+    - k8s/ai.deployment.yml
+    - k8s/ai.service.yml
+    - k8s/backend.deployment.yml
+    - k8s/backend.service.yml
+    - k8s/secrets.yml
+    - k8s/ingress.yml

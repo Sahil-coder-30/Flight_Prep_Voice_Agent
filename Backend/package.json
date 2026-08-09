@@ -1,0 +1,29 @@
+{
+  "name": "atc-backend-service",
+  "version": "1.0.0",
+  "description": "ATC Voice Simulator — Core Backend Service. Owns scenario templates, session lifecycle, and progress tracking. Orchestrates calls to the AI service.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon -L server.js",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^0.10.4",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.5",
+    "express": "^5.0.1",
+    "express-rate-limit": "^7.4.1",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.7.2",
+    "morgan": "^1.10.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}

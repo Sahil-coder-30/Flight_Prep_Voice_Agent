@@ -1,0 +1,15 @@
+helpers
+.agents
+
+# Secrets — never commit real values
+k8s/secrets.yml
+.env
+.env.*
+**/.env
+**/.env.*
+keys/
+*.pem
+*.key
+node_modules/
+dist/
+*.log

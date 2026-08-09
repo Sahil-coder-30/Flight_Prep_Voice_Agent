@@ -1,0 +1,30 @@
+{
+  "name": "atc-auth-service",
+  "version": "1.0.0",
+  "description": "ATC Voice Simulator — Auth Service. Handles Google OAuth2, RS256 JWT issuance, refresh token rotation, and JWKS publication.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon -L server.js",
+    "start": "node server.js",
+    "generate-keys": "node scripts/generate-keys.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^0.10.4",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.5",
+    "express": "^5.0.1",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.7.2",
+    "morgan": "^1.10.0",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}

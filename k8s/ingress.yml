@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: atc-ingress
+  labels:
+    app.kubernetes.io/name: atc-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - pathType: Prefix
+            path: "/api/auth"
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 80
+          - pathType: Prefix
+            path: "/api/ai"
+            backend:
+              service:
+                name: ai-service
+                port:
+                  number: 80
+          - pathType: Prefix
+            path: "/api/backend"
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 80
