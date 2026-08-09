@@ -1,7 +1,7 @@
 {
   "name": "atc-ai-service",
   "version": "1.0.0",
-  "description": "ATC Voice Simulator — AI Service. Owns the LangGraph conditional agent, Qdrant RAG retrieval, Mistral LLM composition, STT (Deepgram), and Rime TTS. The only service that scales independently under load.",
+  "description": "ATC Voice Simulator — AI Service. Owns the LangGraph conditional agent, Qdrant RAG retrieval, Mistral LLM composition, Rime STT, and Rime TTS. The only service that scales independently under load.",
   "type": "module",
   "main": "server.js",
   "scripts": {

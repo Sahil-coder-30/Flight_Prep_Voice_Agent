@@ -1,5 +1,5 @@
 /**
- * Processes incoming audio stream or buffer via STT engine (Deepgram/AssemblyAI).
+ * Processes incoming audio stream or buffer via Rime STT engine.
  * Uses phraseology vocabulary biasing for aviation terms.
  *
  * @param {Buffer|Blob} audioBuffer

@@ -131,7 +131,7 @@ The platform uses an enterprise **RS256 Access Token + Rotating Refresh Token** 
 
 The AI Voice Agent processes audio and text inputs through an integrated multi-tier pipeline:
 
-1. **Speech-to-Text (STT):** Audio streams captured via Web Audio API are transcribed using Deepgram STT model adapters.
+1. **Speech-to-Text (STT):** Audio streams captured via Web Audio API are transcribed using Rime STT model adapters.
 2. **RAG Phraseology Retrieval:** Transcribed text triggers a semantic search against the Qdrant vector database (`atc_phraseology` collection) to retrieve relevant ICAO standard phraseology rules.
 3. **LangGraph State Graph:** Evaluates current session state, aircraft altitude/heading/speed parameters, and controller radio state.
 4. **Mistral LLM Inference:** Generates grammatically correct, realistic ATC transmission responses.
