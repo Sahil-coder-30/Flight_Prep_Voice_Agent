@@ -1,22 +1,38 @@
-/**
- * Composes an ATC controller response line using Mistral API with structured output / prompt constraints.
- *
- * @param {Object} params
- * @param {Object} params.stepData
- * @param {string} [params.sttTranscript]
- * @param {Array} [params.groundingHits]
- * @returns {Promise<string>} In-character ATC controller line
- */
-export const composeControllerLine = async ({ stepData, sttTranscript, groundingHits }) => {
-    try {
-        console.log('[Mistral Service] Composing controller line...');
-        if (stepData?.controllerLine) {
-            return stepData.controllerLine;
-        }
+const env = require('../config/env');
 
-        return 'Cessna 172SP, Boston Tower, cleared for takeoff runway 22L, maintain 3000 feet.';
-    } catch (error) {
-        console.error('[Mistral Service] Composition error:', error.message);
-        return 'Cessna 172SP, Say again your last transmission.';
-    }
-};
+async function composeLine({ grounding, slots, instruction }) {
+    const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${env.MISTRAL_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: 'mistral-large-latest',
+            messages: [
+                { role: 'system', content: 'You are an air traffic controller. Use ONLY the grounding text provided for phraseology. Do not invent procedures.' },
+                { role: 'user', content: `Grounding:\n${grounding.join('\n')}\n\nSlots: ${JSON.stringify(slots)}\n\nTask: ${instruction}` },
+            ],
+            temperature: 0.2,
+        }),
+    });
+    const data = await res.json();
+    return data.choices[0].message.content;
+}
+
+async function extractReadback(transcript, expectedShape) {
+    const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${env.MISTRAL_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: 'mistral-large-latest',
+            response_format: { type: 'json_object' },
+            messages: [
+                { role: 'system', content: `Extract fields ${JSON.stringify(expectedShape)} from the pilot transcript. Return ONLY JSON matching those keys, null if absent.` },
+                { role: 'user', content: transcript },
+            ],
+            temperature: 0,
+        }),
+    });
+    const data = await res.json();
+    return JSON.parse(data.choices[0].message.content);
+}
+
+module.exports = { composeLine, extractReadback };
