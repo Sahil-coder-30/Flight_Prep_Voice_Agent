@@ -1,20 +1,9 @@
-import mongoose from 'mongoose';
+const { Schema, model } = require('mongoose');
 
-const sessionCheckpointSchema = new mongoose.Schema(
-    {
-        sessionId: {
-            type: mongoose.Schema.Types.ObjectId,
-            required: true,
-            unique: true,
-            index: true,
-        },
-        langgraphState: {
-            type: mongoose.Schema.Types.Mixed, // Stores serialized LangGraph checkpoint state
-            required: true,
-        },
-    },
-    { timestamps: true }
-);
+const sessionCheckpointSchema = new Schema({
+    sessionId: { type: String, unique: true, index: true, required: true },
+    langgraphState: { type: Schema.Types.Mixed, required: true },
+    updatedAt: { type: Date, default: Date.now },
+});
 
-const SessionCheckpoint = mongoose.model('SessionCheckpoint', sessionCheckpointSchema);
-export default SessionCheckpoint;
+module.exports = model('SessionCheckpoint', sessionCheckpointSchema);

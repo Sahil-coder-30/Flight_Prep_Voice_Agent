@@ -1,17 +1,32 @@
-/**
- * Synthesizes ATC speech using Rime TTS API.
- * Converts phraseology formatting (e.g., numbers spelled per ATC convention) to audio.
- *
- * @param {string} text - ATC phraseology line to speak
- * @param {string} [voiceId] - Target Rime voice model
- * @returns {Promise<string>} S3/URL to synthesized MP3 audio
- */
-export const synthesizeSpeech = async (text, voiceId = 'atc-controller-male-1') => {
-    try {
-        console.log(`[TTS Service] Synthesizing speech via Rime for: "${text.substring(0, 30)}..."`);
-        return 'https://cdn.atcvoicesimulator.in/audio/sample_clearance.mp3';
-    } catch (error) {
-        console.error('[TTS Service] Synthesis error:', error.message);
-        return null;
+import "dotenv/config";
+
+async function speak(text) {
+    const res = await fetch("https://users.rime.ai/v1/rime-tts", {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${process.env.RIME_API_KEY}`,
+            "Content-Type": "application/json",
+            Accept: "audio/mpeg",
+        },
+        body: JSON.stringify({
+            speaker: "lyra",
+            text,
+            modelId: "coda",
+            language: "en",
+        }),
+    });
+
+    if (!res.ok) {
+        const error = await res.text();
+
+        throw new Error(
+            `Rime TTS failed (${res.status}): ${error}`
+        );
     }
-};
+
+    const audioBuffer = await res.arrayBuffer();
+
+    return Buffer.from(audioBuffer).toString("base64");
+}
+
+export { speak };

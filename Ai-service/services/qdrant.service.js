@@ -1,32 +1,55 @@
-import { getQdrantClient } from '../config/qdrant.js';
+import { qdrantClient } from "../config/qdrant.js";
 
-/**
- * Queries Qdrant vector collection for FAA/ICAO phraseology grounding.
- * Payload filtered on procedureType.
- *
- * @param {string} procedureType - Ground, departure, clearance, etc.
- * @param {string} queryText - Query text to match
- * @returns {Promise<Array<Object>>} Array of matching knowledge hits
- */
-export const queryQdrantKnowledge = async (procedureType, queryText) => {
-    try {
-        const client = getQdrantClient();
-        console.log(`[Qdrant Service] Querying knowledge for procedureType="${procedureType}"`);
+const COLLECTION = process.env.QDRANT_COLLECTION;
 
-        // Stubbed response if Qdrant isn't seeded yet
-        return [
-            {
-                id: 1,
-                score: 0.92,
-                payload: {
-                    title: 'FAA AIM 4-2-3: Contact Procedures',
-                    content: 'Pilots must read back altitude assignments, runway clearances, and hold short instructions.',
-                    procedureType,
-                },
-            },
-        ];
-    } catch (error) {
-        console.error('[Qdrant Service] Search error:', error.message);
-        return [];
+async function embedText(text) {
+    const res = await fetch("https://api.mistral.ai/v1/embeddings", {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            model: "mistral-embed",
+            input: [text],
+        }),
+    });
+
+    if (!res.ok) {
+        const error = await res.text();
+        throw new Error(`Mistral embedding failed: ${error}`);
     }
-};
+
+    const data = await res.json();
+
+    return data.data[0].embedding;
+}
+
+async function retrieve(query, procedureType, phase, limit = 3) {
+    const vector = await embedText(query);
+
+    const result = await qdrantClient.search(COLLECTION, {
+        vector,
+        limit,
+        filter: {
+            must: [
+                {
+                    key: "procedure_type",
+                    match: { value: procedureType },
+                },
+                {
+                    key: "phase",
+                    match: { value: phase },
+                },
+            ],
+        },
+    });
+
+    return result.map((r) => ({
+        text: r.payload?.text,
+        score: r.score,
+        metadata: r.payload,
+    }));
+}
+
+export { embedText, retrieve };

@@ -1,16 +1,13 @@
-import express from 'express';
-import { identifyUser } from '../middleware/identifyUser.middleware.js';
-import {
-    processSessionTurnController,
-    getSessionTranscriptController,
-} from '../controllers/aiSession.controller.js';
+const express = require('express');
+const { identifyUser } = require('../middleware/identifyUser.middleware');
+const { rateLimiter } = require('../middleware/rate-limit.middleware');
+const aiSessionController = require('../controllers/aiSession.controller');
 
 const router = express.Router();
 
-// ── Authenticated Routes ──────────────────────────────────────────────────────
-router.use(identifyUser);
+router.use(identifyUser, rateLimiter);
 
-router.post('/:id/turn', processSessionTurnController);
-router.get('/:id/transcript', getSessionTranscriptController);
+router.post('/sessions/:id/turn', aiSessionController.turn);
+router.get('/sessions/:id/transcript', aiSessionController.getTranscript);
 
-export default router;
+module.exports = router;
