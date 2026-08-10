@@ -1,28 +1,55 @@
-const { qdrantClient } = require('../config/qdrant');
+import { qdrantClient } from "../config/qdrant.js";
+
+const COLLECTION = process.env.QDRANT_COLLECTION;
 
 async function embedText(text) {
-    const res = await fetch('https://api.mistral.ai/v1/embeddings', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'mistral-embed', input: [text] }),
+    const res = await fetch("https://api.mistral.ai/v1/embeddings", {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            model: "mistral-embed",
+            input: [text],
+        }),
     });
+
+    if (!res.ok) {
+        const error = await res.text();
+        throw new Error(`Mistral embedding failed: ${error}`);
+    }
+
     const data = await res.json();
+
     return data.data[0].embedding;
 }
 
 async function retrieve(query, procedureType, phase, limit = 3) {
     const vector = await embedText(query);
-    const result = await qdrantClient.search(process.env.QDRANT_COLLECTION, {
+
+    const result = await qdrantClient.search(COLLECTION, {
         vector,
         limit,
         filter: {
             must: [
-                { key: 'procedure_type', match: { value: procedureType } },
-                { key: 'phase', match: { value: phase } },
+                {
+                    key: "procedure_type",
+                    match: { value: procedureType },
+                },
+                {
+                    key: "phase",
+                    match: { value: phase },
+                },
             ],
         },
     });
-    return result.map(r => ({ text: r.payload.text, score: r.score }));
+
+    return result.map((r) => ({
+        text: r.payload?.text,
+        score: r.score,
+        metadata: r.payload,
+    }));
 }
 
-module.exports = { retrieve };
+export { embedText, retrieve };
