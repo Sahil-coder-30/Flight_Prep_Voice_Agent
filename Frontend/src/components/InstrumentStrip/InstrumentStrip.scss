@@ -1,0 +1,110 @@
+@import '@/styles/tokens.scss';
+
+.instrument-strip {
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border-sep);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  user-select: none;
+  animation: slide-down 0.3s ease;
+
+  &__segment {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 18px;
+    border-right: 1px solid var(--border-sep);
+    color: var(--readout-muted);
+    white-space: nowrap;
+    transition: color 0.2s;
+
+    &:last-child { border-right: 0; margin-left: auto; }
+
+    &--callsign {
+      color: var(--readout);
+      font-weight: 600;
+      font-size: 12px;
+      gap: 10px;
+
+      .strip-live {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--cleared-green);
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+    }
+
+    &--status {
+      gap: 6px;
+
+      &.active   { color: var(--nav-cyan); }
+      &.cleared  { color: var(--cleared-green); }
+      &.caution  { color: var(--caution-amber); }
+    }
+
+    &--freq {
+      .strip-label {
+        color: var(--readout-muted);
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .strip-value {
+        color: var(--nav-cyan);
+        font-size: 12px;
+        font-weight: 500;
+      }
+    }
+
+    &--time {
+      color: var(--readout-muted);
+      margin-left: auto;
+    }
+  }
+
+  // Step progress form (used inside simulator)
+  &__steps {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    overflow: hidden;
+    padding: 0 8px;
+    gap: 3px;
+  }
+
+  &__step {
+    height: 18px;
+    flex: 1;
+    min-width: 24px;
+    max-width: 80px;
+    border-radius: 3px;
+    position: relative;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-sep);
+    overflow: hidden;
+    transition: border-color 0.2s;
+
+    .step-fill {
+      position: absolute;
+      inset-y: 0;
+      left: 0;
+      width: 0;
+      transition: width 0.25s ease, background 0.25s;
+      border-radius: inherit;
+    }
+
+    &.idle     { }
+    &.active   { border-color: rgba(56,198,224,0.4); .step-fill { width: 100%; background: var(--nav-cyan-dim); } }
+    &.cleared  { border-color: rgba(63,224,138,0.35); .step-fill { width: 100%; background: var(--cleared-green-dim); } }
+    &.caution  { border-color: rgba(242,184,75,0.35);  .step-fill { width: 100%; background: var(--caution-amber-dim); } }
+  }
+}

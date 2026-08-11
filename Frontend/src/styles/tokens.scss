@@ -4,34 +4,46 @@ $space-2:   8px;
 $space-3:   12px;
 $space-4:   16px;
 $space-5:   20px;
-$space-6:   24px;   // Standard component padding
+$space-6:   24px;
 $space-8:   32px;
 $space-10:  40px;
 $space-12:  48px;
 $space-16:  64px;
 
-// ── SCSS Local Variable Mappings to CSS Custom Properties ─────────────────────
-$color-bg:            var(--bg-canvas);
-$color-bg-sidebar:    var(--bg-surface);
-$color-bg-panel:      var(--bg-overlay);
-$color-bg-element:    var(--bg-element);
+// ── CSS Custom Property Aliases ─────────────────────────────────────────────
+$void:   var(--void);
+$panel:  var(--panel);
+$lift:   var(--lift);
+$glass:  var(--glass);
+
+$color-bg:            var(--void);
+$color-bg-sidebar:    var(--panel);
+$color-bg-panel:      var(--lift);
+$color-bg-element:    var(--glass);
 $color-bg-active:     var(--bg-active);
 $color-border:        var(--border);
 $color-border-strong: var(--border-strong);
 $color-border-glow:   var(--border-glow);
 
-$color-primary:       var(--brand-primary);
+$color-primary:       var(--cleared-green);
 $color-primary-hover: var(--brand-hover);
-$color-primary-glow:  var(--brand-subtle);
-$color-accent:        var(--accent-primary);
+$color-primary-glow:  var(--cleared-green-dim);
+$color-accent:        var(--nav-cyan);
 $color-accent-hover:  var(--accent-hover);
+$color-accent-subtle: var(--nav-cyan-dim);
 
-$color-text:          var(--text-primary);
-$color-text-muted:    var(--text-secondary);
-$color-text-dark:     var(--text-dark);
+$color-text:       var(--readout);
+$color-text-muted: var(--readout-dim);
+$color-text-dark:  var(--void);
 
-$font-sans:           var(--font-sans);
-$font-mono:           var(--font-mono);
+$font-sans:    var(--font-sans);
+$font-heading: var(--font-heading);
+$font-display: var(--font-display);
+$font-mono:    var(--font-mono);
+
+$color-rgb-text:      var(--color-rgb-text);
+$color-bg-card:       rgba(var(--color-rgb-text), 0.02);
+$color-bg-card-hover: rgba(var(--color-rgb-text), 0.05);
 
 // ── Mixins ───────────────────────────────────────────────────────────────────
 @mixin flex-center {
@@ -46,15 +58,50 @@ $font-mono:           var(--font-mono);
   justify-content: space-between;
 }
 
-@mixin card {
-  background: var(--bg-surface);
-  border: 1px solid $color-border;
-  border-radius: 12px;
-  padding: $space-6;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-
-  &:hover {
-    background: var(--bg-overlay);
-    border-color: $color-border-strong;
+@mixin respond-to($bp) {
+  @if $bp == 'mobile' {
+    @media (max-width: 768px) { @content; }
+  } @else if $bp == 'tablet' {
+    @media (max-width: 1024px) { @content; }
   }
+}
+
+@mixin card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: $space-6;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-panel);
+}
+
+@mixin glassmorphism {
+  background: rgba(19, 26, 34, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+}
+
+@mixin mono-readout {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+@mixin instrument-panel {
+  background: var(--panel);
+  border: 1px solid var(--border-sep);
+  border-radius: var(--r-md);
+}
+
+@mixin skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.03) 25%,
+    rgba(255,255,255,0.07) 50%,
+    rgba(255,255,255,0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: var(--r-sm);
 }

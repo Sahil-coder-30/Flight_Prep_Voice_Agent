@@ -1,0 +1,268 @@
+@import '@/styles/tokens.scss';
+
+/* ─── Login Page ──────────────────────────────────────────────────────────── */
+.login-page {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--void);
+  overflow: hidden;
+
+  // Radar rings background
+  .radar-bg {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 0;
+
+    .radar-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(56, 198, 224, 0.07);
+
+      &:nth-child(1) { width: 220px; height: 220px; }
+      &:nth-child(2) { width: 380px; height: 380px; }
+      &:nth-child(3) { width: 560px; height: 560px; }
+      &:nth-child(4) { width: 760px; height: 760px; border-color: rgba(56, 198, 224, 0.04); }
+      &:nth-child(5) { width: 980px; height: 980px; border-color: rgba(56, 198, 224, 0.025); }
+    }
+
+    // Sweeping radar line
+    .radar-sweep {
+      position: absolute;
+      width: 380px;
+      height: 380px;
+      border-radius: 50%;
+      overflow: hidden;
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 50%;
+        height: 1px;
+        background: linear-gradient(to right, transparent, rgba(56, 198, 224, 0.45));
+        transform-origin: 0 50%;
+        animation: radar-sweep 6s linear infinite;
+      }
+    }
+
+    // Ping dot
+    .radar-ping {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--nav-cyan);
+      opacity: 0;
+      animation: radar-ping 6s ease-out infinite;
+
+      &:nth-child(3) { top: calc(50% - 75px); left: calc(50% + 45px); animation-delay: 0s; }
+      &:nth-child(4) { top: calc(50% + 40px); left: calc(50% - 90px); animation-delay: 2s; }
+      &:nth-child(5) { top: calc(50% - 20px); left: calc(50% + 110px); animation-delay: 4s; }
+    }
+  }
+
+}
+
+.login-panel {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 420px;
+  padding: 0 24px;
+  animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &__brand {
+    text-align: center;
+    margin-bottom: 40px;
+
+    .brand-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border: 1px solid rgba(56, 198, 224, 0.25);
+      border-radius: 14px;
+      margin-bottom: 20px;
+      background: rgba(56, 198, 224, 0.07);
+      position: relative;
+
+      svg { color: var(--nav-cyan); }
+
+      &::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border-radius: inherit;
+        background: linear-gradient(135deg, rgba(56,198,224,0.25), transparent 60%);
+        z-index: -1;
+      }
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--readout);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .brand-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--readout-muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+  }
+
+  &__card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 32px;
+    box-shadow: var(--shadow-lift);
+
+    h2 {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--readout);
+      margin-bottom: 8px;
+    }
+
+    p {
+      font-size: 14px;
+      color: var(--readout-dim);
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .divider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 24px 0;
+      color: var(--readout-muted);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+
+      &::before, &::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border-sep);
+      }
+    }
+
+    .login-note {
+      text-align: center;
+      font-size: 11px;
+      color: var(--readout-muted);
+      margin-top: 20px;
+      line-height: 1.5;
+
+      a { color: var(--nav-cyan); }
+    }
+  }
+}
+
+/* ── Google Button ── */
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 20px;
+  background: #fff;
+  color: #3C4043;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Public Sans', sans-serif;
+  border: 1px solid #dadce0;
+  cursor: pointer;
+  transition: box-shadow 0.15s, background 0.15s;
+
+  svg { flex-shrink: 0; }
+
+  &:hover { background: #f8f9fa; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  &:active { background: #f1f3f4; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+/* ── Demo banner ── */
+.demo-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--nav-cyan-dim);
+  border: 1px solid rgba(56, 198, 224, 0.2);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--nav-cyan);
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: background 0.15s;
+
+  svg { flex-shrink: 0; }
+  &:hover { background: rgba(56, 198, 224, 0.15); }
+}
+
+/* ── ATC Exchange typewriter ── */
+.atc-exchange {
+  margin-bottom: 28px;
+
+  .exchange-line {
+    display: flex;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.5;
+
+    .ex-speaker {
+      font-weight: 600;
+      flex-shrink: 0;
+      min-width: 36px;
+
+      &.atc  { color: var(--nav-cyan); }
+      &.pilot { color: var(--cleared-green); }
+    }
+
+    .ex-text {
+      color: var(--readout-dim);
+    }
+
+    &:first-child {
+      background: rgba(56, 198, 224, 0.05);
+      border: 1px solid rgba(56, 198, 224, 0.1);
+    }
+  }
+
+  .cursor {
+    display: inline-block;
+    width: 8px;
+    height: 13px;
+    background: var(--nav-cyan);
+    vertical-align: text-bottom;
+    border-radius: 1px;
+    animation: cursor-blink 1s step-end infinite;
+  }
+}
