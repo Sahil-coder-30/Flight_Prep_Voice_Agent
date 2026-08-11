@@ -6,6 +6,11 @@ export const AgentState = Annotation.Root({
         default: () => null,
     }),
 
+    scenarioId: Annotation({
+        reducer: (_, value) => value,
+        default: () => null,
+    }),
+
     steps: Annotation({
         reducer: (_, value) => value,
         default: () => [],
@@ -14,6 +19,11 @@ export const AgentState = Annotation.Root({
     stepIndex: Annotation({
         reducer: (_, value) => value,
         default: () => 0,
+    }),
+
+    currentStep: Annotation({
+        reducer: (_, value) => value,
+        default: () => null,
     }),
 
     currentLine: Annotation({

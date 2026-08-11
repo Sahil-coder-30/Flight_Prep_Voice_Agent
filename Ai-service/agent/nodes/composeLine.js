@@ -1,28 +1,55 @@
+import { composeLine as generateATCLine } from "../../services/mistral.service.js";
+
 export async function composeLine(state) {
-    const grounding = state.grounding ?? [];
+    const grounding =
+        state.grounding ?? [];
 
     if (!grounding.length) {
-        throw new Error("No grounding available for composeLine");
+        throw new Error(
+            "No grounding available for composeLine"
+        );
     }
 
-    const bestResult = grounding[0];
+    const step =
+        state.currentStep ??
+        state.steps?.[state.stepIndex];
 
-    const line = bestResult.text;
-
-    if (!line) {
-        throw new Error("Grounding result does not contain text");
+    if (!step) {
+        throw new Error(
+            "No current step available for composeLine"
+        );
     }
 
-    console.log("[Agent] Composed ATC line:", line);
+    const line =
+        await generateATCLine({
+            grounding,
+
+            slots:
+                step.expected ?? {},
+
+            instruction:
+                step.query,
+        });
+
+    console.log(
+        "[Agent] Composed ATC line:",
+        line
+    );
 
     return {
         currentLine: line,
+
         transcript: [
             {
                 role: "assistant",
+
                 content: line,
-                stepId: state.stepIndex,
-                timestamp: new Date(),
+
+                stepId:
+                    state.stepIndex,
+
+                timestamp:
+                    new Date(),
             },
         ],
     };

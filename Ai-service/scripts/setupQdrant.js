@@ -10,29 +10,113 @@ console.log(
 );
 console.log("QDRANT_COLLECTION:", COLLECTION);
 
+async function ensurePayloadIndex(
+    collection,
+    fieldName,
+    fieldSchema
+) {
+    console.log(
+        `[Qdrant] Ensuring payload index: ${fieldName}`
+    );
+
+    try {
+        await qdrantClient.createPayloadIndex(
+            collection,
+            {
+                field_name: fieldName,
+                field_schema: fieldSchema,
+                wait: true,
+            }
+        );
+
+        console.log(
+            `[Qdrant] Payload index ready: ${fieldName}`
+        );
+    } catch (error) {
+        const message =
+            error?.data?.status?.error ??
+            error?.message ??
+            "";
+
+        if (
+            message
+                .toLowerCase()
+                .includes("already exists")
+        ) {
+            console.log(
+                `[Qdrant] Payload index already exists: ${fieldName}`
+            );
+
+            return;
+        }
+
+        throw error;
+    }
+}
+
 async function setup() {
     if (!COLLECTION) {
-        throw new Error("QDRANT_COLLECTION is not defined");
+        throw new Error(
+            "QDRANT_COLLECTION is not defined"
+        );
     }
 
-    const { exists } = await qdrantClient.collectionExists(COLLECTION);
+    const { exists } =
+        await qdrantClient.collectionExists(
+            COLLECTION
+        );
 
-    if (exists) {
-        console.log(`Collection "${COLLECTION}" already exists`);
-        return;
+    if (!exists) {
+        await qdrantClient.createCollection(
+            COLLECTION,
+            {
+                vectors: {
+                    size: 1024,
+                    distance: "Cosine",
+                },
+            }
+        );
+
+        console.log(
+            `Created collection "${COLLECTION}"`
+        );
+    } else {
+        console.log(
+            `Collection "${COLLECTION}" already exists`
+        );
     }
 
-    await qdrantClient.createCollection(COLLECTION, {
-        vectors: {
-            size: 1024,
-            distance: "Cosine",
-        },
-    });
+    await ensurePayloadIndex(
+        COLLECTION,
+        "procedure_type",
+        "keyword"
+    );
 
-    console.log(`Created collection "${COLLECTION}"`);
+    await ensurePayloadIndex(
+        COLLECTION,
+        "phase",
+        "keyword"
+    );
+
+    console.log(
+        "\n================================="
+    );
+
+    console.log(
+        "✅ QDRANT SETUP COMPLETE"
+    );
+
+    console.log(
+        "================================="
+    );
 }
 
 setup().catch((error) => {
+    console.error(
+        "\n❌ QDRANT SETUP FAILED"
+    );
+
     console.error(error);
+
     process.exit(1);
 });

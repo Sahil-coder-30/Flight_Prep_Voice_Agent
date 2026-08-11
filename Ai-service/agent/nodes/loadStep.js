@@ -2,7 +2,9 @@ export async function loadStep(state) {
     const step = state.steps?.[state.stepIndex];
 
     if (!step) {
-        console.log("[Agent] Scenario completed.");
+        console.log(
+            "[Agent] Scenario completed."
+        );
 
         return {
             finished: true,
@@ -10,13 +12,25 @@ export async function loadStep(state) {
         };
     }
 
-    console.log(`[Agent] Loading step: ${step.id}`);
+    console.log(
+        `[Agent] Loading step: ${step.id}`
+    );
 
     return {
         finished: false,
+
         currentStep: step,
+
         currentLine: null,
+
+        audioBase64: null,
+
         grounding: [],
+
         extracted: null,
+
+        pilotTranscript: null,
+
+        retries: 0,
     };
 }

@@ -1,49 +1,69 @@
-import { extractReadback } from "../../services/mistral.service.js";
+import {
+    parseReadback,
+    validateAgainstExpected,
+} from "../../services/readbackValidator.service.js";
+
+import { startTimer } from "../../services/latency.service.js";
 
 export async function validateReadback(state) {
     const transcript = state.pilotTranscript;
 
-    console.log("[Agent] Validating readback:", transcript);
-
-    if (!transcript || typeof transcript !== "string") {
-        console.log("[Agent] No valid pilot transcript received.");
-
+    if (!transcript) {
         return {
             extracted: {
                 valid: false,
+                confidence: "unknown",
             },
             retries: (state.retries ?? 0) + 1,
         };
     }
 
-    const step = state.steps?.[state.stepIndex];
-
-    const expectedShape = {
-        taxiway: null,
-        runway: null,
-        hold_short: null,
-    };
-
-    const extracted = await extractReadback(
-        transcript,
-        expectedShape
-    );
+    const step =
+        state.currentStep ??
+        state.steps?.[state.stepIndex];
 
     const expected = step?.expected ?? {};
 
-    let valid = true;
+    console.log(
+        "[Agent] Validating readback:",
+        transcript
+    );
 
-    for (const key of Object.keys(expected)) {
-        if (extracted[key] !== expected[key]) {
-            valid = false;
-            break;
-        }
-    }
+    const timer = startTimer(
+        "Readback validation"
+    );
 
-    console.log("[Agent] Pilot transcript:", transcript);
-    console.log("[Agent] Extracted:", extracted);
-    console.log("[Agent] Expected:", expected);
-    console.log("[Agent] Readback valid:", valid);
+    const extracted = parseReadback(
+        transcript,
+        expected
+    );
+
+    const valid = validateAgainstExpected(
+        extracted,
+        expected
+    );
+
+    timer.end();
+
+    console.log(
+        "[Agent] Pilot transcript:",
+        transcript
+    );
+
+    console.log(
+        "[Agent] Extracted:",
+        extracted
+    );
+
+    console.log(
+        "[Agent] Expected:",
+        expected
+    );
+
+    console.log(
+        "[Agent] Readback valid:",
+        valid
+    );
 
     return {
         extracted: {
@@ -54,5 +74,7 @@ export async function validateReadback(state) {
         retries: valid
             ? 0
             : (state.retries ?? 0) + 1,
+
+        pilotTranscript: transcript,
     };
 }

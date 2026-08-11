@@ -739,3 +739,373 @@ Protects the API
 ```
 
 This separation makes the system easier to extend, test, and maintain as more ATC training scenarios are added.
+
+
+
+
+# FIX 2:
+
+
+## Current Status
+
+- Express/API server: working
+- MongoDB: working
+- LangGraph workflow and interrupt/resume: working
+- Qdrant retrieval and filtering: working
+- ATC knowledge ingestion: working
+- Mistral grounded ATC line composition: working
+- Rime TTS: working
+- Deterministic readback parsing/validation: working
+- Transcript persistence: working
+- End-to-end test suite: **PASS**
+
+### Verified scenarios
+
+```text
+departure-clearance  PASS
+landing-clearance    PASS
+frequency-change     PASS
+
+ALL SCENARIOS PASSED
+```
+
+## Architecture
+
+```text
+                    ┌──────────────────┐
+                    │     Scenario     │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │     Qdrant       │
+                    │ ATC Knowledge DB │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │     Mistral      │
+                    │ ATC Line Compose │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │      Rime        │
+                    │       TTS        │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                           Pilot
+                             │
+                             ▼
+                            STT
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │ Deterministic    │
+                    │ Readback Parser  │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │    LangGraph     │
+                    │ Validation/Flow  │
+                    └──────────────────┘
+```
+
+## Main Technologies
+
+- Node.js
+- Express
+- LangGraph
+- MongoDB / Mongoose
+- Qdrant
+- Mistral API
+- Rime TTS
+- dotenv
+
+## Project Structure
+
+```text
+ai-service/
+├── agent/
+│   ├── graph.js
+│   ├── state.js
+│   └── nodes/
+│       ├── loadStep.js
+│       ├── qdrantRetrieve.js
+│       ├── composeLine.js
+│       ├── ttsSpeak.js
+│       ├── awaitReadback.js
+│       ├── validateReadback.js
+│       ├── issueCorrection.js
+│       ├── clarify.js
+│       ├── advanceStep.js
+│       └── debrief.js
+├── controllers/
+│   └── aiSession.controller.js
+├── data/
+│   └── scenarios.js
+├── models/
+│   └── chatMessage.model.js
+├── routes/
+│   └── aiSession.routes.js
+├── services/
+│   ├── mistral.service.js
+│   ├── mistralRateLimiter.js
+│   ├── qdrant.service.js
+│   ├── readbackValidator.service.js
+│   ├── tts.service.js
+│   └── latency.service.js
+├── scripts/
+│   ├── aiSession.test.js
+│   ├── testQdrant.js
+│   └── ingestKnowledge.js
+└── server.js
+```
+
+## ATC Knowledge Base
+
+The current Qdrant collection is:
+
+```text
+roger_atc_knowledge
+```
+
+The development dataset currently covers:
+
+- Departure clearances
+- Departure clearance components
+- Departure/takeoff distinction
+- Landing clearances
+- Landing readbacks
+- Taxi instructions
+- Taxiway/runway assignments
+- Hold-short instructions
+- Runway crossing
+- Frequency transfers
+- Departure frequency changes
+- General readback guidance
+- Line up and wait
+
+Knowledge points include metadata such as procedure type, phase, category, jurisdiction, and source.
+
+The dataset is intentionally still small. A substantially larger ATC knowledge base will be added later.
+
+## Readback Validation
+
+Readback validation is intentionally deterministic rather than using another LLM request.
+
+The parser currently handles fields including:
+
+- Callsign
+- Runway
+- Departure
+- Squawk
+- Frequency
+- Taxiway
+- Hold-short runway
+
+Values are normalized before comparison with scenario expectations.
+
+## Session Flow
+
+A scenario starts through the AI session turn endpoint with a scenario ID.
+
+The graph executes:
+
+```text
+loadStep
+   ↓
+qdrantRetrieve
+   ↓
+composeLine
+   ↓
+ttsSpeak
+   ↓
+awaitReadback
+```
+
+The graph interrupts while waiting for the pilot.
+
+The next request resumes the same LangGraph thread with the pilot transcript:
+
+```text
+pilot transcript
+      ↓
+validateReadback
+      ↓
+correct / clarify / advance
+```
+
+A valid readback advances to the next scenario step.
+
+An invalid readback can trigger a correction, with retry handling performed by the graph.
+
+## Environment Variables
+
+Create a `.env` file with the required credentials/configuration:
+
+```env
+PORT=7000
+
+MONGODB_URI=...
+
+MISTRAL_API_KEY=...
+
+QDRANT_URL=...
+QDRANT_API_KEY=...
+
+RIME_API_KEY=...
+```
+
+Never commit `.env` or API keys to GitHub.
+
+## Running the Service
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+The AI service currently runs on port `7000`.
+
+## Knowledge Ingestion
+
+Knowledge ingestion is separate from live conversational testing.
+
+```bash
+npm run qdrant:ingest
+```
+
+This generates embeddings and upserts knowledge points into:
+
+```text
+roger_atc_knowledge
+```
+
+High latency during bulk knowledge ingestion is acceptable.
+
+## Qdrant Testing
+
+```bash
+node scripts/testQdrant.js
+```
+
+This verifies filtered retrieval for ATC procedures.
+
+## End-to-End Testing
+
+```bash
+node scripts/aiSession.test.js
+```
+
+The current suite verifies departure clearance, landing clearance, and frequency change scenarios.
+
+## Latency
+
+The service is functionally working, but live response latency still needs improvement.
+
+Recent measurements showed:
+
+- Mistral line composition: generally around 1–2 seconds
+- Rime TTS: several seconds
+- Qdrant retrieval: variable, with artificial waiting currently visible when requests are queued through the Mistral rate limiter
+
+The current Mistral rate limiter was introduced to control API request frequency during development and ingestion.
+
+### Planned latency work
+
+The architecture will **not** be rewritten.
+
+The next optimization is to separate:
+
+```text
+bulk/data-ingestion request throttling
+```
+
+from:
+
+```text
+live conversational response latency
+```
+
+The goal is a short, natural pause after the pilot finishes speaking, rather than artificial waits of many seconds.
+
+Rime TTS will then be benchmarked independently.
+
+## Roadmap
+
+### Phase 1 — Recovery
+
+- [x] Restore server startup
+- [x] Restore controller exports
+- [x] Restore scenario loading
+- [x] Restore Qdrant filtering
+- [x] Restore knowledge ingestion
+- [x] Restore graph execution
+- [x] Restore transcript persistence
+
+### Phase 2 — Functional Verification
+
+- [x] Departure clearance
+- [x] Landing clearance
+- [x] Frequency change
+- [x] Readback extraction
+- [x] Readback validation
+- [x] Correction path
+- [x] Scenario completion
+
+### Phase 3 — Runtime Latency
+
+- [ ] Separate ingestion Mistral throttling from live runtime
+- [ ] Measure embedding generation separately from Qdrant search
+- [ ] Benchmark live Qdrant retrieval
+- [ ] Benchmark Mistral response generation
+- [ ] Benchmark Rime TTS
+- [ ] Remove unnecessary waiting from the live turn path
+
+### Phase 4 — ATC Knowledge Expansion
+
+- [ ] Expand the ATC knowledge base substantially
+- [ ] Add additional procedures and phases
+- [ ] Add more realistic phraseology
+- [ ] Add edge cases and safety-critical distinctions
+- [ ] Add broader scenario coverage
+- [ ] Stress-test retrieval across the expanded dataset
+
+### Phase 5 — Training-Agent Behavior
+
+- [ ] More realistic pilot mistakes
+- [ ] Partial readbacks
+- [ ] Incorrect runway/readback handling
+- [ ] Incorrect squawk/frequency handling
+- [ ] Clarification behavior
+- [ ] Multi-step scenarios
+- [ ] More realistic ATC sequencing
+- [ ] Debrief/training feedback
+
+## Design Goal
+
+The primary goal is to build an AI agent that can realistically mimic the function of a pilot-facing ATC service for training.
+
+Priorities:
+
+1. Correct ATC behavior
+2. Grounded phraseology
+3. Reliable state management
+4. Realistic pilot/ATC interaction
+5. Safe handling of incorrect readbacks
+6. Reasonable conversational latency
+7. Expandable ATC knowledge
+
+Ultra-low latency is not the primary objective. A short conversational pause is acceptable; long artificial waits are not.
+
+The existing LangGraph + Qdrant + Mistral + TTS architecture is therefore being retained rather than replaced.

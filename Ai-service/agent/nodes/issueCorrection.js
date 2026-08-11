@@ -1,31 +1,90 @@
-import { composeLine as generateATCLine } from "../../services/mistral.service.js";
-import { speak } from "../../services/tts.service.js";
+function buildExpectedReadback(expected) {
+    const parts = [];
+
+    if (expected.callsign) {
+        parts.push(expected.callsign);
+    }
+
+    if (expected.departure) {
+        parts.push(
+            `cleared to ${expected.departure}`
+        );
+    }
+
+    if (expected.runway) {
+        parts.push(
+            `runway ${expected.runway}`
+        );
+    }
+
+    if (expected.squawk) {
+        parts.push(
+            `squawk ${expected.squawk}`
+        );
+    }
+
+    if (expected.frequency) {
+        parts.push(
+            `contact departure on ${expected.frequency}`
+        );
+    }
+
+    if (
+        expected.taxiway &&
+        expected.runway
+    ) {
+        parts.push(
+            `taxi via ${expected.taxiway}`
+        );
+
+        parts.push(
+            `hold short of runway ${expected.runway}`
+        );
+    }
+
+    if (
+        expected.hold_short &&
+        !expected.taxiway
+    ) {
+        parts.push(
+            `hold short of ${expected.hold_short}`
+        );
+    }
+
+    return parts.join(", ");
+}
 
 export async function issueCorrection(state) {
-    const step = state.steps?.[state.stepIndex];
+    const step =
+        state.currentStep ??
+        state.steps?.[state.stepIndex];
 
-    const correction = await generateATCLine({
-        grounding: state.grounding ?? [],
-        slots: state.extracted ?? {},
-        instruction: `
-The pilot's readback was incorrect.
+    const expected =
+        step?.expected ?? {};
 
-Pilot said:
-${state.pilotTranscript ?? ""}
+    const expectedReadback =
+        buildExpectedReadback(expected);
 
-Expected:
-${JSON.stringify(step?.expected ?? {})}
+    const correction =
+        `Negative readback. ${expectedReadback}.`;
 
-Issue a short ATC correction.
-Do not invent phraseology.
-`,
-    });
-
-    const audioBase64 = await speak(correction);
+    console.log(
+        "[Agent] Correction:",
+        correction
+    );
 
     return {
         currentLine: correction,
-        audioBase64,
-        retries: (state.retries ?? 0) + 1,
+
+        audioBase64: null,
+
+        transcript: [
+            {
+                role: "assistant",
+                content: correction,
+                stepId: state.stepIndex,
+                timestamp: new Date(),
+            },
+        ],
     };
 }

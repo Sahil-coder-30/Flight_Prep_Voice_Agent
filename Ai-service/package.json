@@ -6,7 +6,11 @@
   "main": "server.js",
   "scripts": {
     "dev": "nodemon -L server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "qdrant:setup": "node scripts/setupQdrant.js",
+    "qdrant:ingest": "node scripts/ingestKnowledge.js",
+    "qdrant:test": "node scripts/testQdrant.js",
+    "qdrant:inspect": "node scripts/inspectQdrant.js"
   },
   "keywords": [],
   "author": "",

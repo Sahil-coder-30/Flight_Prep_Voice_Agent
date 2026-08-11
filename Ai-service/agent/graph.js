@@ -2,9 +2,8 @@ import {
     StateGraph,
     START,
     END,
+    MemorySaver,
 } from "@langchain/langgraph";
-
-import { MemorySaver } from "@langchain/langgraph";
 
 import { AgentState } from "./state.js";
 
@@ -19,46 +18,69 @@ import { clarify } from "./nodes/clarify.js";
 import { advanceStep } from "./nodes/advanceStep.js";
 import { debrief } from "./nodes/debrief.js";
 
+const workflow =
+    new StateGraph(AgentState)
 
-const workflow = new StateGraph(AgentState)
-    .addNode("loadStep", loadStep)
-    .addNode("qdrantRetrieve", qdrantRetrieve)
-    .addNode("composeLine", composeLine)
-    .addNode("ttsSpeak", ttsSpeak)
-    .addNode("awaitReadback", awaitReadback)
-    .addNode("validateReadback", validateReadback)
-    .addNode("issueCorrection", issueCorrection)
-    .addNode("clarify", clarify)
-    .addNode("advanceStep", advanceStep)
-    .addNode("debrief", debrief);
+        .addNode("loadStep", loadStep)
+        .addNode("qdrantRetrieve", qdrantRetrieve)
+        .addNode("composeLine", composeLine)
+        .addNode("ttsSpeak", ttsSpeak)
+        .addNode("awaitReadback", awaitReadback)
+        .addNode("validateReadback", validateReadback)
+        .addNode("issueCorrection", issueCorrection)
+        .addNode("clarify", clarify)
+        .addNode("advanceStep", advanceStep)
+        .addNode("debrief", debrief);
 
+workflow.addEdge(
+    START,
+    "loadStep"
+);
 
-workflow.addEdge(START, "loadStep");
+workflow.addEdge(
+    "loadStep",
+    "qdrantRetrieve"
+);
 
-workflow.addEdge("loadStep", "qdrantRetrieve");
+workflow.addEdge(
+    "qdrantRetrieve",
+    "composeLine"
+);
 
-workflow.addEdge("qdrantRetrieve", "composeLine");
+workflow.addEdge(
+    "composeLine",
+    "ttsSpeak"
+);
 
-workflow.addEdge("composeLine", "ttsSpeak");
+workflow.addEdge(
+    "ttsSpeak",
+    "awaitReadback"
+);
 
-workflow.addEdge("ttsSpeak", "awaitReadback");
-
-workflow.addEdge("awaitReadback", "validateReadback");
-
+workflow.addEdge(
+    "awaitReadback",
+    "validateReadback"
+);
 
 workflow.addConditionalEdges(
     "validateReadback",
+
     (state) => {
-        if (state.extracted?.valid === true) {
+        if (
+            state.extracted?.valid === true
+        ) {
             return "correct";
         }
 
-        if ((state.retries ?? 0) >= 2) {
+        if (
+            (state.retries ?? 0) >= 2
+        ) {
             return "clarify";
         }
 
         return "incorrect";
     },
+
     {
         correct: "advanceStep",
         incorrect: "issueCorrection",
@@ -66,14 +88,19 @@ workflow.addConditionalEdges(
     }
 );
 
+workflow.addEdge(
+    "issueCorrection",
+    "ttsSpeak"
+);
 
-workflow.addEdge("issueCorrection", "awaitReadback");
-
-workflow.addEdge("clarify", "awaitReadback");
-
+workflow.addEdge(
+    "clarify",
+    "ttsSpeak"
+);
 
 workflow.addConditionalEdges(
     "advanceStep",
+
     (state) => {
         if (state.finished) {
             return "finished";
@@ -81,17 +108,26 @@ workflow.addConditionalEdges(
 
         return "next";
     },
+
     {
         finished: "debrief",
         next: "loadStep",
     }
 );
 
+workflow.addEdge(
+    "debrief",
+    END
+);
 
-workflow.addEdge("debrief", END);
+const checkpointer =
+    new MemorySaver();
 
-const checkpointer = new MemorySaver();
+const compiledGraph =
+    workflow.compile({
+        checkpointer,
+    });
 
-const compiledGraph = workflow.compile({ checkpointer });
-
-export { compiledGraph };
+export {
+    compiledGraph,
+};

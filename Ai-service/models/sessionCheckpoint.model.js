@@ -7,4 +7,4 @@ const sessionCheckpointSchema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now },
 });
 
-export { sessionCheckpointSchema };
+export { sessionCheckpointSchema }

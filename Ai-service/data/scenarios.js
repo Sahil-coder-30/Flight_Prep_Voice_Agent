@@ -1,27 +1,75 @@
 export const scenarios = {
-    "taxi-basic": {
-        id: "taxi-basic",
+    "departure-clearance": {
+        id: "departure-clearance",
 
         steps: [
             {
-                id: "taxi-1",
+                id: "departure-1",
 
-                query: "Issue a taxi clearance to runway 27.",
+                query:
+                    "Issue an IFR departure clearance to the aircraft.",
 
-                procedureType: "taxi",
+                procedureType:
+                    "departure",
 
-                phase: "ground",
+                phase:
+                    "clearance",
 
                 expected: {
-                    taxiway: "Alpha",
+                    callsign: "VTX123",
                     runway: "27",
-                    hold_short: "runway 27"
-                }
-            }
-        ]
-    }
+                    departure: "NAGPUR",
+                    squawk: "4521",
+                },
+            },
+        ],
+    },
+
+    "landing-clearance": {
+        id: "landing-clearance",
+
+        steps: [
+            {
+                id: "landing-1",
+
+                query:
+                    "Issue a landing clearance to the aircraft.",
+
+                procedureType:
+                    "landing",
+
+                phase:
+                    "tower",
+
+                expected: {
+                    callsign: "VTX123",
+                    runway: "27",
+                },
+            },
+        ],
+    },
+
+    "frequency-change": {
+        id: "frequency-change",
+
+        steps: [
+            {
+                id: "frequency-1",
+
+                query:
+                    "Instruct the aircraft to contact departure control.",
+
+                procedureType:
+                    "frequency_change",
+
+                phase:
+                    "departure",
+
+                expected: {
+                    callsign: "VTX123",
+                    frequency: "124.7",
+                },
+            },
+        ],
+    },
 };
-
-// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InRlc3QtdXNlciIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc4NjQ0MDU1MiwiZXhwIjoxNzg2NDQ0MTUyfQ.7IfH2BzkUX5WGu_9AW6y0f3uvXd-Gee3AH5y8I6IcKE
-
-// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InRlc3QtdXNlciIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc4NjQ0MTgyMCwiZXhwIjoxNzg2NDQ1NDIwfQ.90vxJ16Hx9-BExMd6PHoP7a1KBgRgaBMvilOu396RQs
