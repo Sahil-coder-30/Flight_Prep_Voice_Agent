@@ -1,13 +1,21 @@
-const express = require('express');
-const { identifyUser } = require('../middleware/identifyUser.middleware');
-const { rateLimiter } = require('../middleware/rate-limit.middleware');
-const aiSessionController = require('../controllers/aiSession.controller');
+import express from "express";
+
+import { identifyUser } from "../middleware/identifyUser.middleware.js";
+import { apiRateLimiter } from "../middleware/rate-limit.middleware.js";
+import * as aiSessionController from "../controllers/aiSession.controller.js";
 
 const router = express.Router();
 
-router.use(identifyUser, rateLimiter);
+router.use(identifyUser, apiRateLimiter);
 
-router.post('/sessions/:id/turn', aiSessionController.turn);
-router.get('/sessions/:id/transcript', aiSessionController.getTranscript);
+router.post(
+    "/sessions/:id/turn",
+    aiSessionController.turn
+);
 
-module.exports = router;
+router.get(
+    "/sessions/:id/transcript",
+    aiSessionController.getTranscript
+);
+
+export default router;

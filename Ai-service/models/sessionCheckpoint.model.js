@@ -1,9 +1,10 @@
-const { Schema, model } = require('mongoose');
+import mongoose from "mongoose";
 
-const sessionCheckpointSchema = new Schema({
+
+const sessionCheckpointSchema = new mongoose.Schema({
     sessionId: { type: String, unique: true, index: true, required: true },
     langgraphState: { type: Schema.Types.Mixed, required: true },
     updatedAt: { type: Date, default: Date.now },
 });
 
-module.exports = model('SessionCheckpoint', sessionCheckpointSchema);
+export { sessionCheckpointSchema };

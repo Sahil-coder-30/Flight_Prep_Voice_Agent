@@ -1,40 +1,29 @@
 import "dotenv/config";
-import { qdrantClient } from "../config/qdrant.js";
 import { embedText } from "../services/qdrant.service.js";
+import { qdrantClient } from "../config/qdrant.js";
 
 const COLLECTION = process.env.QDRANT_COLLECTION;
 
-const text = "Taxi via Alpha and hold short of runway 27.";
-
 async function main() {
-    const vector = await embedText(text);
+    console.log("Collection:", COLLECTION);
 
-    console.log("Embedding dimensions:", vector.length);
+    const vector = await embedText(
+        "Issue a taxi clearance to runway 27."
+    );
 
-    await qdrantClient.upsert(COLLECTION, {
-        wait: true,
-        points: [
-            {
-                id: 1,
-                vector,
-                payload: {
-                    text,
-                    procedure_type: "taxi",
-                    phase: "ground",
-                    source: "test",
-                },
-            },
-        ],
-    });
+    console.log("Vector dimensions:", vector.length);
 
-    console.log("Inserted test point");
-
-    const results = await qdrantClient.query(COLLECTION, {
-        vector,
+    const result = await qdrantClient.query(COLLECTION, {
+        query: vector,
         limit: 3,
+        with_payload: true,
     });
 
-    console.log(results);
+    console.log("\nQDRANT RESULTS:");
+    console.dir(result, { depth: 5 });
 }
 
-main().catch(console.error);
+main().catch((error) => {
+    console.error("\nQDRANT TEST FAILED");
+    console.error(error);
+});

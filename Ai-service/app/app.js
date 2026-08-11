@@ -1,8 +1,10 @@
-const express = require('express');
-const aiSessionRoutes = require('./routes/aiSession.routes');
+import express from "express";
+import aiSessionRoutes from "../routes/aiSession.routes.js";
 
 const app = express();
-app.use(express.json({ limit: '10mb' })); // base64 audio payloads need headroom
+
+app.use(express.json({ limit: "10mb" }));
+
 app.use(aiSessionRoutes);
 
-module.exports = app;
+export default app;

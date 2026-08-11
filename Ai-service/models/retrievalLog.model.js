@@ -1,6 +1,6 @@
-const { Schema, model } = require('mongoose');
+import mongoose from "mongoose";
 
-const retrievalLogSchema = new Schema({
+const retrievalLogSchema = new mongoose.Schema({
     sessionId: { type: String, index: true, required: true },
     stepId: String,
     query: String,
@@ -8,4 +8,4 @@ const retrievalLogSchema = new Schema({
     timestamp: { type: Date, default: Date.now },
 });
 
-module.exports = model('RetrievalLog', retrievalLogSchema);
+export { RetrievalLog }

@@ -40,107 +40,702 @@ The AI Service handles all real-time voice processing, speech recognition (STT),
 
 ## 🚧 Built Features & Current State
 
-### Current state
-| Field | Value |
-|---|---|
-| **Status** | 🟢 Active Development |
-| **Version** | v1.0.0 |
-| **Last updated** | 2026-08-09 |
-| **Owner(s)** | AI & Speech Team |
-| **Known technical debt** | WebSocket streaming STT/TTS pipeline to complement REST turn endpoint |
+# ATC AI Service
 
-### Features built (working today)
-- `POST /api/ai/sessions/:id/turn` — Processes conversational turns via LangGraph state machine & Qdrant RAG — ✅ done
-- `GET /api/ai/sessions/:id/transcript` — Retrieves full conversation transcripts & audio references — ✅ done
-- `identifyUser` Middleware — Statelessly verifies RS256 JWT access tokens via JWKS caching (24h TTL + `kid` lookup) — ✅ done
+AI-powered backend service for the **ATC Pilot Training / Flight Prep Voice Agent**.
 
-### How it was built
-- **Language/runtime:** Node.js 20 (ES Modules)
-- **Framework:** Express 5 & LangGraph JS
-- **Design patterns used:** LangGraph Interrupt/Checkpoint state machine, Retrieval-Augmented Generation (RAG)
-- **Key libraries:** `@langchain/langgraph`, `@qdrant/js-client-rest`, `@mistralai/mistralai`
+The service provides a stateful conversational ATC training environment where the system issues ATC clearances, generates spoken responses, waits for pilot readbacks, validates them, provides corrections when necessary, and advances through training scenarios.
 
 ---
 
-## 🏗️ Architecture & Design Patterns
+## Overview
 
+The AI Service is built around **LangGraph** and follows a stateful agent workflow.
+
+The main pipeline is:
+
+```text
+Client / Frontend
+       │
+       ▼
+AI Service API
+       │
+       ▼
+JWT Authentication
+       │
+       ▼
+AI Session Controller
+       │
+       ▼
+LangGraph Agent
+       │
+       ├── Load Scenario Step
+       │
+       ├── Retrieve ATC Knowledge
+       │        │
+       │        ├── Mistral Embeddings
+       │        └── Qdrant
+       │
+       ├── Compose ATC Clearance
+       │
+       ├── Generate TTS
+       │
+       ├── Wait for Pilot Readback
+       │
+       ├── Validate Readback
+       │
+       ├── Correct / Retry
+       │
+       └── Advance Scenario
 ```
-Ai-service/
-├── server.js           ← Entry point only
-├── app/
-│   └── app.js          ← Express app factory
-├── config/             ← DB, Qdrant & Redis configs
-├── controllers/        ← AI session handlers
-├── middleware/         ← JWKS auth verification
-├── models/             ← ChatMessage, SessionCheckpoint, RetrievalLog
-├── routes/             ← Express routers
-└── services/           ← LangGraph, Qdrant, Mistral, STT, TTS adapters
+
+The important design principle is that the LLM is **grounded using ATC knowledge retrieved from Qdrant**, rather than relying entirely on generated knowledge.
+
+---
+
+# Architecture
+
+## Main Components
+
+| Component     | Responsibility                                    |
+| ------------- | ------------------------------------------------- |
+| Express       | HTTP API server                                   |
+| JWT           | Request authentication                            |
+| LangGraph     | Agent orchestration and state management          |
+| MongoDB       | Chat/session transcript persistence               |
+| Qdrant        | Vector search / ATC knowledge retrieval           |
+| Mistral       | Embeddings, extraction and AI processing          |
+| TTS service   | Converts ATC text into speech                     |
+| Scenario data | Defines training exercises and expected responses |
+| MemorySaver   | Maintains LangGraph session state                 |
+
+---
+
+# LangGraph Workflow
+
+The main graph is defined in:
+
+```text
+agent/graph.js
+```
+
+The workflow is:
+
+```text
+START
+  │
+  ▼
+loadStep
+  │
+  ▼
+qdrantRetrieve
+  │
+  ▼
+composeLine
+  │
+  ▼
+ttsSpeak
+  │
+  ▼
+awaitReadback
+  │
+  ▼
+validateReadback
+  │
+  ├────────────── Correct ──────────────┐
+  │                                    │
+  │                                    ▼
+  │                              advanceStep
+  │                                    │
+  │                           ┌────────┴────────┐
+  │                           │                 │
+  │                        finished           next
+  │                           │                 │
+  │                           ▼                 ▼
+  │                        debrief          loadStep
+  │
+  ├──────────── Incorrect ──────► issueCorrection
+  │                                  │
+  │                                  ▼
+  │                            awaitReadback
+  │
+  └──────────── Retry limit ─────► clarify
+                                     │
+                                     ▼
+                               awaitReadback
+```
+
+This allows the agent to behave like an actual interactive training session instead of a simple request/response chatbot.
+
+---
+
+# Agent State
+
+The shared state is defined in:
+
+```text
+agent/state.js
+```
+
+Important fields include:
+
+```text
+sessionId
+steps
+stepIndex
+currentLine
+audioBase64
+pilotTranscript
+extracted
+retries
+grounding
+transcript
+finished
+```
+
+Each LangGraph node reads the relevant information from this state and returns updates to it.
+
+---
+
+# Scenario System
+
+Training scenarios are data-driven.
+
+Scenario definitions are stored in:
+
+```text
+data/scenarios.js
+```
+
+Example:
+
+```js
+export const scenarios = {
+    "taxi-basic": {
+        id: "taxi-basic",
+
+        steps: [
+            {
+                id: "taxi-1",
+
+                query: "Issue a taxi clearance to runway 27.",
+
+                procedureType: "taxi",
+
+                phase: "ground",
+
+                expected: {
+                    taxiway: "Alpha",
+                    runway: "27",
+                    hold_short: "runway 27",
+                },
+            },
+        ],
+    },
+};
+```
+
+This separates **training content** from **agent logic**.
+
+Adding another scenario should generally require adding scenario data rather than rewriting the LangGraph workflow.
+
+---
+
+# Qdrant Grounding
+
+Qdrant provides the ATC knowledge used to ground the agent's responses.
+
+The retrieval process is:
+
+```text
+Scenario Query
+      │
+      ▼
+Mistral Embedding API
+      │
+      ▼
+1024-dimensional vector
+      │
+      ▼
+Qdrant Vector Search
+      │
+      ▼
+Relevant ATC Knowledge
+      │
+      ▼
+LangGraph State
+```
+
+For example:
+
+```text
+Query:
+Issue a taxi clearance to runway 27.
+
+Retrieved knowledge:
+Taxi via Alpha and hold short of runway 27.
+```
+
+The retrieved result becomes part of:
+
+```text
+state.grounding
+```
+
+This grounding is then used when composing the ATC line.
+
+---
+
+# Readback Validation
+
+The pilot's response is not validated using simple string comparison.
+
+Instead, Mistral extracts structured information from the transcript.
+
+Example pilot response:
+
+```text
+Taxi via Alpha and hold short of runway 27.
+```
+
+Extracted data:
+
+```js
+{
+    taxiway: "Alpha",
+    runway: "27",
+    hold_short: "runway 27"
+}
+```
+
+The extracted fields are compared against the scenario's expected values:
+
+```js
+expected: {
+    taxiway: "Alpha",
+    runway: "27",
+    hold_short: "runway 27",
+}
+```
+
+This allows semantic/field-based validation instead of requiring an exact sentence match.
+
+---
+
+# LangGraph Interrupt / Resume
+
+One of the key parts of the system is the readback waiting mechanism.
+
+The `awaitReadback` node uses:
+
+```js
+interrupt({
+    type: "await_readback",
+    sessionId: state.sessionId,
+    stepIndex: state.stepIndex,
+    currentLine: state.currentLine,
+});
+```
+
+This pauses the graph while waiting for the pilot.
+
+The flow becomes:
+
+```text
+ATC generates clearance
+        │
+        ▼
+TTS generated
+        │
+        ▼
+LangGraph interrupt()
+        │
+        ▼
+Pilot provides speech/text
+        │
+        ▼
+Controller receives transcript
+        │
+        ▼
+Command({ resume: pilotTranscript })
+        │
+        ▼
+LangGraph continues
+        │
+        ▼
+Validate readback
+```
+
+The graph therefore maintains the conversational state across requests.
+
+---
+
+# Session Persistence
+
+LangGraph uses a checkpointer:
+
+```js
+const checkpointer = new MemorySaver();
+
+const compiledGraph = workflow.compile({
+    checkpointer,
+});
+```
+
+The controller supplies a thread ID:
+
+```js
+const config = {
+    configurable: {
+        thread_id: id,
+    },
+};
+```
+
+This allows multiple requests belonging to the same session to continue the same LangGraph execution.
+
+---
+
+# Authentication
+
+The AI service uses JWT authentication.
+
+Requests contain:
+
+```text
+Authorization: Bearer <JWT>
+```
+
+The middleware verifies the token using:
+
+```js
+jwt.verify(
+    token,
+    process.env.JWT_SECRET
+);
+```
+
+The secret is stored in `.env`:
+
+```env
+JWT_SECRET=<secret>
+```
+
+The AI service should never hardcode the JWT secret in application code.
+
+---
+
+# API
+
+The primary training endpoint is:
+
+```http
+POST /sessions/:id/turn
+```
+
+### Starting a session
+
+Send an empty body:
+
+```json
+{}
+```
+
+The agent starts the scenario and returns an ATC response.
+
+Example:
+
+```json
+{
+    "audioBase64": "...",
+    "finished": false,
+    "currentLine": "Taxi via Alpha and hold short of runway 27."
+}
+```
+
+### Resuming with a pilot readback
+
+Send:
+
+```json
+{
+    "pilotTranscript": "Taxi via Alpha and hold short of runway 27"
+}
+```
+
+The graph resumes from the readback interrupt and validates the response.
+
+A successful final response looks like:
+
+```json
+{
+    "audioBase64": "...",
+    "finished": true,
+    "currentLine": "Taxi via Alpha and hold short of runway 27."
+}
 ```
 
 ---
 
-## ⚙️ Usage & Setup
+# Transcript API
 
-### Environment variables
+The service also exposes the session transcript.
 
-| Key | Required | Description | Example (fake) |
-|---|---|---|---|
-| `PORT` | ✅ | Port the service listens on | `7000` |
-| `NODE_ENV` | ✅ | Node environment | `development` |
-| `MONGO_URI` | ✅ | MongoDB connection string | `mongodb://localhost:27017/atc-ai-service` |
-| `REDIS_URL` | ✅ | Redis connection string | `redis://localhost:6379` |
-| `AUTH_JWKS_URI` | ✅ | Auth JWKS endpoint | `http://localhost/api/auth/.well-known/jwks.json` |
-| `QDRANT_URL` | ✅ | Qdrant vector database URL | `http://localhost:6333` |
-| `MISTRAL_API_KEY` | ✅ | Mistral LLM API key | `mistral-fake-key-123` |
-| `DEEPGRAM_API_KEY` | ✅ | Deepgram STT API key | `deepgram-fake-key-456` |
-| `RIME_API_KEY` | ✅ | Rime TTS API key | `rime-fake-key-789` |
+```http
+GET /sessions/:id/transcript
+```
 
-### Run locally
+The controller retrieves messages from MongoDB and returns them ordered by timestamp.
+
+---
+
+# Testing
+
+Manual `curl` testing was initially used during development, but the project now includes an automated test script.
+
+Example location:
+
+```text
+scripts/
+└── aiSession.test.js
+```
+
+Run the AI service first:
+
 ```bash
-# 1. Install dependencies
-npm install
-
-# 2. Start in dev mode
-npm run dev
-
-# 3. Run production mode
 npm start
 ```
 
----
+Then, in another terminal:
 
-## 🔌 Communication & Contracts
+```bash
+node ./scripts/aiSession.test.js
+```
 
-### Synchronous (REST/gRPC)
-| Direction | Protocol | Endpoint / method | Counterpart |
-|---|---|---|---|
-| Inbound | HTTP REST | `POST /api/ai/sessions/:id/turn` | Core Backend Service |
-| Inbound | HTTP REST | `GET /api/ai/sessions/:id/transcript` | Core Backend Service |
-| Outbound | HTTP REST | Qdrant Search API | Qdrant |
-| Outbound | HTTP REST | Mistral Chat Completion API | Mistral AI |
+The test automatically:
 
----
+1. Generates a fresh JWT using `JWT_SECRET`.
+2. Creates a unique session ID.
+3. Starts the training scenario.
+4. Verifies that an ATC clearance is generated.
+5. Sends a correct pilot readback.
+6. Verifies that the scenario finishes successfully.
 
-## 🛡️ Production Readiness
-
-### Health & observability
-- **Liveness:** `GET /healthz` — returns 200 OK
-- **Readiness:** `GET /ready` — returns 200 OK
-- **Structured logging:** Morgan HTTP logger
-
-### Security & compliance
-- **AuthN/AuthZ:** Local RS256 JWKS access token verification
-- **Rate limiting:** Express rate limiter on AI endpoints
+This avoids manually generating JWTs or constructing PowerShell `curl` commands.
 
 ---
 
-## 📝 Changelog & Migration State
+# Environment Variables
 
-| Version | Date | Change | Migration notes |
-|---|---|---|---|
-| `v1.0.0` | 2026-08-09 | Initial AI Service scaffold & LangGraph agent setup | None |
+The service requires environment variables for authentication and external services.
+
+Example:
+
+```env
+PORT=7000
+
+JWT_SECRET=<jwt-secret>
+
+MONGODB_URI=<mongodb-connection-string>
+
+QDRANT_URL=<qdrant-url>
+QDRANT_API_KEY=<qdrant-api-key>
+QDRANT_COLLECTION=roger_atc_knowledge
+
+MISTRAL_API_KEY=<mistral-api-key>
+```
+
+Additional variables may be required depending on the configured TTS provider.
+
+Never commit `.env` or API keys to Git.
 
 ---
 
-## 🤝 Ownership
-- **Maintainer(s):** ATC Platform Team
+# Project Structure
+
+Current high-level structure:
+
+```text
+ai-service/
+│
+├── agent/
+│   ├── graph.js
+│   ├── state.js
+│   │
+│   └── nodes/
+│       ├── loadStep.js
+│       ├── qdrantRetrieve.js
+│       ├── composeLine.js
+│       ├── ttsSpeak.js
+│       ├── awaitReadback.js
+│       ├── validateReadback.js
+│       ├── issueCorrection.js
+│       ├── clarify.js
+│       ├── advanceStep.js
+│       └── debrief.js
+│
+├── config/
+│   └── qdrant.js
+│
+├── controllers/
+│   └── aiSession.controller.js
+│
+├── data/
+│   └── scenarios.js
+│
+├── middleware/
+│   ├── identifyUser.middleware.js
+│   └── rate-limit.middleware.js
+│
+├── models/
+│   └── chatMessage.model.js
+│
+├── routes/
+│   └── aiSession.routes.js
+│
+├── services/
+│   ├── qdrant.service.js
+│   └── mistral.service.js
+│
+├── sockets/
+│   └── aiSession.socket.js
+│
+├── scripts/
+│   └── aiSession.test.js
+│
+├── server.js
+├── package.json
+└── .env
+```
+
+---
+
+# Current Working Flow
+
+The current working happy path is:
+
+```text
+Client
+  │
+  │ POST /sessions/:id/turn
+  ▼
+JWT authentication
+  │
+  ▼
+Controller
+  │
+  ▼
+LangGraph
+  │
+  ▼
+Load taxi-1
+  │
+  ▼
+Qdrant retrieval
+  │
+  ▼
+Grounding:
+"Taxi via Alpha and hold short of runway 27."
+  │
+  ▼
+Compose ATC line
+  │
+  ▼
+TTS
+  │
+  ▼
+interrupt()
+  │
+  │ Pilot readback
+  ▼
+Mistral extraction
+  │
+  ▼
+Compare with expected fields
+  │
+  ▼
+Valid
+  │
+  ▼
+Advance step
+  │
+  ▼
+finished = true
+```
+
+---
+
+# Current Development Status
+
+### Working
+
+* Express AI service
+* MongoDB connection
+* JWT authentication
+* Rate limiting
+* LangGraph workflow
+* Scenario loading
+* Qdrant retrieval
+* Mistral embeddings
+* ATC grounding
+* ATC line composition
+* TTS generation
+* LangGraph interrupt/resume
+* Pilot transcript handling
+* Structured readback extraction
+* Readback validation
+* Scenario completion
+* Automated happy-path test
+
+### Next Important Areas
+
+The next development focus should be:
+
+1. **Incorrect readback handling**
+2. **Correction generation**
+3. **Retry limits**
+4. **Clarification behavior**
+5. **Multiple scenario steps**
+6. **Debrief generation**
+7. **Real speech-to-text integration**
+8. **Socket-based real-time communication**
+9. **Frontend integration**
+10. **Production-grade LangGraph persistence**
+
+---
+
+# Design Principle
+
+The core architecture intentionally separates responsibilities:
+
+```text
+Scenario Data
+    ↓
+Defines what should happen
+
+LangGraph
+    ↓
+Controls how the session progresses
+
+Qdrant
+    ↓
+Provides factual ATC grounding
+
+Mistral
+    ↓
+Performs embedding / extraction / AI reasoning
+
+TTS
+    ↓
+Provides spoken ATC output
+
+MongoDB
+    ↓
+Stores conversation history
+
+JWT
+    ↓
+Protects the API
+```
+
+This separation makes the system easier to extend, test, and maintain as more ATC training scenarios are added.

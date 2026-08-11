@@ -1,20 +1,58 @@
-const { Annotation } = require('@langchain/langgraph');
+import { Annotation } from "@langchain/langgraph";
 
-const AgentState = Annotation.Root({
-    sessionId: Annotation(),
-    stepIndex: Annotation({ default: () => 0, reducer: (_, n) => n }),
-    steps: Annotation(),
-    currentLine: Annotation(),
-    audioBase64: Annotation(),
-    pilotTranscript: Annotation(),
-    extracted: Annotation(),
-    retries: Annotation({ default: () => 0, reducer: (_, n) => n }),
-    grounding: Annotation(),
-    transcript: Annotation({
-        default: () => [],
-        reducer: (curr, add) => curr.concat(add),
+export const AgentState = Annotation.Root({
+    sessionId: Annotation({
+        reducer: (_, value) => value,
+        default: () => null,
     }),
-    finished: Annotation({ default: () => false, reducer: (_, v) => v }),
-});
 
-module.exports = { AgentState };
+    steps: Annotation({
+        reducer: (_, value) => value,
+        default: () => [],
+    }),
+
+    stepIndex: Annotation({
+        reducer: (_, value) => value,
+        default: () => 0,
+    }),
+
+    currentLine: Annotation({
+        reducer: (_, value) => value,
+        default: () => null,
+    }),
+
+    audioBase64: Annotation({
+        reducer: (_, value) => value,
+        default: () => null,
+    }),
+
+    pilotTranscript: Annotation({
+        reducer: (_, value) => value,
+        default: () => null,
+    }),
+
+    extracted: Annotation({
+        reducer: (_, value) => value,
+        default: () => null,
+    }),
+
+    retries: Annotation({
+        reducer: (_, value) => value,
+        default: () => 0,
+    }),
+
+    grounding: Annotation({
+        reducer: (_, value) => value,
+        default: () => [],
+    }),
+
+    transcript: Annotation({
+        reducer: (current, added) => current.concat(added),
+        default: () => [],
+    }),
+
+    finished: Annotation({
+        reducer: (_, value) => value,
+        default: () => false,
+    }),
+});
