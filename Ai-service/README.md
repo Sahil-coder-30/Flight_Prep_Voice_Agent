@@ -92,8 +92,7 @@ Ai-service/
 | `AUTH_JWKS_URI` | ✅ | Auth JWKS endpoint | `http://localhost/api/auth/.well-known/jwks.json` |
 | `QDRANT_URL` | ✅ | Qdrant vector database URL | `http://localhost:6333` |
 | `MISTRAL_API_KEY` | ✅ | Mistral LLM API key | `mistral-fake-key-123` |
-| `DEEPGRAM_API_KEY` | ✅ | Deepgram STT API key | `deepgram-fake-key-456` |
-| `RIME_API_KEY` | ✅ | Rime TTS API key | `rime-fake-key-789` |
+| `RIME_API_KEY` | ✅ | Rime STT & TTS API key | `rime-fake-key-789` |
 
 ### Run locally
 ```bash

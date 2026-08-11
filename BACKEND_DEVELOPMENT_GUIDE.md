@@ -50,7 +50,7 @@ Our backend is built as a **Distributed Microservice System** using Node.js 20 (
 - **Database & Modeling:** MongoDB via Mongoose.
 - **Authentication:** Passport.js (Google OAuth2), RSA-4096 asymmetric JWT signing (RS256), HttpOnly Refresh Token Cookies.
 - **AI Orchestration & RAG:** LangGraph JS (`@langchain/langgraph`), Qdrant Vector Search (`@qdrant/js-client-rest`), Mistral LLM API (`@mistralai/mistralai`).
-- **Speech Processing:** Deepgram STT API, Rime TTS API.
+- **Speech Processing:** Rime STT API, Rime TTS API.
 - **Containerization & Deployment:** Docker (`node:20-alpine`), Kubernetes (`k8s/*.yml`), Skaffold (`skaffold dev`).
 
 ---
@@ -279,7 +279,7 @@ The `Ai-service` handles conversational AI turns:
 1. **State Machine (`services/langgraph.service.js`):** Uses LangGraph JS to manage agent state, aircraft position parameters (altitude, heading, speed), and controller radio turn interrupts.
 2. **Vector RAG Grounding (`services/qdrant.service.js`):** Queries Qdrant vector database (`atc_phraseology` collection) to inject standard ICAO/FAA phraseology rules into prompt context.
 3. **LLM Inference (`services/mistral.service.js`):** Evaluates prompt context using Mistral AI to produce realistic controller transmissions.
-4. **Speech Conversion (`services/stt.service.js` & `services/tts.service.js`):** Deepgram converts student radio transmissions into text; Rime TTS generates synthesized voice responses with radio static effects.
+4. **Speech Conversion (`services/stt.service.js` & `services/tts.service.js`):** Rime STT converts student radio transmissions into text; Rime TTS generates synthesized voice responses with radio static effects.
 
 ---
 

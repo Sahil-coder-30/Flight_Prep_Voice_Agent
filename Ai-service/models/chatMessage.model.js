@@ -1,33 +1,12 @@
-import mongoose from 'mongoose';
+const { Schema, model } = require('mongoose');
 
-export const CHAT_ROLES = ['controller', 'pilot', 'system'];
+const chatMessageSchema = new Schema({
+    sessionId: { type: String, index: true, required: true },
+    role: { type: String, enum: ['controller', 'pilot'], required: true },
+    text: { type: String, required: true },
+    audioRef: String,
+    stepId: String,
+    timestamp: { type: Date, default: Date.now },
+});
 
-const chatMessageSchema = new mongoose.Schema(
-    {
-        sessionId: {
-            type: mongoose.Schema.Types.ObjectId,
-            required: true,
-            index: true,
-        },
-        stepId: {
-            type: String,
-            required: true,
-        },
-        role: {
-            type: String,
-            enum: CHAT_ROLES,
-            required: true,
-        },
-        text: {
-            type: String,
-            required: true,
-        },
-        audioRef: {
-            type: String, // URL or S3 key to synthesized audio file
-        },
-    },
-    { timestamps: true }
-);
-
-const ChatMessage = mongoose.model('ChatMessage', chatMessageSchema);
-export default ChatMessage;
+module.exports = model('ChatMessage', chatMessageSchema);

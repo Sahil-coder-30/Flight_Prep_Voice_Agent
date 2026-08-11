@@ -1,27 +1,11 @@
-import mongoose from 'mongoose';
+const { Schema, model } = require('mongoose');
 
-const retrievalLogSchema = new mongoose.Schema(
-    {
-        sessionId: {
-            type: mongoose.Schema.Types.ObjectId,
-            required: true,
-            index: true,
-        },
-        stepId: {
-            type: String,
-            required: true,
-        },
-        query: {
-            type: String,
-            required: true,
-        },
-        qdrantHits: {
-            type: [mongoose.Schema.Types.Mixed], // Array of retrieved chunks with similarity scores
-            default: [],
-        },
-    },
-    { timestamps: true }
-);
+const retrievalLogSchema = new Schema({
+    sessionId: { type: String, index: true, required: true },
+    stepId: String,
+    query: String,
+    qdrantHits: [{ text: String, score: Number }],
+    timestamp: { type: Date, default: Date.now },
+});
 
-const RetrievalLog = mongoose.model('RetrievalLog', retrievalLogSchema);
-export default RetrievalLog;
+module.exports = model('RetrievalLog', retrievalLogSchema);
