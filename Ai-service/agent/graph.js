@@ -1,4 +1,4 @@
-import { StateGraph, END } from '@langchain/langgraph';
+import { StateGraph, MemorySaver, END } from '@langchain/langgraph';
 import { AgentState } from './state.js';
 import { loadStepNode } from './nodes/loadStep.js';
 import { qdrantRetrieveNode } from './nodes/qdrantRetrieve.js';
@@ -25,7 +25,11 @@ const graph = new StateGraph(AgentState)
 
     // ── Graph Edges ───────────────────────────────────────────────────────────
     .addEdge('__start__', 'loadStep')
-    .addEdge('loadStep', 'qdrantRetrieve')
+    .addConditionalEdges('loadStep', (state) => {
+        if (state.finished || !state.currentStep) return 'debrief';
+        if (state.pilotTranscript) return 'validateReadback';
+        return 'qdrantRetrieve';
+    })
     .addEdge('qdrantRetrieve', 'composeLine')
     .addEdge('composeLine', 'ttsSpeak')
     .addEdge('ttsSpeak', 'awaitReadback')
@@ -51,8 +55,11 @@ const graph = new StateGraph(AgentState)
         return 'loadStep';
     })
 
-    .addEdge('debrief', END);
+    .addEdge('debrief', 'ttsSpeak');
+
+const checkpointer = new MemorySaver();
 
 export const compiledGraph = graph.compile({
+    checkpointer,
     interruptBefore: ['awaitReadback'],
 });

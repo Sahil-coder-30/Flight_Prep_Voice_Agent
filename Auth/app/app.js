@@ -4,10 +4,23 @@ import morgan from 'morgan';
 import passport from 'passport';
 import '../config/passport.js'; // Initialize Passport strategies
 import authRouter from '../routes/auth.routes.js';
-
 import { getJwksController } from '../controllers/auth.controller.js';
 
 const app = express();
+
+// ── CORS & Preflight Middleware ───────────────────────────────────────────────
+app.use((req, res, next) => {
+    const origin = req.headers.origin || 'http://localhost:5173';
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+    next();
+});
 
 // ── Core Middleware ────────────────────────────────────────────────────────────
 app.use(express.json());

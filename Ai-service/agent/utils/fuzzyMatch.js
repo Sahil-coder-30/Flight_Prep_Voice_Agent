@@ -90,16 +90,36 @@ function matchPhonetic(expected, extracted) {
  *
  * report: { callsign: true, runway: false, windDir: true }
  */
-export function validateSlots(stepSlots, resolvedSlots, extracted) {
+export function validateSlots(stepSlots = [], resolvedSlots = {}, extracted = {}) {
     const report = {};
     const failedSlots = [];
 
+    // Determine target keys: explicit slots or active resolved keys
+    const keysToCheck = new Set();
+    
     for (const slot of stepSlots) {
-        if (!slot.readbackRequired) continue; // skip non-readback slots
+        if (slot.readbackRequired !== false) {
+            keysToCheck.add(slot.key);
+        }
+    }
 
-        const { key, matchType = 'exact', tolerance = 0 } = slot;
+    // If no explicit keys set, default to key slots present in resolvedSlots
+    if (keysToCheck.size === 0) {
+        for (const k of Object.keys(resolvedSlots)) {
+            if (resolvedSlots[k] != null && k !== 'airport' && k !== 'atis') {
+                keysToCheck.add(k);
+            }
+        }
+    }
+
+    for (const key of keysToCheck) {
+        const slotObj = stepSlots.find((s) => s.key === key);
+        const matchType = slotObj?.matchType || 'exact';
+        const tolerance = slotObj?.tolerance || 0;
         const expected  = resolvedSlots[key];
         const actual    = extracted?.[key];
+
+        if (expected == null) continue;
 
         if (actual === null || actual === undefined) {
             report[key] = false;
@@ -119,4 +139,56 @@ export function validateSlots(stepSlots, resolvedSlots, extracted) {
     }
 
     return { report, allPassed: failedSlots.length === 0, failedSlots };
+}
+
+/**
+ * Extract dynamic callsign spoken by the pilot in standard aviation format.
+ * Examples:
+ *   "NorCal Approach, Cessna 5678, request VFR flight following" -> "CESSNA 5678"
+ *   "Boston Ground, N172SP ready for taxi" -> "N172SP"
+ *   "United 456 climbing FL330" -> "UNITED 456"
+ */
+export function extractCallsignFromTranscript(transcript, fallback = 'N172SP') {
+    if (!transcript || typeof transcript !== 'string') return fallback;
+
+    const clean = transcript.trim();
+
+    // Match type + number (e.g. Cessna 5678, Skyhawk 172SP, Cherokee 4321, United 456)
+    const typeMatch = clean.match(/\b(cessna|piper|skyhawk|cherokee|bonanza|cirrus|beechcraft|boeing|airbus|citrus|united|delta|american|southwest|fedex|ups|november)\s+([a-z0-9\s]{2,10})\b/i);
+    if (typeMatch) {
+        const type = typeMatch[1].toUpperCase();
+        const num = typeMatch[2].replace(/[^a-z0-9]/gi, '').toUpperCase();
+        return `${type} ${num}`.trim();
+    }
+
+    // Match tail number (e.g. N172SP, C5678, N5678, N12345)
+    const tailMatch = clean.match(/\b([a-z]{1,2}[0-9]{2,5}[a-z]{0,2})\b/i);
+    if (tailMatch) {
+        return tailMatch[1].toUpperCase();
+    }
+
+    return fallback;
+}
+
+/**
+ * Extract dynamic ATC facility spoken by the pilot.
+ * Examples:
+ *   "Boston Center, Delta 421, flight level 340" -> "Boston Center"
+ *   "NorCal Approach, Cessna 5678..." -> "NorCal Approach"
+ *   "Seattle Tower, N172SP..." -> "Seattle Tower"
+ */
+export function extractFacilityFromTranscript(transcript, fallback = 'Boston Center') {
+    if (!transcript || typeof transcript !== 'string') return fallback;
+
+    const match = transcript.match(/\b([a-z0-9\s]{2,20})\s+(center|approach|departure|tower|ground|delivery|clearance)\b/i);
+    if (match) {
+        const words = match[1].trim().split(/\s+/);
+        const rawName = words[words.length - 1];
+        const facilityType = match[2].trim();
+        const cleanName = rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase();
+        const cleanType = facilityType.charAt(0).toUpperCase() + facilityType.slice(1).toLowerCase();
+        return `${cleanName} ${cleanType}`;
+    }
+
+    return fallback;
 }

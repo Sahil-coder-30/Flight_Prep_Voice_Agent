@@ -16,8 +16,13 @@ import { composeLine } from '../../services/mistral.service.js';
  * Output: { currentLine }
  */
 export async function composeLineNode(state) {
-    const { currentStep, resolvedSlots, grounding, sessionId, userId } = state;
-    const { controllerLine, stepId, templateId } = currentStep;
+    const { currentStep, resolvedSlots = {}, grounding = [], sessionId, userId, finished } = state;
+
+    if (finished || !currentStep) {
+        return { currentLine: 'Sortie completed, maintain current frequency.' };
+    }
+
+    const { controllerLine = '', stepId = '', templateId = '', procedureType = '', phase = '' } = currentStep;
 
     const { line, allResolved, unresolvedKeys } = renderTemplate(controllerLine, resolvedSlots);
 
@@ -29,7 +34,7 @@ export async function composeLineNode(state) {
     // Slow path: LLM fallback
     console.log(`[composeLine] SLOW PATH — unresolved: ${unresolvedKeys.join(', ')}`);
 
-    const instruction = `Generate the controller's spoken line for procedure "${currentStep.procedureType}" during the "${currentStep.phase}" phase. Fill in missing values appropriately.`;
+    const instruction = `Generate the controller's spoken line for procedure "${procedureType}" during the "${phase}" phase. Fill in missing values appropriately.`;
 
     const llmLine = await composeLine({
         grounding,

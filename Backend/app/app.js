@@ -3,10 +3,23 @@ import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import scenarioRouter from '../routes/scenario.routes.js';
 import sessionRouter from '../routes/session.routes.js';
-
 import progressRouter from '../routes/progress.routes.js';
 
 const app = express();
+
+// ── CORS & Preflight Middleware ───────────────────────────────────────────────
+app.use((req, res, next) => {
+    const origin = req.headers.origin || 'http://localhost:5173';
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+    next();
+});
 
 // ── Core Middleware ────────────────────────────────────────────────────────────
 app.use(express.json());

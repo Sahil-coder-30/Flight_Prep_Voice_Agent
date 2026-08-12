@@ -20,15 +20,20 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api/auth': {
-        target: 'http://localhost',
+        target: process.env.VITE_AUTH_URL || 'http://localhost',
         changeOrigin: true,
       },
       '/api/backend': {
-        target: 'http://localhost',
+        target: process.env.VITE_BACKEND_URL || 'http://localhost',
         changeOrigin: true,
       },
       '/api/ai': {
-        target: 'http://localhost',
+        target: process.env.VITE_AI_URL || 'http://localhost',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: process.env.VITE_WS_URL || 'ws://localhost',
+        ws: true,
         changeOrigin: true,
       },
     },

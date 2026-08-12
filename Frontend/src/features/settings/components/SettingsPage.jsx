@@ -38,38 +38,68 @@ export default function SettingsPage({ user }) {
   const [testLevel, setTestLevel] = useState(0);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  const testIntervalRef = React.useRef(null);
+  const testAudioCtxRef = React.useRef(null);
+  const testStreamRef = React.useRef(null);
+
+  const stopMicTest = React.useCallback(() => {
+    if (testIntervalRef.current) {
+      clearInterval(testIntervalRef.current);
+      testIntervalRef.current = null;
+    }
+    if (testAudioCtxRef.current) {
+      try { testAudioCtxRef.current.close(); } catch (e) {}
+      testAudioCtxRef.current = null;
+    }
+    if (testStreamRef.current) {
+      testStreamRef.current.getTracks().forEach(t => t.stop());
+      testStreamRef.current = null;
+    }
+    setMicTesting(false);
+    setTestLevel(0);
+  }, []);
+
+  React.useEffect(() => {
+    return () => {
+      stopMicTest();
+    };
+  }, [stopMicTest]);
+
   const handleTestMic = async () => {
     if (micTesting) {
-      setMicTesting(false);
-      setTestLevel(0);
+      stopMicTest();
       return;
     }
 
     try {
       setMicTesting(true);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      testStreamRef.current = stream;
+
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      testAudioCtxRef.current = audioCtx;
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+
       const source = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
       source.connect(analyser);
 
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      const interval = setInterval(() => {
+      testIntervalRef.current = setInterval(() => {
         analyser.getByteFrequencyData(dataArray);
         const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
         setTestLevel(Math.min(100, Math.round((avg / 128) * 100)));
       }, 100);
 
       setTimeout(() => {
-        clearInterval(interval);
-        stream.getTracks().forEach(t => t.stop());
-        setMicTesting(false);
-        setTestLevel(0);
+        stopMicTest();
       }, 5000);
     } catch (e) {
       alert('Microphone test failed: ' + e.message);
-      setMicTesting(false);
+      stopMicTest();
     }
   };
 

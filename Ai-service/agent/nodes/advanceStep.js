@@ -72,6 +72,7 @@ export async function advanceStepNode(state) {
         stepIndex: nextIndex,
         retries: 0,
         finished: isFinished,
+        pilotTranscript: undefined,
         stepResults: [resultRecord],
     };
 }

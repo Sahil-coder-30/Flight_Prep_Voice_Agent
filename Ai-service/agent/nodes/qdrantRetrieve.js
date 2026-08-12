@@ -13,8 +13,13 @@ import { retrieve } from '../../services/qdrant.service.js';
  * Output: { grounding: string[] }
  */
 export async function qdrantRetrieveNode(state) {
-    const { currentStep, sessionId, userId } = state;
-    const { procedureType, phase, templateId, stepId } = currentStep;
+    const { currentStep, sessionId, userId, finished } = state;
+
+    if (finished || !currentStep) {
+        return { grounding: [] };
+    }
+
+    const { procedureType = 'general', phase = 'general', templateId = '', stepId = '' } = currentStep;
 
     const query = `${procedureType} ${phase} phraseology standard`;
 

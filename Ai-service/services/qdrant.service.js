@@ -36,7 +36,10 @@ export async function embedText(text, templateId = null, ctx = {}) {
     }
 
     const data = await res.json();
-    const vector = data.data[0].embedding;
+    const vector = data?.data?.[0]?.embedding;
+    if (!vector) {
+        throw new Error('Mistral embedding returned empty vector object');
+    }
     const latencyMs = Date.now() - t0;
 
     if (templateId) {
@@ -69,13 +72,15 @@ async function searchQdrant(vector, limit = 3, filter = null) {
             const response = await qdrantClient.query(COLLECTION, {
                 query: vector,
                 limit,
+                with_payload: true,
                 ...(filter && { filter }),
             });
             rawHits = response?.points || response || [];
-        } else if (typeof qdrantClient.search === 'function') {
-            rawHits = await qdrantClient.search(COLLECTION, {
+        } else if (typeof qdrantClient.searchPoints === 'function') {
+            rawHits = await qdrantClient.searchPoints(COLLECTION, {
                 vector,
                 limit,
+                with_payload: true,
                 ...(filter && { filter }),
             });
         }

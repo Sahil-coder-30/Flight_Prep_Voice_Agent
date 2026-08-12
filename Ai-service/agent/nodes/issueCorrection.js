@@ -11,8 +11,8 @@ import { composeCorrection } from '../../services/mistral.service.js';
  * Output: { currentLine }
  */
 export async function issueCorrectionNode(state) {
-    const { currentStep, slotReport = {}, resolvedSlots, sessionId, userId } = state;
-    const { correctionLine, stepId, templateId } = currentStep;
+    const { currentStep = {}, slotReport = {}, resolvedSlots = {}, sessionId, userId } = state;
+    const { correctionLine = '', stepId = '', templateId = '' } = currentStep || {};
 
     const failedSlots = Object.keys(slotReport).filter((k) => !slotReport[k]);
     const callsign = resolvedSlots.callsign || 'aircraft';
@@ -21,7 +21,7 @@ export async function issueCorrectionNode(state) {
     if (correctionLine) {
         const line = correctionLine.replace('{callsign}', callsign).replace('{failedSlots}', failedSlots.join(', '));
         console.log(`[issueCorrection] Fast path correction for step "${stepId}"`);
-        return { currentLine: line };
+        return { currentLine: line, pilotTranscript: undefined };
     }
 
     // Slow path: short LLM correction call
@@ -33,5 +33,5 @@ export async function issueCorrectionNode(state) {
     });
 
     console.log(`[issueCorrection] LLM correction generated for step "${stepId}"`);
-    return { currentLine: llmCorrection };
+    return { currentLine: llmCorrection, pilotTranscript: undefined };
 }

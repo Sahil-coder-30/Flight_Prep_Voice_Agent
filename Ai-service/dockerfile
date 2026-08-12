@@ -3,5 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+# Add a cache-busting ARG so COPY always picks up fresh files
+ARG CACHE_BUST=1
 EXPOSE 7000
 CMD ["node", "server.js"]
