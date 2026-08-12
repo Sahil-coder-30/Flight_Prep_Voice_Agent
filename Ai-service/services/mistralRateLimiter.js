@@ -1,6 +1,12 @@
 let queue = Promise.resolve();
 
-const MIN_INTERVAL_MS = 15000;
+const MIN_INTERVAL_MS = 1200;
+
+function sleep(ms) {
+    return new Promise((resolve) =>
+        setTimeout(resolve, ms)
+    );
+}
 
 function scheduleMistralRequest(fn) {
     const task = queue.then(async () => {
@@ -18,19 +24,23 @@ function scheduleMistralRequest(fn) {
                     `[Mistral] Queue waiting ${waitTime}ms`
                 );
 
-                await new Promise((resolve) =>
-                    setTimeout(resolve, waitTime)
-                );
+                await sleep(waitTime);
             }
         }
 
-        scheduleMistralRequest.lastRequest = Date.now();
+        scheduleMistralRequest.lastRequest =
+            Date.now();
 
         console.log(
             `[Mistral] Sending request at ${scheduleMistralRequest.lastRequest}`
         );
 
-        return fn();
+        try {
+            return await fn();
+        } finally {
+            scheduleMistralRequest.lastCompleted =
+                Date.now();
+        }
     });
 
     queue = task.catch(() => { });
@@ -39,5 +49,8 @@ function scheduleMistralRequest(fn) {
 }
 
 scheduleMistralRequest.lastRequest = 0;
+scheduleMistralRequest.lastCompleted = 0;
 
-export { scheduleMistralRequest };
+export {
+    scheduleMistralRequest,
+};

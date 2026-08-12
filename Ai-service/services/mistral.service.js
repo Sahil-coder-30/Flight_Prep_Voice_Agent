@@ -1,58 +1,199 @@
 import "dotenv/config";
 
+import {
+    scheduleMistralRequest,
+} from "./mistralRateLimiter.js";
+
 const MISTRAL_URL =
     "https://api.mistral.ai/v1/chat/completions";
 
 const MISTRAL_MODEL =
     "mistral-large-latest";
 
-async function callMistral(body) {
-    const startedAt = Date.now();
+const MISTRAL_TIMEOUT_MS = 35000;
 
-    console.log(
-        `[Mistral] Runtime request started at ${startedAt}`
+const MAX_RETRIES = 2;
+
+function sleep(ms) {
+    return new Promise((resolve) =>
+        setTimeout(resolve, ms)
     );
+}
 
-    const res = await fetch(
-        MISTRAL_URL,
-        {
-            method: "POST",
+function isRetryableStatus(status) {
+    return [
+        429,
+        500,
+        502,
+        503,
+        504,
+    ].includes(status);
+}
 
-            headers: {
-                Authorization:
-                    `Bearer ${process.env.MISTRAL_API_KEY}`,
+function getRetryDelay(response, attempt) {
+    const retryAfter =
+        response.headers.get("retry-after");
 
-                "Content-Type":
-                    "application/json",
-            },
+    if (retryAfter) {
+        const seconds =
+            Number(retryAfter);
 
-            body: JSON.stringify(body),
-
-            signal: AbortSignal.timeout(20000),
+        if (Number.isFinite(seconds)) {
+            return Math.max(
+                seconds * 1000,
+                1000
+            );
         }
-    );
-
-    const elapsed =
-        Date.now() - startedAt;
-
-    console.log(
-        `[Mistral] Runtime request completed in ${elapsed}ms`
-    );
-
-    if (!res.ok) {
-        const error =
-            await res.text();
-
-        const err = new Error(
-            `Mistral request failed (${res.status}): ${error}`
-        );
-
-        err.status = res.status;
-
-        throw err;
     }
 
-    return res.json();
+    return Math.min(
+        1000 * 2 ** attempt,
+        5000
+    );
+}
+
+async function callMistral(body) {
+    return scheduleMistralRequest(
+        async () => {
+            let lastError;
+
+            for (
+                let attempt = 0;
+                attempt <= MAX_RETRIES;
+                attempt++
+            ) {
+                const startedAt =
+                    Date.now();
+
+                console.log(
+                    `[Mistral] Runtime request started at ${startedAt}` +
+                    ` (attempt ${attempt + 1}/${MAX_RETRIES + 1})`
+                );
+
+                try {
+                    const response =
+                        await fetch(
+                            MISTRAL_URL,
+                            {
+                                method: "POST",
+
+                                headers: {
+                                    Authorization:
+                                        `Bearer ${process.env.MISTRAL_API_KEY}`,
+
+                                    "Content-Type":
+                                        "application/json",
+                                },
+
+                                body:
+                                    JSON.stringify(body),
+
+                                signal:
+                                    AbortSignal.timeout(
+                                        MISTRAL_TIMEOUT_MS
+                                    ),
+                            }
+                        );
+
+                    const elapsed =
+                        Date.now() - startedAt;
+
+                    console.log(
+                        `[Mistral] Runtime request completed in ${elapsed}ms`
+                    );
+
+                    if (response.ok) {
+                        return response.json();
+                    }
+
+                    const errorBody =
+                        await response.text();
+
+                    if (
+                        !isRetryableStatus(
+                            response.status
+                        ) ||
+                        attempt >= MAX_RETRIES
+                    ) {
+                        const error =
+                            new Error(
+                                `Mistral request failed (${response.status}): ${errorBody}`
+                            );
+
+                        error.status =
+                            response.status;
+
+                        error.provider =
+                            "Mistral";
+
+                        error.stage =
+                            "chat-completion";
+
+                        error.providerBody =
+                            errorBody;
+
+                        throw error;
+                    }
+
+                    const delay =
+                        getRetryDelay(
+                            response,
+                            attempt
+                        );
+
+                    console.warn(
+                        `[Mistral] Request failed with ` +
+                        `${response.status}. ` +
+                        `Retrying in ${delay}ms...`
+                    );
+
+                    await sleep(delay);
+                } catch (error) {
+                    lastError = error;
+
+                    if (
+                        error?.name ===
+                        "TimeoutError"
+                    ) {
+                        console.warn(
+                            `[Mistral] Request timed out after ` +
+                            `${MISTRAL_TIMEOUT_MS}ms`
+                        );
+                    }
+
+                    if (
+                        attempt >= MAX_RETRIES
+                    ) {
+                        throw error;
+                    }
+
+                    if (
+                        error?.status &&
+                        !isRetryableStatus(
+                            error.status
+                        )
+                    ) {
+                        throw error;
+                    }
+
+                    const delay =
+                        Math.min(
+                            1000 *
+                            2 ** attempt,
+                            5000
+                        );
+
+                    console.warn(
+                        `[Mistral] Retrying request in ${delay}ms...`
+                    );
+
+                    await sleep(delay);
+                }
+            }
+
+            throw lastError;
+        }
+    );
 }
 
 async function composeLine({
@@ -69,7 +210,10 @@ async function composeLine({
     const groundingText =
         grounding
             .map((item) => {
-                if (typeof item === "string") {
+                if (
+                    typeof item ===
+                    "string"
+                ) {
                     return item;
                 }
 
@@ -199,12 +343,15 @@ Do not infer information that the pilot did not communicate.`,
     try {
         return JSON.parse(content);
     } catch (error) {
-        const err = new Error(
-            "Mistral extractReadback returned invalid JSON"
-        );
+        const err =
+            new Error(
+                "Mistral extractReadback returned invalid JSON"
+            );
 
         err.cause = error;
-        err.providerBody = content;
+
+        err.providerBody =
+            content;
 
         throw err;
     }
