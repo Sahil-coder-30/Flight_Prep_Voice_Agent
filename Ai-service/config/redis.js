@@ -18,6 +18,9 @@ export const connectToRedis = () => {
 };
 
 export const getRedisClient = () => {
-    if (!redisClient) throw new Error('[AI Service Redis] Client not initialized — call connectToRedis() first');
+    if (!redisClient) {
+        return connectToRedis();
+    }
     return redisClient;
 };
+

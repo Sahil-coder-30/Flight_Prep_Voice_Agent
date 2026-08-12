@@ -5,6 +5,8 @@ import passport from 'passport';
 import '../config/passport.js'; // Initialize Passport strategies
 import authRouter from '../routes/auth.routes.js';
 
+import { getJwksController } from '../controllers/auth.controller.js';
+
 const app = express();
 
 // ── Core Middleware ────────────────────────────────────────────────────────────
@@ -14,6 +16,7 @@ app.use(morgan('dev'));
 app.use(passport.initialize());
 
 // ── Routes ────────────────────────────────────────────────────────────────────
+app.get('/.well-known/jwks.json', getJwksController);
 app.use('/api/auth', authRouter);
 
 // ── Health Probes ─────────────────────────────────────────────────────────────

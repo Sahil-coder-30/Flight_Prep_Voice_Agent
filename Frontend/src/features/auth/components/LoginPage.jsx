@@ -1,138 +1,81 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useAuth } from '../Hooks/auth.hooks';
+import ATCLogo from '../../../components/Logo/ATCLogo';
 import './LoginPage.scss';
 
-const RADIO_EXCHANGE = [
-  { speaker: 'ATC',   text: 'Cessna 5CD, taxi to runway two-two via Alpha, hold short runway two-two.' },
-  { speaker: 'PILOT', text: 'Taxi runway two-two via Alpha, hold short two-two, Cessna 5CD.' },
-  { speaker: 'ATC',   text: 'Cessna 5CD, correction — hold short of runway two-zero, not two-two.' },
-];
-
-// Google logo SVG (per Google brand guidelines)
 function GoogleLogo() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-      <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
-      <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
-      <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
-      <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.62z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+      />
     </svg>
   );
 }
 
-export default function LoginPage({ onDemoAccess }) {
+export default function LoginPage({ onBackToLanding }) {
   const { loading, loginWithGoogle } = useAuth();
-  const [typedLine, setTypedLine] = useState('');
-  const [lineIdx,   setLineIdx]   = useState(0);
-  const [charIdx,   setCharIdx]   = useState(0);
-  const [done,      setDone]      = useState(false);
-
-  // Typewriter effect for the ATC exchange preview
-  useEffect(() => {
-    if (lineIdx >= RADIO_EXCHANGE.length) { setDone(true); return; }
-    const line = RADIO_EXCHANGE[lineIdx].text;
-    if (charIdx < line.length) {
-      const id = setTimeout(() => {
-        setTypedLine(line.slice(0, charIdx + 1));
-        setCharIdx(c => c + 1);
-      }, 28 + Math.random() * 18);
-      return () => clearTimeout(id);
-    } else {
-      const id = setTimeout(() => {
-        setLineIdx(l => l + 1);
-        setCharIdx(0);
-        setTypedLine('');
-      }, 1400);
-      return () => clearTimeout(id);
-    }
-  }, [lineIdx, charIdx]);
-
-  const currentSpeaker = RADIO_EXCHANGE[lineIdx]?.speaker;
 
   return (
-    <main className="login-page" aria-label="ATC Voice Simulator login">
-      {/* Animated radar background */}
-      <div className="radar-bg" aria-hidden="true">
-        <div className="radar-ring" />
-        <div className="radar-ring" />
-        <div className="radar-ring" />
-        <div className="radar-ring" />
-        <div className="radar-ring" />
-        <div className="radar-sweep" />
-        <div className="radar-ping" style={{ top: 'calc(50% - 75px)', left: 'calc(50% + 45px)' }} />
-        <div className="radar-ping" style={{ top: 'calc(50% + 40px)', left: 'calc(50% - 90px)', animationDelay: '2s' }} />
-        <div className="radar-ping" style={{ top: 'calc(50% - 20px)', left: 'calc(50% + 110px)', animationDelay: '4s' }} />
+    <main className="login-page" aria-label="ATC Voice Simulator authentication">
+      {/* ── Soft Ambient Glow Backdrop (Pure Deep Obsidian Void) ── */}
+      <div className="login-backdrop" aria-hidden="true">
+        <div className="glow-spot spot-center" />
       </div>
 
-      <div className="login-panel">
-        {/* Brand */}
-        <div className="login-panel__brand">
-          <div className="brand-mark" aria-hidden="true">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5"/>
-              <path d="M2 12l10 5 10-5"/>
-            </svg>
-          </div>
-          <h1>ATC Voice Simulator</h1>
-          <p className="brand-sub">Aviation Phraseology Training Platform</p>
+      {/* ── Ultra-Minimalist Centered Container (No Card Panel) ── */}
+      <div className="login-hero">
+        {/* Masterpiece Silver & Titanium Logo */}
+        <div
+          className="hero-logo"
+          onClick={onBackToLanding}
+          style={{ cursor: onBackToLanding ? 'pointer' : 'default' }}
+          title="Return to landing page"
+        >
+          <ATCLogo size="hero" variant="stacked" />
         </div>
 
-        <div className="login-panel__card">
-          {/* Live ATC exchange preview */}
-          <div className="atc-exchange" aria-label="Sample ATC radio exchange">
-            {RADIO_EXCHANGE.slice(0, lineIdx).map((line, i) => (
-              <div key={i} className="exchange-line">
-                <span className={`ex-speaker ${line.speaker.toLowerCase()}`}>{line.speaker}</span>
-                <span className="ex-text">{line.text}</span>
-              </div>
-            ))}
-            {!done && lineIdx < RADIO_EXCHANGE.length && (
-              <div className="exchange-line">
-                <span className={`ex-speaker ${currentSpeaker?.toLowerCase()}`}>{currentSpeaker}</span>
-                <span className="ex-text">{typedLine}<span className="cursor" aria-hidden="true" /></span>
-              </div>
-            )}
-          </div>
-
-          <h2>Sign in to train</h2>
-          <p>Practice real-world ATC radio procedures with an AI-powered controller grounded in ICAO phraseology standards.</p>
-
-          {/* Google OAuth button */}
+        {/* Single Action: Continue with Google Button */}
+        <div className="hero-action">
           <button
             id="btn-google-login"
-            className="btn-google"
+            className="btn-google-sso"
             onClick={loginWithGoogle}
             disabled={loading}
             aria-label="Continue with Google"
           >
             <GoogleLogo />
-            {loading ? 'Authenticating…' : 'Continue with Google'}
+            <span className="btn-text">
+              {loading ? 'Connecting to Google…' : 'Continue with Google'}
+            </span>
           </button>
-
-          {onDemoAccess && (
-            <>
-              <div className="divider-row">or</div>
-              <button
-                id="btn-demo-access"
-                className="demo-bar"
-                onClick={onDemoAccess}
-                aria-label="Try the demo without signing in"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <polygon points="5 3 19 12 5 21 5 3"/>
-                </svg>
-                Try demo without signing in
-              </button>
-            </>
-          )}
-
-          <p className="login-note">
-            By continuing, you agree to our{' '}
-            <a href="#terms" aria-label="Terms of service">Terms</a> and{' '}
-            <a href="#privacy" aria-label="Privacy policy">Privacy Policy</a>.
-          </p>
         </div>
+
+        {/* Minimal Navigation Back Link */}
+        {onBackToLanding && (
+          <div className="hero-back">
+            <button
+              type="button"
+              className="btn-back"
+              onClick={onBackToLanding}
+            >
+              ← Back to Landing Page
+            </button>
+          </div>
+        )}
       </div>
     </main>
   );

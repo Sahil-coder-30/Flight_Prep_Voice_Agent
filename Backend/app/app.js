@@ -4,6 +4,8 @@ import morgan from 'morgan';
 import scenarioRouter from '../routes/scenario.routes.js';
 import sessionRouter from '../routes/session.routes.js';
 
+import progressRouter from '../routes/progress.routes.js';
+
 const app = express();
 
 // ── Core Middleware ────────────────────────────────────────────────────────────
@@ -14,6 +16,7 @@ app.use(morgan('dev'));
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/backend/scenarios', scenarioRouter);
 app.use('/api/backend/sessions', sessionRouter);
+app.use('/api/backend/users', progressRouter);
 
 // ── Health Probes ─────────────────────────────────────────────────────────────
 app.get('/healthz', (_req, res) => {

@@ -20,13 +20,13 @@
   grid-template-columns: 1.15fr 1fr;
   gap: 32px;
   align-items: center;
-  background: rgba(19, 26, 34, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(56, 198, 224, 0.18);
+  background: rgba(18, 18, 21, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-strong);
   border-radius: var(--r-xl);
   padding: 36px clamp(20px, 3vw, 48px);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   position: relative;
   overflow: hidden;
 
@@ -37,7 +37,7 @@
     right: -120px;
     width: 380px;
     height: 380px;
-    background: radial-gradient(circle, rgba(56, 198, 224, 0.12) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
   }
@@ -60,15 +60,15 @@
     gap: 8px;
     padding: 4px 12px;
     border-radius: 20px;
-    background: rgba(56, 198, 224, 0.08);
-    border: 1px solid rgba(56, 198, 224, 0.22);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-strong);
     width: fit-content;
 
     .badge-text {
       font-family: var(--font-mono);
       font-size: 11px;
       letter-spacing: 0.12em;
-      color: var(--nav-cyan);
+      color: var(--readout);
       font-weight: 600;
     }
   }
@@ -82,8 +82,8 @@
 
     em {
       font-style: normal;
-      color: var(--nav-cyan);
-      background: linear-gradient(135deg, #38C6E0 0%, #3FE08A 100%);
+      color: #FFFFFF;
+      background: linear-gradient(135deg, #FFFFFF 0%, #E4E4E7 50%, #A1A1AA 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -112,11 +112,11 @@
   display: flex;
   flex-direction: column;
   height: 340px;
-  background: rgba(11, 15, 20, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(9, 9, 11, 0.9);
+  border: 1px solid var(--border);
   border-radius: var(--r-lg);
   overflow: hidden;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), inset 0 0 24px rgba(56, 198, 224, 0.05);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), inset 0 0 24px rgba(255, 255, 255, 0.04);
 
   .orb-frame-header {
     display: flex;

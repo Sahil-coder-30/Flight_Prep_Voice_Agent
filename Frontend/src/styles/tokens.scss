@@ -76,7 +76,7 @@ $color-bg-card-hover: rgba(var(--color-rgb-text), 0.05);
 }
 
 @mixin glassmorphism {
-  background: rgba(19, 26, 34, 0.72);
+  background: rgba(17, 23, 38, 0.75);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border);

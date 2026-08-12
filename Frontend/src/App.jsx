@@ -1,40 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import SpaceCanvas     from './components/SpaceCanvas/SpaceCanvas';
-import Layout          from './components/Layout/Layout';
+import SpaceCanvas from './components/SpaceCanvas/SpaceCanvas';
+import Layout from './components/Layout/Layout';
 import InstrumentStrip from './components/InstrumentStrip/InstrumentStrip';
-import LoginPage       from './features/auth/components/LoginPage';
-import Dashboard       from './features/dashboard/components/Dashboard';
-import SimulatorPage   from './features/simulator/components/SimulatorPage';
-import { useAuth }     from './features/auth/Hooks/auth.hooks';
-
-// ── Demo user for offline / unauthenticated preview ──────────────────────────
-const DEMO_USER = {
-  name:     'Demo Pilot',
-  role:     'Student',
-  callsign: 'N5CD',
-  avatar:   null,
-};
+import LandingPage from './features/landing/LandingPage';
+import LoginPage from './features/auth/components/LoginPage';
+import Dashboard from './features/dashboard/components/Dashboard';
+import SimulatorPage from './features/simulator/components/SimulatorPage';
+import ScenariosPage from './features/scenarios/components/ScenariosPage';
+import HistoryPage from './features/history/components/HistoryPage';
+import SettingsPage from './features/settings/components/SettingsPage';
+import { useAuth } from './features/auth/Hooks/auth.hooks';
 
 export default function App() {
-  // Read initial route from URL ?route= param
-  const initParams   = new URLSearchParams(window.location.search);
-  const [route,      setRoute]      = useState(initParams.get('route') || 'login');
-  const [scenario,   setScenario]   = useState(null);
-  const [demoMode,   setDemoMode]   = useState(false);
-  const [steps]      = useState([
-    { label: 'Clearance', status: 'cleared' },
-    { label: 'Pushback',  status: 'cleared' },
-    { label: 'Taxi',      status: 'active'  },
-    { label: 'Lineup',    status: 'idle'    },
-    { label: 'Takeoff',   status: 'idle'    },
-  ]);
+  const initParams = new URLSearchParams(window.location.search);
+  const [route, setRoute] = useState(initParams.get('route') || 'landing');
+  const [scenario, setScenario] = useState(null);
 
   const { user, isAuthenticated, loading, initAuth, logout } = useAuth();
-  const session = useSelector(s => s.simulator.currentSession);
-  const isLive  = !!session;
+  const session = useSelector((s) => s.simulator.currentSession);
+  const isLive = !!session;
 
-  // On mount: silent token refresh → determine route
+  // On mount: silent token refresh
   useEffect(() => {
     initAuth();
   }, []); // eslint-disable-line
@@ -46,12 +33,22 @@ export default function App() {
     window.history.replaceState({}, '', `${window.location.pathname}?${p}`);
   }, [route]);
 
-  // After auth, redirect away from login
+  // After auth resolves, enforce route protection:
+  // 1. Authenticated users on public routes (landing/login) -> auto-redirect to dashboard
+  // 2. Unauthenticated users on internal routes -> auto-redirect to landing
   useEffect(() => {
-    if ((isAuthenticated || demoMode) && route === 'login') {
-      setRoute('dashboard');
+    if (loading) return;
+
+    if (isAuthenticated) {
+      if (route === 'landing' || route === 'login') {
+        setRoute('dashboard');
+      }
+    } else {
+      if (route !== 'landing' && route !== 'login') {
+        setRoute('landing');
+      }
     }
-  }, [isAuthenticated, demoMode, route]);
+  }, [isAuthenticated, loading, route]);
 
   function handleNavigate(r) { setRoute(r); }
 
@@ -60,30 +57,28 @@ export default function App() {
     setRoute('simulator');
   }
 
-  function handleBack() {
+  function handleBackToDashboard() {
     setRoute('dashboard');
     setScenario(null);
   }
 
   function handleLogout() {
     logout();
-    setDemoMode(false);
-    setRoute('login');
+    setRoute('landing');
   }
 
-  function handleDemoAccess() {
-    setDemoMode(true);
-    setRoute('dashboard');
-  }
-
-  const activeUser    = user || DEMO_USER;
+  const activeUser = user || { name: 'Student Pilot', role: 'Cadet', callsign: 'N172SP' };
   const activeSession = isLive ? session : null;
 
   const strip = (
     <InstrumentStrip
       user={activeUser}
       session={isLive ? { frequency: '118.300' } : null}
-      steps={route === 'simulator' ? steps : []}
+      steps={route === 'simulator' ? [
+        { label: 'Clearance', status: 'cleared' },
+        { label: 'Taxi', status: 'active' },
+        { label: 'Takeoff', status: 'idle' },
+      ] : []}
     />
   );
 
@@ -92,8 +87,8 @@ export default function App() {
       {/* Universal Space Background */}
       <SpaceCanvas />
 
-      {/* ── Loading splash ── */}
-      {loading && !demoMode ? (
+      {/* ── Loading Splash ── */}
+      {loading ? (
         <div style={{
           height: '100vh', display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
@@ -115,8 +110,15 @@ export default function App() {
             INITIALISING FLIGHT DECK…
           </p>
         </div>
-      ) : !isAuthenticated && !demoMode ? (
-        <LoginPage onDemoAccess={handleDemoAccess} />
+      ) : !isAuthenticated ? (
+        route === 'login' ? (
+          <LoginPage onBackToLanding={() => setRoute('landing')} />
+        ) : (
+          <LandingPage
+            onLoginClick={() => setRoute('login')}
+            onDirectTalkClick={() => setRoute('login')}
+          />
+        )
       ) : (
         <Layout
           activeRoute={route}
@@ -135,46 +137,19 @@ export default function App() {
           )}
 
           {route === 'simulator' && (
-            <SimulatorPage scenario={scenario} onBack={handleBack} />
+            <SimulatorPage scenario={scenario} onBack={handleBackToDashboard} />
           )}
 
           {route === 'scenarios' && (
-            <Dashboard
-              onStartScenario={handleStartScenario}
-              activeSession={null}
-            />
+            <ScenariosPage onStartScenario={handleStartScenario} />
           )}
 
           {route === 'history' && (
-            <div style={{
-              flex: 1, overflow: 'auto',
-              padding: '40px clamp(24px, 4vw, 64px)',
-              position: 'relative', zIndex: 1,
-              animation: 'page-enter 0.3s ease',
-            }}>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 600, marginBottom: 8, color: 'var(--readout)' }}>
-                Training History
-              </p>
-              <p style={{ color: 'var(--readout-dim)', fontSize: 14 }}>
-                Your past flight sorties will appear here. Complete your first flight to begin recording telemetry.
-              </p>
-            </div>
+            <HistoryPage />
           )}
 
           {route === 'settings' && (
-            <div style={{
-              flex: 1, overflow: 'auto',
-              padding: '40px clamp(24px, 4vw, 64px)',
-              position: 'relative', zIndex: 1,
-              animation: 'page-enter 0.3s ease',
-            }}>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 600, marginBottom: 8, color: 'var(--readout)' }}>
-                Flight Deck Settings
-              </p>
-              <p style={{ color: 'var(--readout-dim)', fontSize: 14 }}>
-                Configure callsign preferences, audio input devices, and phraseology validation tolerance.
-              </p>
-            </div>
+            <SettingsPage user={activeUser} />
           )}
         </Layout>
       )}

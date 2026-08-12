@@ -8,7 +8,14 @@ import RefreshToken from '../models/refreshToken.model.js';
 // ── Constants ─────────────────────────────────────────────────────────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const PRIVATE_KEY = fs.readFileSync(path.join(__dirname, '../keys/private.pem'), 'utf-8');
+const getPrivateKey = () => {
+    if (process.env.RSA_PRIVATE_KEY) return process.env.RSA_PRIVATE_KEY;
+    const keyPath = path.join(__dirname, '../keys/private.pem');
+    if (fs.existsSync(keyPath)) {
+        return fs.readFileSync(keyPath, 'utf-8');
+    }
+    throw new Error('RSA private key not found in process.env.RSA_PRIVATE_KEY or Auth/keys/private.pem');
+};
 
 const JWT_OPTIONS = {
     algorithm: 'RS256',
@@ -44,7 +51,7 @@ export const signAccessToken = (user) =>
             name: user.name,
             role: user.role || 'student',
         },
-        PRIVATE_KEY,
+        getPrivateKey(),
         { ...JWT_OPTIONS, expiresIn: '15m' }
     );
 

@@ -106,7 +106,7 @@ export default function MetallicSwarm({ mode = 'IDLE_CORE', settings = {}, onLob
       } else if (colorScheme === 'chrome') {
         colorHex = group === 0 ? '#ffffff' : group === 1 ? '#f1f5f9' : '#cbd5e1';
       } else if (colorScheme === 'emerald') {
-        colorHex = group === 0 ? '#15803d' : group === 1 ? '#166534' : '#14532d';
+        colorHex = group === 0 ? '#00FF87' : group === 1 ? '#10B981' : '#059669';
       } else if (colorScheme === 'neon-blue') {
         colorHex = group === 0 ? '#2563eb' : group === 1 ? '#1d4ed8' : '#1e40af';
       } else if (colorScheme === 'rose-gold') {

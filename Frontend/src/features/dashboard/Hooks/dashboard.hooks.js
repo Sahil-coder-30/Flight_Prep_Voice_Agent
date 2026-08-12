@@ -1,21 +1,15 @@
 import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getScenariosAPI } from '../service/dashboard.api';
+import { getScenariosAPI, getUserStatsAPI } from '../service/dashboard.api';
 import { setScenarios, setDashboardLoading, setDashboardError, setStats } from '../slice/dashboard.slice';
 
-// Placeholder stats — replace with real API when /api/backend/dashboard/stats is available
-const MOCK_STATS = {
-  sessionsCompleted: 24,
-  phraseologyScore: 87,
-  hoursLogged: 18.5,
-  streak: 5,
+const DEFAULT_STATS = {
+  sessionsCompleted: 0,
+  phraseologyScore: 100,
+  hoursLogged: 0,
+  streak: 0,
+  weakAreas: [],
 };
-
-const MOCK_RECENT = [
-  { id: 1, scenario: 'KJFK Departure', score: 91, duration: '14m', date: '2026-08-10' },
-  { id: 2, scenario: 'KLAX Approach', score: 78, duration: '22m', date: '2026-08-09' },
-  { id: 3, scenario: 'EGLL Ground', score: 85, duration: '11m', date: '2026-08-07' },
-];
 
 export const useDashboard = () => {
   const dispatch = useDispatch();
@@ -24,10 +18,28 @@ export const useDashboard = () => {
   const loadDashboard = useCallback(async () => {
     try {
       dispatch(setDashboardLoading(true));
-      const data = await getScenariosAPI();
-      dispatch(setScenarios(data.scenarios ?? data ?? []));
-      // Load stats (use mock until backend endpoint ready)
-      dispatch(setStats(MOCK_STATS));
+      const [scenariosRes, statsRes] = await Promise.allSettled([
+        getScenariosAPI(),
+        getUserStatsAPI(),
+      ]);
+
+      if (scenariosRes.status === 'fulfilled') {
+        const scData = scenariosRes.value;
+        dispatch(setScenarios(scData?.data?.scenarios ?? scData?.scenarios ?? scData ?? []));
+      }
+
+      if (statsRes.status === 'fulfilled' && statsRes.value?.data) {
+        const st = statsRes.value.data;
+        dispatch(setStats({
+          sessionsCompleted: st.totalSessions || 0,
+          phraseologyScore: st.avgScore || 100,
+          hoursLogged: Number(( (st.totalTimeSeconds || 0) / 3600 ).toFixed(1)),
+          streak: st.currentStreak || 0,
+          weakAreas: st.weakAreas || [],
+        }));
+      } else {
+        dispatch(setStats(DEFAULT_STATS));
+      }
     } catch (err) {
       dispatch(setDashboardError(err.message));
     } finally {
@@ -37,7 +49,7 @@ export const useDashboard = () => {
 
   return {
     ...state,
-    recentSessions: MOCK_RECENT,
+    recentSessions: [],
     loadDashboard,
   };
 };

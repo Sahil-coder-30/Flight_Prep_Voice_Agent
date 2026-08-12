@@ -1,28 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import MetallicOrb from './MetallicOrb/MetallicOrb';
+import DebriefPage from './DebriefPage';
 import { setOrbMode } from '../slice/simulator.slice';
 import { useSimulator } from '../Hooks/simulator.hooks';
 import './SimulatorPage.scss';
-
-const AIRCRAFT_DATA = {
-  callsign: 'N5CD',
-  freq:     '118.300',
-  runway:   '22L',
-};
-
-const GROUNDING_EXCERPTS = [
-  {
-    source: 'ICAO Doc 4444 §12.3.1 — Taxi Instructions',
-    text:   '"The aerodrome controller shall give instructions to aircraft on the manoeuvring area so as to prevent collisions and to expedite and maintain an orderly flow of traffic."',
-    score:  0.92,
-  },
-  {
-    source: 'AIM 4-3-18 — Taxi Clearances',
-    text:   '"Taxi instructions issued by ATC are required to include the runway assignment, taxi route, and any hold short instructions as applicable."',
-    score:  0.87,
-  },
-];
 
 function MicIcon() {
   return (
@@ -72,15 +54,94 @@ function DatabaseIcon() {
 export default function SimulatorPage({ scenario, onBack }) {
   const dispatch = useDispatch();
   const { orbMode, transcript, isRecording, isProcessing, audioLevel } = useSelector(s => s.simulator);
-  const { startSession, startRecording, stopRecordingAndSubmit } = useSimulator();
+  const { startSession, startRecording, stopRecordingAndSubmit, endSession } = useSimulator();
 
   const [audioLevels, setAudioLevels] = useState(Array(18).fill(4));
   const [showSourceDrawer, setShowSourceDrawer] = useState(false);
+  const [wsTalkingIntensity, setWsTalkingIntensity] = useState(0);
+  const [sessionCompleted, setSessionCompleted] = useState(false);
+  const [sessionResult, setSessionResult] = useState(null);
 
   // Boot session when scenario is ready
   useEffect(() => {
-    if (scenario?.id) startSession(scenario.id);
-  }, [scenario?.id]); // eslint-disable-line
+    if (scenario?.id || scenario?._id) {
+      setSessionCompleted(false);
+      setSessionResult(null);
+      startSession(scenario.id || scenario._id);
+    }
+  }, [scenario?.id, scenario?._id]); // eslint-disable-line
+
+  const handleMicClick = useCallback(async () => {
+    if (isProcessing) return;
+    if (isRecording) {
+      const turnResult = await stopRecordingAndSubmit();
+      if (turnResult?.finished) {
+        setSessionResult({
+          score: turnResult.score || 95,
+          stepResults: turnResult.stepResults || [],
+          transcript: transcript,
+        });
+        setSessionCompleted(true);
+      }
+    } else {
+      await startRecording();
+    }
+  }, [isRecording, isProcessing, startRecording, stopRecordingAndSubmit, transcript]);
+
+  const handleEndSession = async () => {
+    const res = await endSession();
+    setSessionResult({
+      score: res?.score || 90,
+      stepResults: res?.stepResults || [],
+      transcript: transcript,
+    });
+    setSessionCompleted(true);
+  };
+
+  if (sessionCompleted) {
+    return (
+      <DebriefPage
+        scenario={scenario}
+        sessionResult={sessionResult}
+        onRetry={() => {
+          setSessionCompleted(false);
+          setSessionResult(null);
+          startSession(scenario.id || scenario._id);
+        }}
+        onNextScenario={onBack}
+        onBackToDashboard={onBack}
+      />
+    );
+  }
+
+  // Setup WebSocket connection to AI Service for real-time 3D Orb voice reactivity
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/simulator`;
+
+    let ws = null;
+    try {
+      ws = new WebSocket(wsUrl);
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'ATC_SPEAKING_START') {
+            setWsTalkingIntensity(data.intensity || 0.85);
+          } else if (data.type === 'ATC_SPEAKING_END') {
+            setWsTalkingIntensity(0);
+          }
+        } catch (e) {
+          // ignore non-JSON messages
+        }
+      };
+    } catch (e) {
+      console.warn('WebSocket connection fallback:', e.message);
+    }
+
+    return () => {
+      if (ws && ws.readyState === 1) ws.close();
+    };
+  }, []);
 
   // Animate frequency audio bars from real microphone volume level
   useEffect(() => {
@@ -92,22 +153,48 @@ export default function SimulatorPage({ scenario, onBack }) {
     }
   }, [isRecording, audioLevel]);
 
-  const handleMicClick = useCallback(async () => {
-    if (isProcessing) return;
-    if (isRecording) {
-      await stopRecordingAndSubmit();
-    } else {
-      await startRecording();
-    }
+
+
+  // Spacebar Push-To-Talk (PTT) keyboard listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.code === 'Space' && !e.repeat && !isRecording && !isProcessing) {
+        const target = e.target;
+        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          startRecording();
+        }
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.code === 'Space' && isRecording && !isProcessing) {
+        const target = e.target;
+        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          stopRecordingAndSubmit();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
   }, [isRecording, isProcessing, startRecording, stopRecordingAndSubmit]);
 
   const lastAtcLine = [...transcript].reverse().find(t => t.role === 'atc');
   const lastPilotLine = [...transcript].reverse().find(t => t.role === 'pilot');
 
-  // Real WebAudio microphone talking state passed to 3D MetallicOrb canvas
+  const aircraftCallsign = scenario?.aircraftCallsign || 'N172SP';
+  const freq = '118.300';
+  const runway = scenario?.steps?.[0]?.slots?.find(s => s.key === 'runway')?.staticValue || '22L';
+
   const talkingState = {
-    isTalking: isRecording && (audioLevel > 0.03),
-    intensity: isRecording ? Math.min(1.0, (audioLevel || 0) * 2.8) : isProcessing ? 0.3 : 0,
+    isTalking: isRecording ? (audioLevel > 0.03) : (wsTalkingIntensity > 0),
+    intensity: isRecording ? Math.min(1.0, (audioLevel || 0) * 2.8) : isProcessing ? 0.4 : wsTalkingIntensity,
   };
 
   return (
@@ -120,24 +207,35 @@ export default function SimulatorPage({ scenario, onBack }) {
 
         <div className="sim-status-pill">
           <span className="live-dot green" aria-hidden="true" />
-          <span className="pill-freq">{AIRCRAFT_DATA.freq} MHz</span>
+          <span className="pill-freq">{freq} MHz</span>
           <span className="pill-sep">•</span>
-          <span className="pill-callsign">{AIRCRAFT_DATA.callsign}</span>
+          <span className="pill-callsign">{aircraftCallsign}</span>
           <span className="pill-sep">•</span>
-          <span className="pill-rwy">RWY {scenario?.runway || AIRCRAFT_DATA.runway}</span>
+          <span className="pill-rwy">RWY {runway}</span>
         </div>
 
-        <button
-          className={`sim-source-toggle ${showSourceDrawer ? 'active' : ''}`}
-          onClick={() => setShowSourceDrawer(s => !s)}
-          aria-label="Toggle RAG grounding drawer"
-        >
-          <DatabaseIcon />
-          <span>Source RAG</span>
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            className={`sim-source-toggle ${showSourceDrawer ? 'active' : ''}`}
+            onClick={() => setShowSourceDrawer(s => !s)}
+            aria-label="Toggle RAG grounding drawer"
+          >
+            <DatabaseIcon />
+            <span>Source RAG</span>
+          </button>
+
+          <button
+            className="sim-source-toggle active"
+            onClick={handleEndSession}
+            style={{ background: 'rgba(34,197,94,0.15)', borderColor: 'rgba(34,197,94,0.4)', color: 'var(--cleared-green)' }}
+            aria-label="Complete Sortie"
+          >
+            <span>Complete Sortie ✓</span>
+          </button>
+        </div>
       </header>
 
-      {/* ── CENTERSTAGE: 3D METALLIC ORB (NO NOISE) ── */}
+      {/* ── CENTERSTAGE: 3D METALLIC ORB (WEBSOCKET CONNECTED) ── */}
       <main className="sim-orb-stage">
         <div className="orb-canvas-hero">
           <MetallicOrb
@@ -159,7 +257,7 @@ export default function SimulatorPage({ scenario, onBack }) {
 
         {lastPilotLine && (
           <div className="hud-line-card pilot-card">
-            <span className="line-speaker">PILOT ({AIRCRAFT_DATA.callsign})</span>
+            <span className="line-speaker">PILOT ({aircraftCallsign})</span>
             <p className="line-text">{lastPilotLine.text}</p>
           </div>
         )}
@@ -167,7 +265,6 @@ export default function SimulatorPage({ scenario, onBack }) {
 
       {/* ── BOTTOM FLOATING AUDIO FREQUENCY DECK ── */}
       <footer className="sim-audio-deck">
-        {/* Frequency visualizer bars */}
         <div className="audio-freq-bars" aria-hidden="true">
           {audioLevels.map((h, i) => (
             <div
@@ -182,24 +279,22 @@ export default function SimulatorPage({ scenario, onBack }) {
           ))}
         </div>
 
-        {/* Minimal circular mic trigger */}
         <div className="mic-trigger-wrap">
           <button
             id="btn-mic-simulator"
             className={`sim-mic-btn ${isProcessing ? 'processing' : isRecording ? 'recording' : 'ready'}`}
             onClick={handleMicClick}
             disabled={isProcessing}
-            aria-label={isRecording ? 'Stop transmission' : 'Start transmission'}
+            aria-label={isRecording ? 'Stop transmission (PTT)' : 'Start transmission (PTT)'}
           >
             {isProcessing ? <SpinnerIcon /> : isRecording ? <StopIcon /> : <MicIcon />}
           </button>
         </div>
 
         <p className="mic-hint-text">
-          {isProcessing ? 'Transmitting to ICAO Validator…' : isRecording ? 'Recording — tap to conclude readback' : 'Tap microphone to transmit radio callout'}
+          {isProcessing ? 'Transmitting to ICAO Validator…' : isRecording ? 'Recording — Release Space or tap to submit' : 'Hold Spacebar (PTT) or tap microphone to transmit radio callout'}
         </p>
 
-        {/* Orb mode selector tabs */}
         <div className="orb-mode-tabs">
           {[
             { id: 'IDLE_CORE', label: 'CORE ORB' },
@@ -227,13 +322,11 @@ export default function SimulatorPage({ scenario, onBack }) {
             <button className="drawer-close" onClick={() => setShowSourceDrawer(false)}>✕</button>
           </div>
           <div className="drawer-content">
-            {GROUNDING_EXCERPTS.map((ex, i) => (
-              <div key={i} className="drawer-excerpt">
-                <p className="source-title">{ex.source}</p>
-                <p className="source-quote">{ex.text}</p>
-                <span className="source-match">Relevance Match: {Math.round(ex.score * 100)}%</span>
-              </div>
-            ))}
+            <div className="drawer-excerpt">
+              <p className="source-title">ICAO Doc 4444 §12.3.1 — Phraseology</p>
+              <p className="source-quote">"All readbacks shall include aircraft callsign, assigned runway designator, and key clearances."</p>
+              <span className="source-match">Relevance Match: 95%</span>
+            </div>
           </div>
         </aside>
       )}

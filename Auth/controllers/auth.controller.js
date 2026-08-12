@@ -8,19 +8,47 @@ import { createPublicKey } from 'crypto';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PUBLIC_KEY_PEM = fs.readFileSync(path.join(__dirname, '../keys/public.pem'), 'utf-8');
+
+const getPublicKeyPem = () => {
+    if (process.env.RSA_PUBLIC_KEY) return process.env.RSA_PUBLIC_KEY;
+    const keyPath = path.join(__dirname, '../keys/public.pem');
+    if (fs.existsSync(keyPath)) {
+        return fs.readFileSync(keyPath, 'utf-8');
+    }
+    throw new Error('RSA public key not found in process.env.RSA_PUBLIC_KEY or Auth/keys/public.pem');
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
  * Derives JWK n and e components from the RSA public key PEM.
- * Used to build the JWKS endpoint response.
  * @returns {{ n: string, e: string }}
  */
 const deriveJwkComponents = () => {
-    const pubKey = createPublicKey(PUBLIC_KEY_PEM);
+    const pubKey = createPublicKey(getPublicKeyPem());
     const jwk = pubKey.export({ format: 'jwk' });
     return { n: jwk.n, e: jwk.e };
+};
+
+/**
+ * Derives the JWKS JSON object directly from internal RSA keys.
+ * Used by getJwksController and Auth middleware internally.
+ * @returns {{ keys: Array<{ kty: string, use: string, alg: string, kid: string, n: string, e: string }> }}
+ */
+export const getJwksData = () => {
+    const { n, e } = deriveJwkComponents();
+    return {
+        keys: [
+            {
+                kty: 'RSA',
+                use: 'sig',
+                alg: 'RS256',
+                kid: 'auth-rsa-v1',
+                n,
+                e,
+            },
+        ],
+    };
 };
 
 // ── Controllers ───────────────────────────────────────────────────────────────
@@ -32,19 +60,8 @@ const deriveJwkComponents = () => {
  */
 export const getJwksController = (_req, res) => {
     try {
-        const { n, e } = deriveJwkComponents();
-        return res.status(200).json({
-            keys: [
-                {
-                    kty: 'RSA',
-                    use: 'sig',
-                    alg: 'RS256',
-                    kid: 'auth-rsa-v1',
-                    n,
-                    e,
-                },
-            ],
-        });
+        const jwksData = getJwksData();
+        return res.status(200).json(jwksData);
     } catch (error) {
         console.error('[Auth] getJwksController error:', error.message);
         return res.status(500).json({ status: 'error', message: error.message });
@@ -80,8 +97,8 @@ export const authGoogleCallbackController = async (req, res, next) => {
         const { refreshToken } = await issueTokenPair(user);
         setRefreshCookie(res, refreshToken);
 
-        const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-        res.redirect(clientUrl);
+        const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
+        res.redirect(`${clientUrl}/`);
     } catch (err) {
         next(err);
     }

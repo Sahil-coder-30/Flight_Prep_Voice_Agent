@@ -59,6 +59,12 @@ spec:
           value: "http://auth-service/api/auth/.well-known/jwks.json"
         - name: BACKEND_SERVICE_URL
           value: "http://backend-service"
+        - name: MISTRAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-secret
+              key: MISTRAL_API_KEY
+              optional: true
         - name: MISTRALAI_API_KEY
           valueFrom:
             secretKeyRef:
@@ -82,4 +88,23 @@ spec:
             secretKeyRef:
               name: ai-secret
               key: QDRANT_URL
+              optional: true
+
+        - name: QDRANT_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-secret
+              key: QDRANT_API_KEY
+              optional: true
+        - name: STT_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-secret
+              key: STT_API_KEY
+              optional: true
+        - name: DEEPGRAM_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-secret
+              key: DEEPGRAM_API_KEY
               optional: true

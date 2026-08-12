@@ -4,12 +4,31 @@ import MetallicOrb from '../../simulator/components/MetallicOrb/MetallicOrb';
 import MetallicOrbControls from './MetallicOrbControls';
 import './Dashboard.scss';
 
-const MOCK_SCENARIOS = [
-  { id: '1', name: 'KJFK Departure Clearance', icao: 'KJFK', runway: '22L', difficulty: 'Beginner', progress: 72, color: 'cyan',  tag: 'DEP' },
-  { id: '2', name: 'KLAX Approach & Landing',  icao: 'KLAX', runway: '24R', difficulty: 'Intermediate', progress: 45, color: 'green', tag: 'APP' },
-  { id: '3', name: 'EGLL Ground Movement',     icao: 'EGLL', runway: '27L', difficulty: 'Advanced', progress: 18, color: 'amber', tag: 'GND' },
-  { id: '4', name: 'YSSY Oceanic Crossing',    icao: 'YSSY', runway: '16R', difficulty: 'Expert',   progress: 0,  color: 'cyan',  tag: 'OCE' },
-];
+const FREE_TALK_SCENARIO = {
+  id: 'free_talk',
+  _id: 'free_talk',
+  name: 'Direct Controller Voice Talk',
+  title: 'Direct Controller Voice Talk',
+  icao: 'VFR',
+  runway: 'ANY',
+  difficulty: 'All Levels',
+  progress: 100,
+  color: 'cyan',
+  tag: 'TALK',
+  aircraftCallsign: 'N172SP',
+  airport: 'KBOS',
+  steps: [
+    {
+      stepId: 'free_01',
+      templateId: 'tmpl_free_talk',
+      phase: 'ground',
+      procedureType: 'general_talk',
+      controllerLine: 'Boston Tower, N172SP, radio check and general inquiry.',
+      slots: [],
+      maxRetries: 3,
+    },
+  ],
+};
 
 function StatIcon({ type }) {
   switch (type) {
@@ -48,7 +67,7 @@ function ChevronRight() {
 }
 
 export default function Dashboard({ onStartScenario, onResumeSession, activeSession }) {
-  const { stats, recentSessions, loading, loadDashboard } = useDashboard();
+  const { stats, scenarios = [], loading, loadDashboard } = useDashboard();
   const [selectedId, setSelectedId] = useState(null);
 
   // Metallic Orb State
@@ -58,30 +77,25 @@ export default function Dashboard({ onStartScenario, onResumeSession, activeSess
 
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
 
-  // Handle Voice pulse simulation state
   const talkingState = {
     isTalking: isSimulatingVoice,
     intensity: isSimulatingVoice ? 0.85 : 0,
   };
 
   const statCards = [
-    { type: 'sessions', label: 'Sessions Logged', value: stats.sessionsCompleted, unit: '',     iconClass: 'cyan',  trend: '+3 this week' },
-    { type: 'score',    label: 'Phraseology Score', value: stats.phraseologyScore,  unit: '%',   iconClass: 'green', trend: '↑ 4pts vs last week' },
-    { type: 'hours',    label: 'Flight Time',     value: stats.hoursLogged,   unit: 'h',   iconClass: 'amber', trend: 'Last: 1.2h today' },
-    { type: 'streak',   label: 'Current Streak',  value: stats.streak,          unit: 'd',   iconClass: 'cyan',  trend: 'Active Pilot' },
+    { type: 'sessions', label: 'Sessions Logged', value: stats.sessionsCompleted || 0, unit: '', iconClass: 'cyan', trend: 'Total Sorties' },
+    { type: 'score', label: 'Phraseology Score', value: stats.phraseologyScore || 100, unit: '%', iconClass: 'green', trend: 'Average Grade' },
+    { type: 'hours', label: 'Flight Practice', value: stats.hoursLogged || 0, unit: 'h', iconClass: 'amber', trend: 'Practice Time' },
+    { type: 'streak', label: 'Daily Streak', value: stats.streak || 0, unit: 'd', iconClass: 'cyan', trend: 'Consecutive Days' },
   ];
 
-  function scoreColor(n) {
-    if (n >= 85) return 'var(--cleared-green)';
-    if (n >= 65) return 'var(--caution-amber)';
-    return 'var(--alert-red)';
-  }
-
-  function scoreLabel(n) {
-    if (n >= 85) return 'Cleared';
-    if (n >= 65) return 'Corrected';
-    return 'Go-around';
-  }
+  const activeScenariosList = scenarios.length > 0 ? scenarios : [
+    { id: '1', name: 'KBOS Ground Start & Taxi Clearance', title: 'KBOS Ground Start & Taxi Clearance', airport: 'KBOS', icao: 'KBOS', runway: '22L', difficulty: 'beginner', color: 'cyan', tag: 'GND' },
+    { id: '2', name: 'KJFK VFR Tower Departure', title: 'KJFK VFR Tower Departure', airport: 'KJFK', icao: 'KJFK', runway: '31L', difficulty: 'beginner', color: 'green', tag: 'DEP' },
+    { id: '3', name: 'KLAX ILS Approach & Landing', title: 'KLAX ILS Approach & Landing', airport: 'KLAX', icao: 'KLAX', runway: '25L', difficulty: 'intermediate', color: 'amber', tag: 'APP' },
+    { id: '4', name: 'KORD Enroute Center Handoff', title: 'KORD Enroute Center Handoff', airport: 'KORD', icao: 'KORD', runway: '10C', difficulty: 'intermediate', color: 'cyan', tag: 'ENR' },
+    { id: '5', name: 'KSFO Emergency Squawk 7700', title: 'KSFO Emergency Squawk 7700', airport: 'KSFO', icao: 'KSFO', runway: '28R', difficulty: 'advanced', color: 'red', tag: 'EMG' },
+  ];
 
   return (
     <main className="dashboard-space" aria-label="Flight Deck Dashboard">
@@ -98,17 +112,18 @@ export default function Dashboard({ onStartScenario, onResumeSession, activeSess
           </h1>
 
           <p className="hero-description">
-            Experience real-world ICAO air traffic control radio exchanges. Master departure clearances, ground navigation, and emergency procedures with instant RAG grounding.
+            Practice real-world ICAO air traffic control radio exchanges. Master departure clearances, ground navigation, and emergency procedures with instant RAG grounding.
           </p>
 
           <div className="hero-actions">
             <button
-              id="btn-launch-first-scenario"
+              id="btn-launch-direct-talk"
               className="btn btn-cyan btn-lg"
-              onClick={() => onStartScenario?.(MOCK_SCENARIOS[0])}
+              onClick={() => onStartScenario?.(FREE_TALK_SCENARIO)}
             >
-              Launch Primary Sortie <ChevronRight />
+              🎙️ Direct Controller Voice Talk <ChevronRight />
             </button>
+
             <button
               className="btn btn-ghost btn-lg"
               onClick={() => setOrbMode(m => m === 'SWARM_OUT' ? 'IDLE_CORE' : 'SWARM_OUT')}
@@ -158,10 +173,8 @@ export default function Dashboard({ onStartScenario, onResumeSession, activeSess
           <div className="resume-details">
             <div className="resume-top-line">
               <span className="chip chip-cyan">IN FLIGHT</span>
-              <span className="resume-time">{activeSession.elapsed || '14m elapsed'}</span>
             </div>
-            <h3 className="resume-scenario-title">{activeSession.scenarioName || 'KJFK Departure Clearance'}</h3>
-            <p className="resume-progress-text">Step {activeSession.step || 3} of {activeSession.totalSteps || 8} · Hold short Runway 22L</p>
+            <h3 className="resume-scenario-title">{activeSession.scenarioName || 'Active ATC Flight Session'}</h3>
           </div>
           <button
             id="btn-resume-session"
@@ -192,97 +205,69 @@ export default function Dashboard({ onStartScenario, onResumeSession, activeSess
         ))}
       </section>
 
-      {/* ── MAIN CONTENT GRID: SCENARIOS & RECENT SESSIONS ── */}
+      {/* ── SCENARIOS LISTING GRID ── */}
       <div className="dashboard-deck-grid">
-        {/* Scenario Library */}
         <section className="deck-panel scenario-deck" role="region" aria-label="Training Scenarios">
           <div className="panel-header">
             <div>
-              <h2 className="panel-title">Training Sorties</h2>
-              <p className="panel-subtitle">Select an ATC simulation exercise grounded in ICAO protocol</p>
+              <h2 className="panel-title">Training Sortie Templates</h2>
+              <p className="panel-subtitle">Select an ATC simulation template grounded in ICAO protocol</p>
             </div>
             <span className="chip chip-green">
               <span className="live-dot green" aria-hidden="true" />
-              4 Scenarios Ready
+              {activeScenariosList.length} Templates Ready
             </span>
           </div>
 
           <div className="scenario-card-grid">
-            {MOCK_SCENARIOS.map((sc) => (
-              <div
-                key={sc.id}
-                id={`btn-scenario-${sc.id}`}
-                className={`scenario-deck-card ${selectedId === sc.id ? 'active' : ''}`}
-                onClick={() => { setSelectedId(sc.id); onStartScenario?.(sc); }}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setSelectedId(sc.id); onStartScenario?.(sc); } }}
-                aria-label={`${sc.name}, ${sc.difficulty}, Runway ${sc.runway}`}
-              >
-                <div className="card-header">
-                  <span className={`tag-badge ${sc.color}`}>{sc.tag}</span>
-                  <span className="icao-badge">{sc.icao}</span>
-                </div>
-
-                <h3 className="scenario-name">{sc.name}</h3>
-
-                <div className="scenario-specs">
-                  <span className="spec-item">RWY {sc.runway}</span>
-                  <span className="spec-divider">•</span>
-                  <span className="spec-item">{sc.difficulty}</span>
-                </div>
-
-                <div className="card-footer">
-                  <div className="progress-track">
-                    <div className={`progress-bar ${sc.color}`} style={{ width: `${sc.progress}%` }} />
-                  </div>
-                  <span className="progress-num">{sc.progress}%</span>
-                </div>
+            {/* Direct Talk Card */}
+            <div
+              className="scenario-deck-card active"
+              onClick={() => onStartScenario?.(FREE_TALK_SCENARIO)}
+              style={{ borderLeft: '4px solid var(--nav-cyan)' }}
+            >
+              <div className="card-header">
+                <span className="tag-badge cyan">DIRECT VOICE</span>
+                <span className="icao-badge">FREE TALK</span>
               </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Recent Flights Log */}
-        <section className="deck-panel history-deck" role="region" aria-label="Recent Sorties Log">
-          <div className="panel-header">
-            <div>
-              <h2 className="panel-title">Recent Sorties</h2>
-              <p className="panel-subtitle">Audit transcript & phraseology performance</p>
+              <h3 className="scenario-name">🎙️ Direct Voice Controller Chat</h3>
+              <p className="scenario-specs">Ask general aviation questions or engage in free-form ATC dialogue.</p>
+              <div className="card-footer" style={{ marginTop: 12 }}>
+                <span className="launch-text" style={{ color: 'var(--nav-cyan)' }}>Start Free Voice Talk <ChevronRight /></span>
+              </div>
             </div>
-          </div>
 
-          <div className="session-history-list">
-            {recentSessions.length === 0 && (
-              <div className="empty-history-state">
-                <p>No sorties logged in flight recorder.</p>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => onStartScenario?.(MOCK_SCENARIOS[0])}
-                >
-                  Start First Flight
-                </button>
-              </div>
-            )}
-
-            {recentSessions.map((s) => {
-              const color = scoreColor(s.score);
+            {/* Template Cards */}
+            {activeScenariosList.map((sc) => {
+              const id = sc._id || sc.id;
+              const title = sc.title || sc.name;
+              const code = sc.airport || sc.icao || 'KBOS';
+              const difficulty = sc.difficulty || 'beginner';
               return (
-                <div key={s.id} className="history-row-card">
-                  <div className="history-main">
-                    <h4 className="history-name">{s.scenario}</h4>
-                    <div className="history-meta">
-                      <span>{s.date}</span>
-                      <span className="meta-sep">•</span>
-                      <span>{s.duration}</span>
-                    </div>
+                <div
+                  key={id}
+                  id={`btn-scenario-${id}`}
+                  className={`scenario-deck-card ${selectedId === id ? 'active' : ''}`}
+                  onClick={() => { setSelectedId(id); onStartScenario?.(sc); }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setSelectedId(id); onStartScenario?.(sc); } }}
+                >
+                  <div className="card-header">
+                    <span className="tag-badge green">{sc.tag || 'ATC'}</span>
+                    <span className="icao-badge">{code}</span>
                   </div>
 
-                  <div className="history-score-wrap">
-                    <span className="score-val" style={{ color }}>{s.score}%</span>
-                    <span className={`chip ${s.score >= 85 ? 'chip-green' : s.score >= 65 ? 'chip-amber' : 'chip-red'}`}>
-                      {scoreLabel(s.score)}
-                    </span>
+                  <h3 className="scenario-name">{title}</h3>
+
+                  <div className="scenario-specs">
+                    <span className="spec-item">RWY {sc.runway || '22L'}</span>
+                    <span className="spec-divider">•</span>
+                    <span className="spec-item">{difficulty}</span>
+                  </div>
+
+                  <div className="card-footer">
+                    <span className="launch-text">Launch Sortie <ChevronRight /></span>
                   </div>
                 </div>
               );

@@ -1,0 +1,185 @@
+@import '../../../styles/tokens.scss';
+
+.settings-page {
+  flex: 1;
+  overflow-y: auto;
+  padding: $space-10 clamp($space-6, 5vw, $space-16);
+  position: relative;
+  z-index: 1;
+  animation: page-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 860px;
+}
+
+.settings-header {
+  margin-bottom: $space-8;
+
+  .settings-title {
+    font-family: $font-display;
+    font-size: clamp(24px, 3.5vw, 36px);
+    font-weight: 700;
+    color: $color-text;
+    letter-spacing: -0.02em;
+    margin-bottom: $space-2;
+  }
+
+  .settings-subtitle {
+    color: $color-text-muted;
+    font-size: 14px;
+  }
+}
+
+.settings-toast-success {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: var(--cleared-green);
+  padding: $space-4 $space-6;
+  border-radius: var(--r-md);
+  font-family: $font-mono;
+  font-size: 13px;
+  margin-bottom: $space-6;
+  animation: page-enter 0.25s ease;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-8;
+}
+
+.settings-section {
+  @include glassmorphism;
+  border-radius: var(--r-lg);
+  padding: $space-6;
+
+  .section-title-wrap {
+    margin-bottom: $space-6;
+    padding-bottom: $space-4;
+    border-bottom: 1px solid var(--border-sep);
+
+    .section-title {
+      font-family: $font-heading;
+      font-size: 18px;
+      font-weight: 600;
+      color: $color-text;
+      margin-bottom: $space-1;
+    }
+
+    .section-desc {
+      font-size: 13px;
+      color: $color-text-muted;
+    }
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+    margin-bottom: $space-6;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      font-family: $font-mono;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: $color-text;
+      display: flex;
+      align-items: center;
+      gap: $space-2;
+    }
+
+    .form-input {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid $color-border;
+      border-radius: var(--r-md);
+      padding: $space-3 $space-4;
+      color: $color-text;
+      font-family: $font-mono;
+      font-size: 14px;
+
+      &:focus {
+        outline: none;
+        border-color: $color-accent;
+      }
+    }
+
+    .range-input {
+      accent-color: var(--nav-cyan);
+      height: 6px;
+      cursor: pointer;
+    }
+
+    .field-hint {
+      font-size: 12px;
+      color: $color-text-muted;
+    }
+  }
+}
+
+.keybind-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid $color-border;
+  border-radius: var(--r-md);
+  padding: $space-2 $space-4;
+  color: var(--nav-cyan);
+
+  .keybind-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: $color-text;
+    font-family: $font-mono;
+    font-size: 14px;
+    width: 100%;
+  }
+
+  .keybind-badge {
+    font-family: $font-mono;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(56, 198, 224, 0.15);
+    color: var(--nav-cyan);
+    border: 1px solid rgba(56, 198, 224, 0.3);
+    padding: 2px 8px;
+    border-radius: var(--r-sm);
+  }
+}
+
+.mic-test-row {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+
+  .level-meter-bar {
+    flex: 1;
+    height: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid $color-border;
+    border-radius: 5px;
+    overflow: hidden;
+
+    .meter-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--nav-cyan), var(--cleared-green));
+      transition: width 0.1s linear;
+    }
+  }
+
+  .meter-val {
+    font-family: $font-mono;
+    font-size: 12px;
+    color: var(--nav-cyan);
+    min-width: 40px;
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+}

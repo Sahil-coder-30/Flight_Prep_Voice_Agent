@@ -60,6 +60,11 @@ spec:
             secretKeyRef:
               name: jwt
               key: RSA_PRIVATE_KEY
+        - name: RSA_PUBLIC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: jwt
+              key: RSA_PUBLIC_KEY
         - name: JWT_REFRESH_SECRET
           valueFrom:
             secretKeyRef:
@@ -75,3 +80,15 @@ spec:
             secretKeyRef:
               name: google
               key: GOOGLE_CLIENT_SECRET
+        - name: GOOGLE_CALLBACK_URL
+          valueFrom:
+            secretKeyRef:
+              name: google
+              key: GOOGLE_CALLBACK_URL
+              optional: true
+        - name: CLIENT_URL
+          valueFrom:
+            secretKeyRef:
+              name: google
+              key: CLIENT_URL
+              optional: true

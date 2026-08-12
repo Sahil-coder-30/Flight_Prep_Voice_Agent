@@ -1,64 +1,31 @@
 import jwt from 'jsonwebtoken';
 import { createPublicKey } from 'crypto';
+import { getJwksData } from '../controllers/auth.controller.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const AUTH_JWKS_URI = process.env.AUTH_JWKS_URI || 'http://localhost/api/auth/.well-known/jwks.json';
-
 const JWT_VERIFY_OPTIONS = {
     algorithms: ['RS256'],
     issuer: process.env.JWT_ISSUER || 'auth.atcvoicesimulator.in',
     audience: process.env.JWT_AUDIENCE || 'atcvoicesimulator-services',
 };
 
-// ── JWKS Key Cache ─────────────────────────────────────────────────────────────
-// Caches the full JWK array (not a single key) to support zero-downtime key
-// rotation overlap windows. Stale cache is served on transient Auth network failure.
-let cachedJwks = null;
-let lastFetchedTime = 0;
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 Hours
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-async function fetchJwks(forceRefresh = false) {
-    const now = Date.now();
-    if (!forceRefresh && cachedJwks && now - lastFetchedTime < CACHE_TTL_MS) {
-        return cachedJwks;
-    }
-
-    try {
-        const response = await fetch(AUTH_JWKS_URI);
-        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-        const data = await response.json();
-        if (!data.keys || data.keys.length === 0) throw new Error('JWKS response contained no keys');
-
-        cachedJwks = data.keys;
-        lastFetchedTime = now;
-        return cachedJwks;
-    } catch (err) {
-        if (cachedJwks) return cachedJwks; // Serve stale cache on transient Auth network failure
-        throw new Error(`[Auth Middleware] Failed to fetch JWKS from Auth Service (${AUTH_JWKS_URI}): ${err.message}`);
-    }
-}
-
 /**
- * Resolves the correct RSA Public Key PEM for the token's kid claim.
- * On kid miss, force-refreshes the JWKS cache once before failing.
+ * Resolves the correct RSA Public Key PEM by calling getJwksData() directly internally.
+ * Zero HTTP network calls — pure in-process execution.
  */
 async function resolvePublicKey(token) {
     const header = jwt.decode(token, { complete: true })?.header;
-    if (!header?.kid) throw new Error('Token is missing the kid (key ID) header claim');
+    const jwks = getJwksData();
 
-    let keys = await fetchJwks();
-    let jwk = keys.find((k) => k.kid === header.kid);
-
-    // If kid is not in cache, a new key may have rotated in — force refetch once
-    if (!jwk) {
-        keys = await fetchJwks(true);
-        jwk = keys.find((k) => k.kid === header.kid);
+    if (!jwks?.keys || jwks.keys.length === 0) {
+        throw new Error('Auth Service: JWKS is empty internally');
     }
 
-    if (!jwk) throw new Error(`No JWKS entry found for kid="${header.kid}"`);
+    // Match kid if present, or use primary key
+    let jwk = jwks.keys.find((k) => k.kid === header?.kid) || jwks.keys[0];
+    if (!jwk) {
+        throw new Error(`Auth Service: No matching JWK found for kid="${header?.kid}"`);
+    }
 
     return createPublicKey({ key: jwk, format: 'jwk' }).export({ type: 'spki', format: 'pem' });
 }
@@ -66,12 +33,10 @@ async function resolvePublicKey(token) {
 // ── Middleware ────────────────────────────────────────────────────────────────
 
 /**
- * identifyUser — RS256 token verification middleware.
- * Fetches and caches JWKS from the Auth service.
- * Attaches req.user (decoded token payload) and req.authToken (raw token).
+ * identifyUser — Auth Service token verification middleware.
+ * Directly resolves JWKS internally without external HTTP calls.
  */
 export const identifyUser = async (req, res, next) => {
-    // ── Extract Bearer Token ──────────────────────────────────────────────────
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({
@@ -86,13 +51,9 @@ export const identifyUser = async (req, res, next) => {
     }
 
     try {
-        // ── Key Resolution by kid ─────────────────────────────────────────────
         const publicKeyPem = await resolvePublicKey(token);
-
-        // ── Cryptographic Signature & Expiry Verification ─────────────────────
         const decoded = jwt.verify(token, publicKeyPem, JWT_VERIFY_OPTIONS);
 
-        // ── Identity Claim Validation ─────────────────────────────────────────
         const userId = decoded?.sub || decoded?.id;
         if (!decoded || !userId) {
             return res.status(401).json({
@@ -101,7 +62,6 @@ export const identifyUser = async (req, res, next) => {
             });
         }
 
-        // ── Attach Verified Identity ──────────────────────────────────────────
         req.user = {
             id: userId,
             email: decoded.email,

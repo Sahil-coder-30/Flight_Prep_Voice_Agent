@@ -8,6 +8,7 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/websocket-services: "ai-service"
 spec:
   ingressClassName: nginx
   rules:
@@ -22,6 +23,13 @@ spec:
                   number: 80
           - pathType: Prefix
             path: "/api/ai"
+            backend:
+              service:
+                name: ai-service
+                port:
+                  number: 80
+          - pathType: Prefix
+            path: "/ws"
             backend:
               service:
                 name: ai-service

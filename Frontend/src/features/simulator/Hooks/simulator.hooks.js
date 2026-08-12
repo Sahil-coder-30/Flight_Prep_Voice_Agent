@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { submitTurnAPI, getTranscriptAPI } from '../service/simulator.api';
-import { createSessionAPI, completeSessionAPI } from '../../dashboard/service/dashboard.api';
+import { submitTurnAPI } from '../service/simulator.api';
+import { createSessionAPI, completeSessionAPI, getScenarioByIdAPI } from '../../dashboard/service/dashboard.api';
 import {
   setCurrentSession, addTranscriptMessage, setIsRecording,
   setIsProcessing, setSimulatorError, setAudioLevel, resetSimulator,
@@ -17,13 +17,43 @@ export const useSimulator = () => {
   const analyserRef = useRef(null);
   const animFrameRef = useRef(null);
   const streamRef = useRef(null);
+  const scenarioRef = useRef(null);
 
   // Start a new ATC session for a given scenario
   const startSession = useCallback(async (scenarioId) => {
     try {
       dispatch(setIsProcessing(true));
-      const data = await createSessionAPI(scenarioId);
-      dispatch(setCurrentSession(data.session ?? data));
+
+      // 1. Fetch full scenario details (including steps template)
+      const scRes = await getScenarioByIdAPI(scenarioId);
+      const scenario = scRes?.data?.scenario || scRes?.scenario;
+      scenarioRef.current = scenario;
+
+      // 2. Create session in Backend
+      const sessRes = await createSessionAPI(scenarioId);
+      const session = sessRes?.data?.session || sessRes?.session;
+      dispatch(setCurrentSession(session));
+
+      // 3. Initiate first turn with AI service to get initial ATC transmission
+      if (session && scenario) {
+        const turnRes = await submitTurnAPI(session._id || session.id, {
+          scenarioContext: scenario,
+        });
+
+        const turnData = turnRes?.data || turnRes;
+        if (turnData?.currentLine) {
+          dispatch(addTranscriptMessage({
+            role: 'atc',
+            text: turnData.currentLine,
+            timestamp: new Date().toISOString(),
+          }));
+        }
+
+        if (turnData?.audioBase64) {
+          const audio = new Audio(`data:audio/mpeg;base64,${turnData.audioBase64}`);
+          audio.play().catch(() => {});
+        }
+      }
     } catch (err) {
       dispatch(setSimulatorError(err.message));
     } finally {
@@ -38,7 +68,7 @@ export const useSimulator = () => {
       streamRef.current = stream;
 
       // Setup analyser for frequency visualization
-      const audioCtx = new AudioContext();
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
@@ -62,7 +92,7 @@ export const useSimulator = () => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
       mediaRecorderRef.current = recorder;
-      recorder.start(100); // 100ms chunks for real-time level
+      recorder.start(100);
       dispatch(setIsRecording(true));
     } catch (err) {
       dispatch(setSimulatorError('Microphone access denied: ' + err.message));
@@ -80,35 +110,40 @@ export const useSimulator = () => {
         dispatch(setAudioLevel(0));
         streamRef.current?.getTracks().forEach((t) => t.stop());
 
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
         dispatch(setIsRecording(false));
         dispatch(setIsProcessing(true));
 
         try {
-          const data = await submitTurnAPI(state.currentSession._id || state.currentSession.id, audioBlob);
-          
-          // Add pilot message
-          if (data.transcription) {
-            dispatch(addTranscriptMessage({
-              role: 'pilot',
-              text: data.transcription,
-              timestamp: new Date().toISOString(),
-            }));
-          }
-          
+          const turnRes = await submitTurnAPI(state.currentSession._id || state.currentSession.id, {
+            audioBlob,
+            scenarioContext: scenarioRef.current,
+          });
+
+          const data = turnRes?.data || turnRes;
+
           // Add ATC AI response
-          if (data.response) {
+          if (data.currentLine) {
             dispatch(addTranscriptMessage({
               role: 'atc',
-              text: data.response,
+              text: data.currentLine,
               timestamp: new Date().toISOString(),
-              audioUrl: data.audioUrl,
             }));
 
-            // Play AI audio response if available
-            if (data.audioUrl) {
-              new Audio(data.audioUrl).play().catch(() => {});
+            // Play AI audio response
+            if (data.audioBase64) {
+              const audio = new Audio(`data:audio/mpeg;base64,${data.audioBase64}`);
+              audio.play().catch(() => {});
             }
+          }
+
+          // Check if scenario concluded
+          if (data.finished) {
+            const stepResults = data.stepResults || [];
+            const totalScore = stepResults.reduce((acc, r) => acc + (r.score || 0), 0);
+            const finalScore = stepResults.length > 0 ? Math.round(totalScore / stepResults.length) : 100;
+
+            await completeSessionAPI(state.currentSession._id || state.currentSession.id, finalScore, stepResults);
           }
 
           resolve(data);

@@ -6,7 +6,9 @@
   "main": "server.js",
   "scripts": {
     "dev": "nodemon -L server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "ingest-rag": "node scripts/ingestRagDocs.js",
+    "verify-rag": "node scripts/verifyRagCollection.js"
   },
   "keywords": [],
   "author": "",
@@ -25,7 +27,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.7.2",
     "morgan": "^1.10.0",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"

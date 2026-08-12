@@ -25,20 +25,33 @@ async function fetchJwks(forceRefresh = false) {
         return cachedJwks;
     }
 
-    try {
-        const response = await fetch(AUTH_JWKS_URI);
-        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const urisToTry = [
+        AUTH_JWKS_URI,
+        'http://localhost:3000/api/auth/.well-known/jwks.json',
+        'http://127.0.0.1:3000/api/auth/.well-known/jwks.json',
+        'http://localhost:5001/api/auth/.well-known/jwks.json',
+        'http://auth-service:3000/api/auth/.well-known/jwks.json',
+    ];
 
-        const data = await response.json();
-        if (!data.keys || data.keys.length === 0) throw new Error('JWKS response contained no keys');
+    let lastError = null;
+    for (const uri of [...new Set(urisToTry)]) {
+        try {
+            const response = await fetch(uri);
+            if (!response.ok) continue;
 
-        cachedJwks = data.keys;
-        lastFetchedTime = now;
-        return cachedJwks;
-    } catch (err) {
-        if (cachedJwks) return cachedJwks; // Serve stale cache on transient Auth network failure
-        throw new Error(`[Auth Middleware] Failed to fetch JWKS from Auth Service (${AUTH_JWKS_URI}): ${err.message}`);
+            const data = await response.json();
+            if (!data.keys || data.keys.length === 0) continue;
+
+            cachedJwks = data.keys;
+            lastFetchedTime = now;
+            return cachedJwks;
+        } catch (err) {
+            lastError = err;
+        }
     }
+
+    if (cachedJwks) return cachedJwks; // Serve stale cache on transient Auth network failure
+    throw new Error(`[Backend Auth Middleware] Failed to fetch JWKS from Auth Service: ${lastError?.message || 'Connection refused'}`);
 }
 
 /**

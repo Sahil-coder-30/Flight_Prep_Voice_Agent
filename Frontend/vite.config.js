@@ -20,15 +20,15 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api/auth': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost',
         changeOrigin: true,
       },
       '/api/backend': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost',
         changeOrigin: true,
       },
       '/api/ai': {
-        target: 'http://localhost:7000',
+        target: 'http://localhost',
         changeOrigin: true,
       },
     },

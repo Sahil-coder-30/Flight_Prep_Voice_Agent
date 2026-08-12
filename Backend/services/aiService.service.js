@@ -1,5 +1,5 @@
 // ── Constants ─────────────────────────────────────────────────────────────────
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:7000';
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost';
 
 /**
  * Sends one conversational turn to the AI service.

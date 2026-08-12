@@ -64,14 +64,27 @@ function NextIcon() {
   );
 }
 
-export default function DebriefPage({ scenario, onRetry, onNextScenario, onBackToDashboard }) {
-  const totalSteps    = MOCK_STEPS.length;
-  const clearedCount  = MOCK_STEPS.filter(s => s.status === 'cleared').length;
-  const correctedCount = MOCK_STEPS.filter(s => s.status === 'corrected').length;
-  const failedCount   = MOCK_STEPS.filter(s => s.status === 'failed').length;
-  const score         = Math.round((clearedCount / totalSteps) * 100 - correctedCount * 4);
-  const duration      = '6m 45s';
-  const isPass        = score >= 65;
+export default function DebriefPage({ scenario, sessionResult, onRetry, onNextScenario, onBackToDashboard }) {
+  const stepsData = sessionResult?.stepResults?.length > 0
+    ? sessionResult.stepResults.map((s, i) => ({
+        name: s.stepName || s.procedureType || `Procedure Step ${i + 1}`,
+        status: s.score >= 80 ? 'cleared' : s.score >= 50 ? 'corrected' : 'failed',
+        duration: '0:30',
+        note: s.feedback || (s.score < 80 ? 'Phraseology needs precision' : null),
+      }))
+    : MOCK_STEPS;
+
+  const transcriptData = sessionResult?.transcript?.length > 0
+    ? sessionResult.transcript
+    : MOCK_TRANSCRIPT;
+
+  const totalSteps     = stepsData.length;
+  const clearedCount   = stepsData.filter(s => s.status === 'cleared').length;
+  const correctedCount = stepsData.filter(s => s.status === 'corrected').length;
+  const failedCount    = stepsData.filter(s => s.status === 'failed').length;
+  const score          = sessionResult?.score ?? Math.round((clearedCount / Math.max(1, totalSteps)) * 100 - correctedCount * 4);
+  const duration       = sessionResult?.duration || '4m 15s';
+  const isPass         = score >= 65;
 
   return (
     <main className="debrief-page" aria-label="Session debrief">
@@ -83,9 +96,9 @@ export default function DebriefPage({ scenario, onRetry, onNextScenario, onBackT
             {isPass ? <CheckIcon /> : <WarningIcon />}
           </div>
           <div className="strip-meta">
-            <p className="strip-scenario">{scenario?.name || 'KJFK Departure Clearance'}</p>
+            <p className="strip-scenario">{scenario?.name || scenario?.title || 'ATC Flight Sortie'}</p>
             <p className="strip-sub">
-              <span>{scenario?.icao || 'KJFK'}</span>
+              <span>{scenario?.icao || 'KBOS'}</span>
               <span className="strip-dot" aria-hidden="true" />
               <span>RWY {scenario?.runway || '22L'}</span>
               <span className="strip-dot" aria-hidden="true" />
@@ -126,7 +139,7 @@ export default function DebriefPage({ scenario, onRetry, onNextScenario, onBackT
 
         {/* Step checklist strip */}
         <div className="flight-strip-card__steps" role="list" aria-label="Step-by-step results">
-          {MOCK_STEPS.map((step, i) => (
+          {stepsData.map((step, i) => (
             <div
               key={i}
               className={`flight-strip-card__step ${step.status}`}
@@ -156,7 +169,7 @@ export default function DebriefPage({ scenario, onRetry, onNextScenario, onBackT
           <h2>Full Transcript</h2>
         </div>
         <div className="dt-body" role="log" aria-label="Radio exchange transcript">
-          {MOCK_TRANSCRIPT.map((line, i) => (
+          {transcriptData.map((line, i) => (
             <div
               key={i}
               className="dt-line"
@@ -165,7 +178,7 @@ export default function DebriefPage({ scenario, onRetry, onNextScenario, onBackT
               <span className={`dt-role ${line.role}`}>
                 {line.role === 'atc' ? 'ATC' : 'PILOT'}
               </span>
-              <span className={`dt-text ${line.status !== 'neutral' ? line.status : ''}`}>
+              <span className={`dt-text ${line.status && line.status !== 'neutral' ? line.status : ''}`}>
                 {line.text}
               </span>
             </div>
@@ -204,3 +217,4 @@ export default function DebriefPage({ scenario, onRetry, onNextScenario, onBackT
     </main>
   );
 }
+

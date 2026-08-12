@@ -5,7 +5,7 @@ import './MetallicOrb.scss';
 const DEFAULT_SETTINGS = {
   particleCount: 1050,
   particleSize: 0.85,
-  colorScheme: 'steel',
+  colorScheme: 'chrome',
   morphSpeed: 1.0,
   metalness: 0.95,
   roughness: 0.12,
@@ -17,7 +17,7 @@ const DEFAULT_SETTINGS = {
 export default function MetallicOrb({
   mode = 'IDLE_CORE',
   talkingState = { isTalking: false, intensity: 0 },
-  colorScheme = 'steel',
+  colorScheme = 'chrome',
   particleCount = 1050,
 }) {
   const settings = {

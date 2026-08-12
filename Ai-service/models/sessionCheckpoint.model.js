@@ -1,9 +1,9 @@
-const { Schema, model } = require('mongoose');
+import { Schema, model } from 'mongoose';
 
 const sessionCheckpointSchema = new Schema({
-    sessionId: { type: String, unique: true, index: true, required: true },
-    langgraphState: { type: Schema.Types.Mixed, required: true },
-    updatedAt: { type: Date, default: Date.now },
+    sessionId:       { type: String, unique: true, index: true, required: true },
+    langgraphState:  { type: Schema.Types.Mixed, required: true },
+    updatedAt:       { type: Date, default: Date.now },
 });
 
-module.exports = model('SessionCheckpoint', sessionCheckpointSchema);
+export default model('SessionCheckpoint', sessionCheckpointSchema);

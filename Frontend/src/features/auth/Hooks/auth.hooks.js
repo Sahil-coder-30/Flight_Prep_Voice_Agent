@@ -11,11 +11,17 @@ export const useAuth = () => {
   const initAuth = useCallback(async () => {
     try {
       dispatch(setAuthLoading(true));
-      const { accessToken } = await refreshTokenAPI();
-      setTokenMemory(accessToken);
-      dispatch(setAccessToken(accessToken));
-      const { user } = await getMeAPI();
-      dispatch(setUser(user));
+      const refreshRes = await refreshTokenAPI();
+      const accessToken = refreshRes?.accessToken || refreshRes?.data?.accessToken;
+      if (accessToken) {
+        setTokenMemory(accessToken);
+        dispatch(setAccessToken(accessToken));
+        const meRes = await getMeAPI();
+        const user = meRes?.data?.user || meRes?.user || meRes;
+        dispatch(setUser(user));
+      } else {
+        dispatch(clearAuth());
+      }
     } catch {
       // Not authenticated — stay on login
       dispatch(clearAuth());

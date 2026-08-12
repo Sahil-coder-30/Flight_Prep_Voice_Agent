@@ -1,44 +1,42 @@
-import axios from 'axios';
-import { getTokenMemory } from '../../auth/service/auth.api';
-
-const api = axios.create({
-  baseURL: '/api/backend',
-  withCredentials: true,
-});
-
-api.interceptors.request.use((config) => {
-  const token = getTokenMemory();
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+import { apiClient } from '../../../services/apiClient';
 
 export const getScenariosAPI = async () => {
-  const response = await api.get('/scenarios');
+  const response = await apiClient.get('/api/backend/scenarios');
   return response.data;
 };
 
 export const getScenarioByIdAPI = async (id) => {
-  const response = await api.get(`/scenarios/${id}`);
+  const response = await apiClient.get(`/api/backend/scenarios/${id}`);
   return response.data;
 };
 
 export const createSessionAPI = async (scenarioId) => {
-  const response = await api.post('/sessions', { scenarioId });
+  const response = await apiClient.post('/api/backend/sessions', { scenarioId });
   return response.data;
 };
 
 export const getSessionAPI = async (sessionId) => {
-  const response = await api.get(`/sessions/${sessionId}`);
+  const response = await apiClient.get(`/api/backend/sessions/${sessionId}`);
   return response.data;
 };
 
-export const completeSessionAPI = async (sessionId) => {
-  const response = await api.post(`/sessions/${sessionId}/complete`);
+export const completeSessionAPI = async (sessionId, score = 100, stepResults = []) => {
+  const response = await apiClient.post(`/api/backend/sessions/${sessionId}/complete`, { score, stepResults });
   return response.data;
 };
 
-export const getDashboardStatsAPI = async () => {
-  // Returns aggregated stats for the current user
-  const response = await api.get('/dashboard/stats');
+export const getUserStatsAPI = async () => {
+  const response = await apiClient.get('/api/backend/users/stats');
   return response.data;
 };
+
+export const getUserProgressAPI = async () => {
+  const response = await apiClient.get('/api/backend/users/progress');
+  return response.data;
+};
+
+export const getUserWeakAreasAPI = async () => {
+  const response = await apiClient.get('/api/backend/users/weak-areas');
+  return response.data;
+};
+

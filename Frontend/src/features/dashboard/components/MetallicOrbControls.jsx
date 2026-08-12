@@ -10,11 +10,10 @@ const SHAPE_MODES = [
 ];
 
 const COLOR_SCHEMES = [
-  { id: 'cyan', label: 'Cyber Cyan', color: '#38C6E0' },
-  { id: 'chrome', label: 'Chrome Steel', color: '#E8EDF2' },
-  { id: 'emerald', label: 'Neon Green', color: '#3FE08A' },
-  { id: 'gold', label: 'Gold Alloy', color: '#F2B84B' },
-  { id: 'neon-blue', label: 'Deep Blue', color: '#38BDF8' },
+  { id: 'chrome', label: 'Titanium Chrome', color: '#FFFFFF' },
+  { id: 'steel', label: 'Silver Steel', color: '#E4E4E7' },
+  { id: 'emerald', label: 'Emerald Mint', color: '#10B981' },
+  { id: 'gold', label: 'Solar Amber', color: '#F59E0B' },
 ];
 
 export default function MetallicOrbControls({

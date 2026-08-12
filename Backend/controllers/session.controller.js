@@ -1,6 +1,7 @@
 import Session from '../models/session.model.js';
 import Scenario from '../models/scenario.model.js';
-import { callAiServiceTurn } from '../services/aiService.service.js';
+import UserProgress from '../models/userProgress.model.js';
+import SessionAnalytics from '../models/sessionAnalytics.model.js';
 
 // ── Controllers ───────────────────────────────────────────────────────────────
 
@@ -22,7 +23,11 @@ export const createSessionController = async (req, res) => {
             return res.status(404).json({ status: 'error', message: 'Scenario not found or inactive' });
         }
 
-        // Initialise step trackers from the scenario template
+        // Increment scenario play count
+        scenario.playCount = (scenario.playCount || 0) + 1;
+        await scenario.save();
+
+        // Initialise step trackers from scenario template
         const steps = scenario.steps.map((s) => ({
             stepId: s.stepId,
             status: 'pending',
@@ -38,8 +43,31 @@ export const createSessionController = async (req, res) => {
             startedAt: new Date(),
         });
 
+        // Update UserProgress engagement metrics
+        let progress = await UserProgress.findOne({ userId });
+        if (!progress) {
+            progress = new UserProgress({ userId });
+        }
+
+        progress.totalSessions += 1;
+        const currentCount = progress.scenarioPlayCounts.get(String(scenarioId)) || 0;
+        progress.scenarioPlayCounts.set(String(scenarioId), currentCount + 1);
+
+        // Update favorite scenario if count is highest
+        let maxCount = 0;
+        let favId = null;
+        for (const [sId, count] of progress.scenarioPlayCounts.entries()) {
+            if (count > maxCount) {
+                maxCount = count;
+                favId = sId;
+            }
+        }
+        if (favId) progress.favoriteScenarioId = favId;
+
+        await progress.save();
+
         console.log(`[Backend] Session ${session._id} created for user ${userId}`);
-        return res.status(201).json({ status: 'success', data: { session } });
+        return res.status(201).json({ status: 'success', data: { session, scenario } });
     } catch (error) {
         console.error('[Backend] createSessionController error:', error.message);
         return res.status(500).json({ status: 'error', message: error.message });
@@ -48,7 +76,7 @@ export const createSessionController = async (req, res) => {
 
 /**
  * GET /api/backend/sessions/:id
- * Returns session state and progress. Verifies the requester owns the session.
+ * Returns session state and progress. Verifies ownership.
  */
 export const getSessionController = async (req, res) => {
     try {
@@ -73,12 +101,13 @@ export const getSessionController = async (req, res) => {
 
 /**
  * POST /api/backend/sessions/:id/complete
- * Marks a session as completed and records the final score.
+ * Concludes a training session, records SessionAnalytics, and computes user progress stats.
  */
 export const completeSessionController = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
+        const { score = 100, stepResults = [] } = req.body;
 
         const session = await Session.findById(id);
         if (!session) {
@@ -91,15 +120,55 @@ export const completeSessionController = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'Session is not in active state' });
         }
 
-        const { score } = req.body;
-
+        const now = new Date();
         session.status = 'completed';
-        session.completedAt = new Date();
-        if (score !== undefined) session.score = score;
+        session.completedAt = now;
+        session.score = score;
         await session.save();
 
-        console.log(`[Backend] Session ${id} completed with score ${score}`);
-        return res.status(200).json({ status: 'success', data: { session } });
+        const durationSeconds = Math.round((now - new Date(session.startedAt)) / 1000);
+
+        // Record granular analytics
+        await SessionAnalytics.create({
+            sessionId: session._id,
+            userId,
+            scenarioId: session.scenarioId,
+            durationSeconds,
+            finalScore: score,
+            stepResults,
+        });
+
+        // Update UserProgress metrics
+        const progress = await UserProgress.findOne({ userId });
+        if (progress) {
+            progress.completedSessions += 1;
+            progress.totalTimeSeconds += durationSeconds;
+
+            // Streak computation
+            const last = progress.lastPracticedAt ? new Date(progress.lastPracticedAt) : null;
+            const today = new Date();
+            if (!last) {
+                progress.currentStreak = 1;
+            } else {
+                const diffDays = Math.floor((today - last) / (1000 * 60 * 60 * 24));
+                if (diffDays === 1) progress.currentStreak += 1;
+                else if (diffDays > 1) progress.currentStreak = 1;
+            }
+            if (progress.currentStreak > progress.longestStreak) {
+                progress.longestStreak = progress.currentStreak;
+            }
+            progress.lastPracticedAt = now;
+
+            // Scores
+            if (score > progress.bestScore) progress.bestScore = score;
+            const totalScoreSum = progress.avgScore * (progress.completedSessions - 1) + score;
+            progress.avgScore = Math.round(totalScoreSum / progress.completedSessions);
+
+            await progress.save();
+        }
+
+        console.log(`[Backend] Session ${id} completed for user ${userId}. Score: ${score}, Duration: ${durationSeconds}s`);
+        return res.status(200).json({ status: 'success', data: { session, score, durationSeconds } });
     } catch (error) {
         console.error('[Backend] completeSessionController error:', error.message);
         return res.status(500).json({ status: 'error', message: error.message });

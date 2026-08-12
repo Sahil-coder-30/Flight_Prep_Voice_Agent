@@ -1,57 +1,58 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import './tokens.scss';
 
-/* ─── ATC Obsidian Luxury Design System ───────────────────────────────────────── */
+/* ─── ATC Aviation Cockpit Premium Black & Off-White SaaS Design System ─── */
 :root {
-  /* ── Core Surfaces ── */
-  --void:   #020408;   /* Deepest Obsidian Void */
-  --panel:  #0A0F17;   /* Elevated Deck Surface */
-  --lift:   #111824;   /* Glass Card Layer */
+  /* ── Core Pitch-Black & Charcoal Surfaces (Vercel / Linear Luxury SaaS Standard) ── */
+  --void:   #09090B;   /* Deepest Pitch-Black Zinc Void */
+  --panel:  #121215;   /* Elevated Charcoal Cockpit Panel Surface */
+  --lift:   #18181B;   /* Floating Obsidian Deck Elevation */
   --glass:  rgba(255, 255, 255, 0.03);
+  --color-rgb-text: 250, 250, 250;
 
   /* ── Legacy compatibility aliases ── */
   --bg-canvas:  var(--void);
   --bg-surface: var(--panel);
   --bg-overlay: var(--lift);
   --bg-element: var(--glass);
-  --bg-active:  rgba(0, 240, 255, 0.08);
+  --bg-active:  rgba(255, 255, 255, 0.08);
 
-  /* ── Hairline Border System ── */
-  --border:        rgba(255, 255, 255, 0.06);
-  --border-strong: rgba(255, 255, 255, 0.12);
-  --border-glow:   rgba(0, 240, 255, 0.25);
-  --border-sep:    rgba(255, 255, 255, 0.04);
+  /* ── Razor-Sharp Silver Hairline Border System ── */
+  --border:        rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.20);
+  --border-glow:   rgba(255, 255, 255, 0.45);
+  --border-sep:    rgba(255, 255, 255, 0.06);
 
-  /* ── Status Color Language ── */
-  --nav-cyan:       #00F0FF;
-  --nav-cyan-dim:   rgba(0, 240, 255, 0.12);
-  --nav-cyan-glow:  rgba(0, 240, 255, 0.35);
+  /* ── Status & Accent Color Language (Monochrome Tactical Standards) ── */
+  --nav-cyan:       #FAFAFA;   /* Pristine Off-White Accent */
+  --nav-cyan-dim:   rgba(255, 255, 255, 0.08);
+  --nav-cyan-glow:  rgba(255, 255, 255, 0.25);
 
-  --cleared-green:      #10B981;
-  --cleared-green-dim:  rgba(16, 185, 129, 0.12);
-  --cleared-green-glow: rgba(16, 185, 129, 0.30);
+  --cleared-green:      #FAFAFA;   /* Crisp Silver Off-White */
+  --cleared-green-dim:  rgba(255, 255, 255, 0.08);
+  --cleared-green-glow: rgba(255, 255, 255, 0.25);
 
-  --caution-amber:      #F59E0B;
-  --caution-amber-dim:  rgba(245, 158, 11, 0.12);
-  --caution-amber-glow: rgba(245, 158, 11, 0.30);
+  --caution-amber:      #F59E0B;   /* Horizon Amber Gold */
+  --caution-amber-dim:  rgba(245, 158, 11, 0.14);
+  --caution-amber-glow: rgba(245, 158, 11, 0.35);
 
-  --alert-red:      #EF4444;
-  --alert-red-dim:  rgba(239, 68, 68, 0.12);
-  --alert-red-glow: rgba(239, 68, 68, 0.30);
+  --alert-red:      #EF4444;   /* Crimson Alert */
+  --alert-red-dim:  rgba(239, 68, 68, 0.14);
+  --alert-red-glow: rgba(239, 68, 68, 0.35);
 
-  /* ── Brand aliases ── */
-  --brand-primary: var(--cleared-green);
-  --brand-hover:   #34D399;
-  --brand-subtle:  var(--cleared-green-dim);
-  --accent-primary: var(--nav-cyan);
-  --accent-hover:   #38BDF8;
-  --accent-subtle:  var(--nav-cyan-dim);
+  /* ── Brand & Primary Action (Pristine High-Contrast White & Off-White) ── */
+  --brand-primary: #FFFFFF;
+  --brand-hover:   #F4F4F5;
+  --brand-subtle:  rgba(255, 255, 255, 0.08);
+  --accent-primary: #FAFAFA;
+  --accent-hover:   #E4E4E7;
+  --accent-subtle:  rgba(255, 255, 255, 0.06);
 
-  /* ── Typography ── */
-  --readout:        #F8FAFC;
-  --readout-dim:    #94A3B8;
-  --readout-muted:  #475569;
-  --readout-faint:  #1E293B;
+  /* ── Typography (Zinc Off-White Scale) ── */
+  --readout:        #FAFAFA;   /* Zinc 50 — High-Contrast Crisp Off-White Header & Primary Text */
+  --readout-dim:    #A1A1AA;   /* Zinc 400 — Muted Off-White / Silver Subtitles & Secondary Text */
+  --readout-muted:  #71717A;   /* Zinc 500 — Captions & Micro-readouts */
+  --readout-faint:  #3F3F46;   /* Zinc 700 — Disabled States */
 
   --text-primary:   var(--readout);
   --text-secondary: var(--readout-dim);
@@ -60,9 +61,9 @@
   --text-dark:      var(--void);
 
   /* ── Font Stacks ── */
-  --font-display: 'Space Grotesk', 'Avenir Next', sans-serif;
-  --font-sans:    'Public Sans', 'Segoe UI', system-ui, sans-serif;
-  --font-heading: 'Space Grotesk', sans-serif;
+  --font-display: 'Syne', 'Space Grotesk', system-ui, sans-serif;
+  --font-sans:    'Plus Jakarta Sans', 'Public Sans', system-ui, sans-serif;
+  --font-heading: 'Syne', 'Space Grotesk', sans-serif;
   --font-mono:    'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
 
   /* ── Radius ── */
@@ -71,11 +72,11 @@
   --r-lg: 14px;
   --r-xl: 20px;
 
-  /* ── Shadows ── */
-  --shadow-panel: 0 4px 24px rgba(0, 0, 0, 0.6);
-  --shadow-lift:  0 12px 40px rgba(0, 0, 0, 0.75);
-  --shadow-glow-cyan:  0 0 32px rgba(0, 240, 255, 0.22);
-  --shadow-glow-green: 0 0 32px rgba(16, 185, 129, 0.20);
+  /* ── Shadows (Pitch-Black Depth & Pristine White Glows) ── */
+  --shadow-panel: 0 4px 24px -2px rgba(0, 0, 0, 0.85), 0 2px 8px -1px rgba(0, 0, 0, 0.6);
+  --shadow-lift:  0 16px 40px -4px rgba(0, 0, 0, 0.95), 0 4px 16px -2px rgba(0, 0, 0, 0.75);
+  --shadow-glow-cyan:  0 0 32px rgba(255, 255, 255, 0.15);
+  --shadow-glow-green: 0 0 32px rgba(255, 255, 255, 0.20);
 }
 
 /* ─── Global Reset ────────────────────────────────────────────────────────── */

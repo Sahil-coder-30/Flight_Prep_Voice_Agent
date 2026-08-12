@@ -7,3 +7,5 @@ export const apiRateLimiter = rateLimit({
     legacyHeaders: false,
     message: { status: 'error', message: 'Too many AI inference requests, please try again later.' },
 });
+
+export const rateLimiter = apiRateLimiter;
