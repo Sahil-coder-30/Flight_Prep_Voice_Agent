@@ -42,6 +42,15 @@ function buildExpectedReadback(expected) {
         );
     }
 
+    if (
+        expected.hold_short &&
+        !expected.taxiway
+    ) {
+        parts.push(
+            `hold short of ${expected.hold_short}`
+        );
+    }
+
     return parts.join(", ");
 }
 
@@ -54,29 +63,46 @@ export async function clarify(state) {
         step?.expected ?? {};
 
     const expectedReadback =
-        buildExpectedReadback(expected);
+        buildExpectedReadback(
+            expected
+        );
 
     const clarification =
-        `Let's try that again. ${expectedReadback}. Please read that back.`;
+        `Maximum readback attempts reached. ` +
+        `Expected readback: ${expectedReadback}. ` +
+        `Training step terminated.`;
 
     console.log(
-        "[Agent] Clarification:",
+        "[Agent] Maximum readback attempts reached."
+    );
+
+    console.log(
+        "[Agent] Final clarification:",
         clarification
     );
 
     return {
-        currentLine: clarification,
+        currentLine:
+            clarification,
 
-        audioBase64: null,
+        audioBase64:
+            null,
 
-        retries: 0,
+        finished:
+            true,
 
         transcript: [
             {
                 role: "assistant",
-                content: clarification,
-                stepId: state.stepIndex,
-                timestamp: new Date(),
+
+                content:
+                    clarification,
+
+                stepId:
+                    state.stepIndex,
+
+                timestamp:
+                    new Date(),
             },
         ],
     };

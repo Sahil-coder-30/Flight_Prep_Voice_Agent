@@ -1,69 +1,46 @@
 import "dotenv/config";
 import jwt from "jsonwebtoken";
 
-const BASE_URL =
-    "http://localhost:7000";
+const BASE_URL = "http://localhost:7000";
 
 const token = jwt.sign(
     {
         id: "test-user",
         email: "test@example.com",
     },
-
     process.env.JWT_SECRET,
-
     {
         expiresIn: "1h",
     }
 );
 
-async function requestTurn(
-    sessionId,
-    body
-) {
-    const response =
-        await fetch(
-            `${BASE_URL}/sessions/${sessionId}/turn`,
-            {
-                method: "POST",
+async function requestTurn(sessionId, body) {
+    const response = await fetch(
+        `${BASE_URL}/sessions/${sessionId}/turn`,
+        {
+            method: "POST",
 
-                headers: {
-                    "Content-Type":
-                        "application/json",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
 
-                    Authorization:
-                        `Bearer ${token}`,
-                },
+            body: JSON.stringify(body),
+        }
+    );
 
-                body:
-                    JSON.stringify(body),
-            }
-        );
-
-    const text =
-        await response.text();
+    const text = await response.text();
 
     let data;
 
     try {
-        data =
-            JSON.parse(text);
+        data = JSON.parse(text);
     } catch {
         data = text;
     }
 
-    console.log(
-        "\nHTTP:",
-        response.status
-    );
-
-    console.log(
-        JSON.stringify(
-            data,
-            null,
-            2
-        )
-    );
+    console.log("\nHTTP:", response.status);
+    console.log(JSON.stringify(data, null, 2));
 
     if (!response.ok) {
         throw new Error(
@@ -76,126 +53,146 @@ async function requestTurn(
     return data;
 }
 
-async function testScenario(
-    scenarioId,
-    pilotTranscript
-) {
+async function main() {
     const sessionId =
-        `test-${scenarioId}-${Date.now()}`;
+        `test-clarify-${Date.now()}`;
 
-    console.log(
-        "\n================================="
+    console.log("\n=================================");
+    console.log("ATC CLARIFICATION TEST");
+    console.log("=================================");
+
+    // ─────────────────────────────
+    // 1. START
+    // ─────────────────────────────
+
+    console.log("\n[1] Starting scenario...");
+
+    const first = await requestTurn(
+        sessionId,
+        {
+            scenarioId:
+                "departure-clearance",
+        }
     );
-
-    console.log(
-        `SCENARIO: ${scenarioId}`
-    );
-
-    console.log(
-        "Session:",
-        sessionId
-    );
-
-    console.log(
-        "\n[1] Starting scenario..."
-    );
-
-    const first =
-        await requestTurn(
-            sessionId,
-            {
-                scenarioId,
-            }
-        );
 
     if (!first.currentLine) {
         throw new Error(
-            `${scenarioId}: ATC instruction was not generated`
+            "Initial ATC instruction missing"
         );
     }
 
     console.log(
-        "\n✅ ATC instruction generated:"
-    );
-
-    console.log(
+        "\n✅ Initial ATC:",
         first.currentLine
     );
 
-    if (!first.audioBase64) {
+    // ─────────────────────────────
+    // 2. WRONG READBACK #1
+    // ─────────────────────────────
+
+    console.log("\n[2] Wrong readback #1");
+
+    const wrong1 = await requestTurn(
+        sessionId,
+        {
+            pilotTranscript:
+                "VTX123 cleared to Delhi runway 18 squawk 1111",
+        }
+    );
+
+    if (wrong1.finished) {
         throw new Error(
-            `${scenarioId}: TTS audio was not generated`
+            "Scenario finished after wrong readback #1"
         );
     }
 
     console.log(
-        "✅ TTS audio generated"
+        "✅ Correction #1 received:",
+        wrong1.currentLine
     );
 
-    console.log(
-        "\n[2] Sending pilot readback..."
+    // ─────────────────────────────
+    // 3. WRONG READBACK #2
+    // ─────────────────────────────
+
+    console.log("\n[3] Wrong readback #2");
+
+    const wrong2 = await requestTurn(
+        sessionId,
+        {
+            pilotTranscript:
+                "VTX123 cleared to Mumbai runway 09 squawk 2222",
+        }
     );
 
-    console.log(
-        pilotTranscript
-    );
-
-    const second =
-        await requestTurn(
-            sessionId,
-            {
-                pilotTranscript,
-            }
-        );
-
-    if (!second.finished) {
+    if (wrong2.finished) {
         throw new Error(
-            `${scenarioId}: scenario did not finish`
+            "Scenario finished after wrong readback #2"
         );
     }
 
     console.log(
-        `\n✅ ${scenarioId}: PASS`
+        "✅ Correction #2 received:",
+        wrong2.currentLine
     );
-}
 
-async function main() {
+    // ─────────────────────────────
+    // 4. WRONG READBACK #3
+    // ─────────────────────────────
+
+    console.log("\n[4] Wrong readback #3");
+
+    const wrong3 = await requestTurn(
+        sessionId,
+        {
+            pilotTranscript:
+                "VTX123 cleared to Jaipur runway 14 squawk 3333",
+        }
+    );
+
+    if (wrong3.finished) {
+        throw new Error(
+            "Scenario finished after wrong readback #3"
+        );
+    }
+
+    if (!wrong3.currentLine) {
+        throw new Error(
+            "Clarification message missing"
+        );
+    }
+
+    console.log(
+        "✅ Clarification received:",
+        wrong3.currentLine
+    );
+
+    // ─────────────────────────────
+    // 5. CORRECT READBACK
+    // ─────────────────────────────
+
+    console.log("\n[5] Correct readback");
+
+    const correct = await requestTurn(
+        sessionId,
+        {
+            pilotTranscript:
+                "VTX123 cleared for departure via Nagpur runway 27 squawk 4521",
+        }
+    );
+
+    if (!correct.finished) {
+        throw new Error(
+            "Scenario did not finish after clarification"
+        );
+    }
+
     console.log(
         "\n================================="
     );
 
     console.log(
-        "ATC AI SERVICE TEST"
-    );
-
-    console.log(
-        "================================="
-    );
-
-    await testScenario(
-        "departure-clearance",
-
-        "VTX123 cleared for departure via Nagpur runway 27 squawk 4521"
-    );
-
-    await testScenario(
-        "landing-clearance",
-
-        "VTX123 cleared to land runway 27"
-    );
-
-    await testScenario(
-        "frequency-change",
-
-        "VTX123 contact departure on 124.7"
-    );
-
-    console.log(
-        "\n================================="
-    );
-
-    console.log(
-        "ALL SCENARIOS PASSED"
+        "✅ CLARIFICATION TEST PASSED"
     );
 
     console.log(
@@ -205,10 +202,12 @@ async function main() {
 
 main().catch((error) => {
     console.error(
-        "\n❌ TEST SUITE FAILED"
+        "\n❌ CLARIFICATION TEST FAILED"
     );
 
-    console.error(error);
+    console.error(
+        error.message
+    );
 
     process.exit(1);
 });

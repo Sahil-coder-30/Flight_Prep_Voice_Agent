@@ -72,10 +72,21 @@ workflow.addConditionalEdges(
             return "correct";
         }
 
+        /*
+         * retries is already incremented
+         * inside validateReadback.
+         *
+         * Therefore:
+         * 1st wrong readback -> retries = 1
+         * 2nd wrong readback -> retries = 2
+         * 3rd wrong readback -> retries = 3
+         *
+         * After the 3rd attempt, terminate.
+         */
         if (
-            (state.retries ?? 0) >= 2
+            (state.retries ?? 0) >= 3
         ) {
-            return "clarify";
+            return "max_retries";
         }
 
         return "incorrect";
@@ -84,7 +95,7 @@ workflow.addConditionalEdges(
     {
         correct: "advanceStep",
         incorrect: "issueCorrection",
-        clarify: "clarify",
+        max_retries: "clarify",
     }
 );
 
@@ -93,9 +104,16 @@ workflow.addEdge(
     "ttsSpeak"
 );
 
+/*
+ * clarify is now the FINAL response
+ * after three failed readbacks.
+ *
+ * It must NOT go back to ttsSpeak,
+ * otherwise a fourth readback is possible.
+ */
 workflow.addEdge(
     "clarify",
-    "ttsSpeak"
+    "debrief"
 );
 
 workflow.addConditionalEdges(

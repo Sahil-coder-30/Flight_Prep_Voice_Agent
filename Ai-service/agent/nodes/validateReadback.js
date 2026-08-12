@@ -3,10 +3,16 @@ import {
     validateAgainstExpected,
 } from "../../services/readbackValidator.service.js";
 
-import { startTimer } from "../../services/latency.service.js";
+import {
+    startTimer,
+} from "../../services/latency.service.js";
 
 export async function validateReadback(state) {
-    const transcript = state.pilotTranscript;
+    const transcript =
+        state.pilotTranscript;
+
+    const currentRetries =
+        state.retries ?? 0;
 
     if (!transcript) {
         return {
@@ -14,7 +20,9 @@ export async function validateReadback(state) {
                 valid: false,
                 confidence: "unknown",
             },
-            retries: (state.retries ?? 0) + 1,
+
+            retries:
+                currentRetries + 1,
         };
     }
 
@@ -22,26 +30,30 @@ export async function validateReadback(state) {
         state.currentStep ??
         state.steps?.[state.stepIndex];
 
-    const expected = step?.expected ?? {};
+    const expected =
+        step?.expected ?? {};
 
     console.log(
         "[Agent] Validating readback:",
         transcript
     );
 
-    const timer = startTimer(
-        "Readback validation"
-    );
+    const timer =
+        startTimer(
+            "Readback validation"
+        );
 
-    const extracted = parseReadback(
-        transcript,
-        expected
-    );
+    const extracted =
+        parseReadback(
+            transcript,
+            expected
+        );
 
-    const valid = validateAgainstExpected(
-        extracted,
-        expected
-    );
+    const valid =
+        validateAgainstExpected(
+            extracted,
+            expected
+        );
 
     timer.end();
 
@@ -65,16 +77,25 @@ export async function validateReadback(state) {
         valid
     );
 
+    const retries = valid
+        ? 0
+        : currentRetries + 1;
+
+    console.log(
+        "[Agent] Readback attempt:",
+        retries,
+        "/ 3"
+    );
+
     return {
         extracted: {
             ...extracted,
             valid,
         },
 
-        retries: valid
-            ? 0
-            : (state.retries ?? 0) + 1,
+        retries,
 
-        pilotTranscript: transcript,
+        pilotTranscript:
+            transcript,
     };
 }

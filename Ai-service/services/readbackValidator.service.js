@@ -19,9 +19,7 @@ function normalizeRunway(value) {
 
     const match = String(value)
         .toUpperCase()
-        .match(
-            /\b(?:RUNWAY\s*)?(\d{1,2}[LRC]?)\b/
-        );
+        .match(/\b(?:RUNWAY\s*)?(\d{1,2}[LRC]?)\b/);
 
     return match ? match[1] : null;
 }
@@ -58,11 +56,19 @@ function normalizeTaxiway(value) {
         );
 }
 
-function normalizeExpectedValue(
-    key,
-    value
-) {
-    if (value === null || value === undefined) {
+function normalizeHoldShort(value) {
+    if (!value) return null;
+
+    return normalize(value)
+        .replace(/^hold\s+short\s+(?:of\s+)?/, "")
+        .trim();
+}
+
+function normalizeExpectedValue(key, value) {
+    if (
+        value === null ||
+        value === undefined
+    ) {
         return null;
     }
 
@@ -83,7 +89,7 @@ function normalizeExpectedValue(
             return normalizeTaxiway(value);
 
         case "hold_short":
-            return normalize(value);
+            return normalizeHoldShort(value);
 
         case "squawk":
             return String(value)
@@ -109,7 +115,6 @@ function extractCallsign(text) {
 function extractRunway(text) {
     const patterns = [
         /\brunway\s+(\d{1,2}[LRC]?)\b/i,
-
         /\brwy\s+(\d{1,2}[LRC]?)\b/i,
     ];
 
@@ -117,7 +122,9 @@ function extractRunway(text) {
         const match = text.match(pattern);
 
         if (match) {
-            return normalizeRunway(match[1]);
+            return normalizeRunway(
+                match[1]
+            );
         }
     }
 
@@ -146,7 +153,7 @@ function extractSquawk(text) {
 
 function extractTaxiway(text) {
     const match = text.match(
-        /\b(?:via|taxiway|taxi)\s+([a-z]+)\b/i
+        /\b(?:via|taxiway|taxi)\s+([a-z0-9]+)\b/i
     );
 
     return match
@@ -171,40 +178,17 @@ function extractHoldShort(text) {
 function extractDeparture(text) {
     const normalizedText =
         String(text ?? "")
-            .replace(
-                /[.,!?]/g,
-                " "
-            )
-            .replace(
-                /\s+/g,
-                " "
-            )
+            .replace(/[.,!?]/g, " ")
+            .replace(/\s+/g, " ")
             .trim();
 
     const patterns = [
-        /*
-         * cleared to NAGPUR runway 27
-         */
         /\bcleared\s+to\s+([a-z][a-z\s-]*?)(?=\s+runway\b)/i,
 
-        /*
-         * cleared to NAGPUR, runway 27
-         */
-        /\bcleared\s+to\s+([a-z][a-z\s-]*?)(?=\s+runway\b)/i,
-
-        /*
-         * cleared for departure via NAGPUR runway 27
-         */
         /\bcleared\s+for\s+departure\s+via\s+([a-z][a-z\s-]*?)(?=\s+runway\b)/i,
 
-        /*
-         * departure via NAGPUR runway 27
-         */
         /\bdeparture\s+via\s+([a-z][a-z\s-]*?)(?=\s+runway\b)/i,
 
-        /*
-         * departure to NAGPUR runway 27
-         */
         /\bdeparture\s+(?:for|to)\s+([a-z][a-z\s-]*?)(?=\s+runway\b)/i,
     ];
 
@@ -347,6 +331,17 @@ function validateAgainstExpected(
                 key,
                 expected[key]
             );
+
+        if (
+            actual === null ||
+            required === null
+        ) {
+            if (actual !== required) {
+                return false;
+            }
+
+            continue;
+        }
 
         if (actual !== required) {
             return false;

@@ -13,9 +13,14 @@ export function identifyUser(req, res, next) {
     try {
         const token = header.slice(7);
 
+        const publicKey = process.env.JWT_PUBLIC_KEY.replace(/\\n/g, "\n");
+
         req.user = jwt.verify(
             token,
-            process.env.JWT_SECRET
+            publicKey,
+            {
+                algorithms: ["RS256"],
+            }
         );
 
         next();
