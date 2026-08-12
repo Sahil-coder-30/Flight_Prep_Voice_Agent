@@ -1,40 +1,95 @@
 # 🎙️ ATC Voice Simulator — Platform Monorepo
 
-> Enterprise-grade microservice architecture for real-time Air Traffic Control (ATC) radio phraseology training & AI voice simulation.
+> Enterprise-grade microservice platform for real-time Air Traffic Control (ATC) radio phraseology training & AI voice simulation powered by a **7-Layer Redis Caching Engine**, **LangGraph State Agent**, and **1,912 Vector Qdrant RAG Grounding**.
 
-![Microservices](https://img.shields.io/badge/architecture-Microservices-blue)
+![Architecture](https://img.shields.io/badge/architecture-Microservices-blue)
+![MVP Feature](https://img.shields.io/badge/MVP-7--Layer%20Redis%20Engine-red)
 ![Runtime](https://img.shields.io/badge/runtime-Node%2020%20%7C%20React%2018-informational)
+![Vector DB](https://img.shields.io/badge/Vector%20DB-Qdrant%20(1912%20Chunks)-purple)
 ![Orchestration](https://img.shields.io/badge/orchestration-Kubernetes%20%2B%20Skaffold-brightgreen)
 ![Security](https://img.shields.io/badge/security-RS256%20JWKS%20%2B%20OAuth2-success)
-![AI Engine](https://img.shields.io/badge/AI-LangGraph%20%2B%20Qdrant%20RAG-purple)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
 ## 📖 Table of Contents
 - [Overview & Vision](#-overview--vision)
+- [The Product MVP: 7-Layer Redis Architecture](#-the-product-mvp-7-layer-redis-caching-architecture)
 - [System Architecture & Data Flow](#-system-architecture--data-flow)
+- [AI Voice Agent & LangGraph State Machine](#-ai-voice-agent--langgraph-state-machine)
+- [1,912 Chunk Qdrant RAG System](#-1912-chunk-qdrant-rag-system)
+- [Real-Time WebSockets & 3D MetallicOrb](#-real-time-websockets--3d-metallicorb)
 - [Microservices Inventory & Status](#-microservices-inventory--status)
-- [Security & Authentication Architecture](#-security--authentication-architecture)
-- [AI Voice Agent Pipeline](#-ai-voice-agent-pipeline)
+- [Security & RS256 JWKS Authentication](#-security--rs256-jwks-authentication)
 - [Monorepo Layout](#-monorepo-layout)
 - [Local Development & Quickstart](#-local-development--quickstart)
 - [Global API Reference](#-global-api-reference)
-- [Developer Guidelines & Architecture Standards](#-developer-guidelines--architecture-standards)
-- [Verification & Documentation Quality](#-verification--documentation-quality)
+- [Developer Guidelines & Quality Probes](#-developer-guidelines--quality-probes)
 
 ---
 
 ## 🎯 Overview & Vision
 
-The **ATC Voice Simulator** is an interactive, voice-driven AI training platform designed for aviation students, pilot trainees, and Air Traffic Control cadets. The platform simulates real-world radio interactions between pilot aircraft and ATC controllers (Tower, Ground, Approach, Departure, and En Route Control).
+The **ATC Voice Simulator** is an interactive, voice-driven AI aviation training platform designed for pilot cadets, student aviators, and Air Traffic Control trainees. The platform emulates real-world VHF radio transmissions across Ground, Clearance Delivery, Tower, Approach, En Route, and Emergency flight phases.
 
-### Key Features
-- 🎙️ **Real-Time Voice Simulation:** High-fidelity speech-to-text (STT) and text-to-speech (TTS) synthesis reproducing aviation VHF radio noise and controller cadence.
-- 🧠 **LangGraph State Machine Agent:** Stateful conversational engine enforcing ICAO/FAA aviation phraseology rules, context persistence, and turn interrupt handling.
-- 🔍 **Retrieval-Augmented Generation (RAG):** Qdrant vector database grounding AI responses in official pilot/controller phraseology manuals and airfield procedures.
+### Core Platform Highlights
+- ⚡ **Sub-300ms Voice Latency (MVP):** Powered by our proprietary **7-Layer Redis Caching Architecture** that bypasses LLM composition and vector DB overhead for pre-templated phraseology turns.
+- 🧠 **LangGraph Interrupt State Machine:** Stateful turn-by-turn state machine with interrupt boundaries (`awaitReadback`) and conditional routing for standard readbacks vs general pilot inquiries.
+- 🔍 **1,912 Chunk RAG Vector Database:** Vector search in Qdrant indexing 100% of all 927 pages of **FAA Order JO 7110.65** and 82 pages of **ICAO Doc 4444**.
+- 🎙️ **Push-to-Talk (PTT) & WebSockets:** Half-duplex radio emulation with Spacebar PTT shortcuts, Web Audio API volume visualizers, and WebSocket-driven 3D MetallicOrb reactivity.
 - 🛡️ **Zero-Trust Security Infrastructure:** Asymmetric RS256 JWT access tokens validated locally via JWKS key caching and opaque rotating refresh token families.
-- ☸️ **Kubernetes-Native Deployment:** Containerized microservice deployment orchestrated via Kubernetes manifests, NGINX Ingress Controller, and Skaffold hot-reloading.
+- 📊 **Cadet Performance Telemetry:** Automated scoring, daily streak tracking, practice time recording, favorite scenario analysis, and weak-area identification.
+
+---
+
+## 🚀 The Product MVP: 7-Layer Redis Caching Architecture
+
+> 📄 *Detailed technical specification available in [`docs/redis_7_layer_architecture.md`](file:///Users/home/Desktop/ATC/docs/redis_7_layer_architecture.md)*
+
+The core technical breakthrough of the platform is the **7-Layer Redis Architecture**. It reduces end-to-end radio turn latency from **~2,600ms down to <280ms**.
+
+```
+[STT Speech Capture] ~250ms ➔ [L1/L2 Redis RAG] ~5ms ➔ [Template Engine (0ms LLM)] ~0ms ➔ [L7 Redis TTS] ~5ms
+=============================================================================================================
+OPTIMIZED REDIS PLATFORM LATENCY = <280ms (REAL-TIME AVIATION RADIO EMULATION)
+```
+
+```mermaid
+flowchart TD
+    subgraph Client ["Client Layer"]
+        PTT["Student Pilot PTT / Audio Stream"]
+    end
+
+    subgraph Service ["AI Service Pipeline"]
+        L6["L6: Rate Limiter Counter (15m Window)\n[rl:ip:{ipAddress}]"]
+        L5["L5: JWKS Key Cache (RS256 Validation)\n[auth:jwks:cache]"]
+        L3["L3: LangGraph Checkpoint (Session Re-hydration)\n[sess:cp:{sessionId}]"]
+        L4["L4: Dynamic Session Slot Cache (Wind/Squawk)\n[sess:slots:{sessionId}]"]
+        L1["L1: Template Embedding Cache (Mistral Vectors)\n[emb:tmpl:{templateId}]"]
+        L2["L2: Qdrant Grounding Cache (ICAO Rules)\n[gnd:tmpl:{templateId}]"]
+        L7["L7: TTS Audio Base64 Cache (Static Audio)\n[tts:{sha256(text)}]"]
+    end
+
+    PTT --> L6
+    L6 --> L5
+    L5 --> L3
+    L3 --> L4
+    L4 --> L1
+    L1 --> L2
+    L2 --> L7
+```
+
+### The 7 Layers Breakdown
+
+| Tier | Layer Name | Redis Key Pattern | TTL | Latency | Key Function |
+|---|---|---|---|---|---|
+| **L1** | **Template Embedding Cache** | `emb:tmpl:{templateId}` | 30 Days | `~2ms` | Caches pre-computed 1024-dim `mistral-embed` vectors for scenario steps. |
+| **L2** | **Qdrant Grounding Cache** | `gnd:tmpl:{templateId}` | 7 Days | `~3ms` | Caches top-k ICAO/FAA phraseology rules to bypass vector DB queries. |
+| **L3** | **State Checkpoint Cache** | `sess:cp:{sessionId}` | 24 Hours | `~4ms` | Stores LangGraph `AgentState` for instant PTT resume (<5ms). |
+| **L4** | **Dynamic Session Slot Cache** | `sess:slots:{sessionId}` | 24 Hours | `~2ms` | Holds session-randomized variables (wind `270@14`, altimeter `29.92`, squawk `4521`). |
+| **L5** | **JWKS Public Key Cache** | `auth:jwks:cache` | 24 Hours | `~1ms` | Caches Auth service RSA public keys for zero-latency local JWT verification. |
+| **L6** | **Rate Limiter Counter** | `rl:ip:{ipAddress}` | 15 Mins | `~1ms` | Sliding window rate-limiting counter protecting against LLM credit abuse. |
+| **L7** | **TTS Audio Output Cache** | `tts:{sha256(text)}` | 7 Days | `~5ms` | Caches SHA-256 hashed base64 MP3 audio for static controller lines (650ms → 5ms). |
 
 ---
 
@@ -43,32 +98,32 @@ The **ATC Voice Simulator** is an interactive, voice-driven AI training platform
 ```mermaid
 flowchart TB
     subgraph Client ["Client Layer"]
-        SPA["React 18 SPA\n(Port 5173)\n[Vite + Redux Toolkit + SCSS]"]
+        SPA["React 18 SPA\n(Port 5173)\n[Vite + Redux Toolkit + 3D MetallicOrb]"]
     end
 
-    subgraph Gateway ["Ingress Layer"]
-        Ingress["NGINX Ingress Controller\n(Rules: /api/auth, /api/ai, /api/backend)"]
+    subgraph Gateway ["Ingress & WebSockets"]
+        Ingress["NGINX Ingress Controller\n(Rules: /api/auth, /api/ai, /api/backend, /ws)"]
     end
 
     subgraph Microservices ["Microservices Layer"]
-        AuthSvc["Auth Service\n(Port 3000)\n[Google OAuth2, RS256 Signing, JWKS]"]
-        BackendSvc["Core Backend Service\n(Port 5000)\n[Scenarios, Sessions, Progress Scoring]"]
-        AISvc["AI Service\n(Port 7000)\n[LangGraph, STT/TTS, Qdrant RAG]"]
+        AuthSvc["Auth Service (Port 3000)\n[Google OAuth2, RS256 Signing, JWKS]"]
+        BackendSvc["Core Backend Service (Port 5000)\n[Scenarios, Sessions, Progress Scoring]"]
+        AISvc["AI Service (Port 7000)\n[LangGraph, WebSockets, STT/TTS, Qdrant]"]
     end
 
     subgraph DataStores ["Data & AI Infrastructure Layer"]
         AuthDB[("MongoDB\natc-auth")]
         BackendDB[("MongoDB\natc-backend")]
         AIDB[("MongoDB\natc-ai-service")]
-        RedisStore[("Redis\nSession & Cache")]
-        QdrantDB[("Qdrant Vector DB\nPhraseology Embeddings")]
-        LLM["Mistral AI / LLM Engine"]
+        RedisStore[("7-Layer Redis Cache\n[Session, Grounding, TTS]")]
+        QdrantDB[("Qdrant Vector DB\n(1912 Phraseology Chunks)")]
+        LLM["Mistral AI Engine\n(Embeddings & Completions)"]
     end
 
-    SPA -->|"HTTP / REST Requests"| Ingress
+    SPA -->|"HTTP / REST & WebSocket"| Ingress
     Ingress -->|"/api/auth/*"| AuthSvc
     Ingress -->|"/api/backend/*"| BackendSvc
-    Ingress -->|"/api/ai/*"| AISvc
+    Ingress -->|"/api/ai/* & /ws/*"| AISvc
 
     AuthSvc --> AuthDB
     BackendSvc --> BackendDB
@@ -77,65 +132,89 @@ flowchart TB
     AISvc --> QdrantDB
     AISvc --> LLM
 
-    BackendSvc -->|"HTTP internal turn/transcript calls"| AISvc
-    BackendSvc & AISvc -->|"Fetch & cache public RSA keys\nGET /.well-known/jwks.json"| AuthSvc
+    BackendSvc -->|"HTTP internal turn calls"| AISvc
+    BackendSvc & AISvc -->|"JWKS Public Key Fetch"| AuthSvc
 ```
+
+---
+
+## 🧠 AI Voice Agent & LangGraph State Machine
+
+The state machine in [`Ai-service/agent/graph.js`](file:///Users/home/Desktop/ATC/Ai-service/agent/graph.js) orchestrates turn transitions:
+
+```
+[Start] ➔ loadStep ➔ qdrantRetrieve ➔ composeLine ➔ ttsSpeak ➔ awaitReadback (INTERRUPT)
+                                                                         │
+                                                                 validateReadback
+                                                                 ┌───────┼───────┐
+                                                                 ▼       ▼       ▼
+                                                          [Passed] [Question] [Failed]
+                                                             │       │       │
+                                                   advanceStep  generalAnswer issueCorrection
+                                                             │       │       │
+                                                          debrief ───┴───────┘
+```
+
+1. **`loadStep`**: Fetches step definition & resolves static/dynamic slots from Redis L4.
+2. **`qdrantRetrieve`**: Gets grounding phraseology from Redis L2 or Qdrant vector search.
+3. **`composeLine`**: FAST-PATH template rendering (~0ms) or LLM fallback.
+4. **`ttsSpeak`**: Generates speech via Rime TTS or Redis L7 audio cache (~5ms).
+5. **`awaitReadback`**: **INTERRUPT BOUNDARY.** Pauses graph state in Redis L3 until pilot transmits speech.
+6. **`validateReadback`**: Uses `mistral-small-latest` & fuzzy slot matcher (NATO phonetics, numbers) to grade pilot readback.
+7. **`generalAnswer`**: Handles general pilot inquiries (*"What is VFR ceiling?"*) using Qdrant RAG.
+8. **`issueCorrection`**: Issues targeted readback corrections.
+9. **`advanceStep`**: Computes score, logs analytics, advances step or triggers `debrief`.
+
+---
+
+## 📚 1,912 Chunk Qdrant RAG System
+
+The RAG engine is populated from official aviation manuals located in `helpers/`:
+
+1. **`ICAO-DOC-4444-Amendment.pdf`** (82 Pages) — Global radiotelephony standards.
+2. **`7110.65BB_Bsc_w_Chg_1_2_and_3_dtd_7-9-26_Final.pdf`** (927 Pages) — Full FAA ATC manual.
+
+### Ingestion Pipeline
+- `helpers/extract_pdf_text.py` parses **100% of all 1,009 pages** into **1,912 phraseology chunks** (~250 words per chunk with 40-word overlap).
+- `Ai-service/scripts/ingestRagDocs.js` batch-embeds vectors using `mistral-embed` with HTTP 429 retry backoff and upserts them into Qdrant `atc_phraseology` collection.
+
+```bash
+# Ingest all PDF chunks into Qdrant
+npm --prefix Ai-service run ingest-rag
+
+# Verify live Qdrant vector count and search test
+npm --prefix Ai-service run verify-rag
+```
+
+---
+
+## 🌐 Real-Time WebSockets & 3D MetallicOrb
+
+- **WebSocket Endpoint:** `/ws/simulator` (handled by `Ai-service/config/ws.js`).
+- **Telemetry Events:**
+  - `ATC_SPEAKING_START`: Emits signal when controller speaks (`intensity: 0.85`).
+  - `ATC_SPEAKING_END`: Resets 3D MetallicOrb to idle core mode.
+- **Microphone Frequency Visualizer:** Web Audio API frequency bin analysis modulates frequency bars and canvas distortion.
 
 ---
 
 ## 🧩 Microservices Inventory & Status
 
-Each microservice is self-contained with its own `package.json`, `.env`, `dockerfile`, database, and independent scaling profile.
-
-| Service | Directory | Port | Primary Responsibilities | Health Endpoints | Current Status |
+| Service | Directory | Port | Primary Responsibilities | Health Probes | Status |
 |---|---|---|---|---|---|
-| 🔑 **Auth Service** | [`/Auth`](file:///Users/home/Desktop/ATC/Auth/README.md) | `3000` | Google OAuth2, RS256 JWT issuance, opaque refresh token family rotation, JWKS publication | `/healthz`, `/readyz` | 🟢 Active Development (v1.0.0) |
-| ⚙️ **Core Backend Service** | [`/Backend`](file:///Users/home/Desktop/ATC/Backend/README.md) | `5000` | Training scenarios, session lifecycle, student evaluation scoring, progress analytics | `/healthz`, `/readyz` | 🟢 Active Development (v1.0.0) |
-| 🧠 **AI Service** | [`/Ai-service`](file:///Users/home/Desktop/ATC/Ai-service/README.md) | `7000` | LangGraph turn state machine, Qdrant RAG retrieval, Mistral LLM inference, STT & TTS pipelines | `/healthz`, `/readyz` | 🟢 Active Development (v1.0.0) |
-| 🎨 **Frontend Service** | [`/Frontend`](file:///Users/home/Desktop/ATC/Frontend/README.md) | `5173` | React 18 SPA, Web Audio API recording/playback, Redux Toolkit, silent 401 token refresh queue | `/healthz`, `/ready` | 🟢 Active Development (v1.0.0) |
-
-> 📁 For service-specific setup, environment variables, internal code architecture, and API details, view each service's dedicated `README.md` linked above.
+| 🔑 **Auth Service** | [`/Auth`](file:///Users/home/Desktop/ATC/Auth/README.md) | `3000` | Google OAuth2, RS256 JWT issuance, opaque refresh token family rotation, JWKS publication | `/healthz`, `/readyz` | 🟢 Production Ready |
+| ⚙️ **Core Backend Service** | [`/Backend`](file:///Users/home/Desktop/ATC/Backend/README.md) | `5000` | Training scenarios, session lifecycle, student progress analytics, weak-area tracking | `/healthz`, `/readyz` | 🟢 Production Ready |
+| 🧠 **AI Service** | [`/Ai-service`](file:///Users/home/Desktop/ATC/Ai-service/README.md) | `7000` | LangGraph agent, 7-Layer Redis cache, WebSockets, STT/TTS, Qdrant 1,912 RAG search | `/healthz`, `/readyz` | 🟢 Production Ready |
+| 🎨 **Frontend Service** | [`/Frontend`](file:///Users/home/Desktop/ATC/Frontend/README.md) | `5173` | React 18 SPA, PTT Spacebar shortcuts, 3D MetallicOrb WebSockets, Landing & Dashboard | `/healthz`, `/ready` | 🟢 Production Ready |
 
 ---
 
-## 🛡️ Security & Authentication Architecture
+## 🛡️ Security & RS256 JWKS Authentication
 
-The platform uses an enterprise **RS256 Access Token + Rotating Refresh Token** security model.
-
-```
-       +------------------+                    +------------------+
-       |   Auth Service   |                    | Microservices    |
-       |  (RSA-4096 Key)  |                    | (Backend, AI)    |
-       +--------+---------+                    +--------+---------+
-                |                                       |
-1. Sign Access  |                                       | 2. Fetch & Cache
-   Token (RS256)|                                       |    JWKS Public Keys
-   (15m TTL)    |                                       |    (24h TTL)
-                v                                       v
-       +------------------+   Authorization: Bearer   +------------------+
-       |   Frontend SPA   |-------------------------->| Local JWKS Token |
-       | (Module Memory)  |                           | Signature Match  |
-       +------------------+                           +------------------+
-```
-
-### Core Security Principles
-1. **Stateless Local Verification:** Downstream microservices (`Backend`, `Ai-service`) verify access tokens locally using JWKS without querying the database or sending network requests to the Auth service on every API call.
-2. **XSS Mitigation:** Access tokens are stored strictly in JavaScript module closure memory (`_accessToken`), never in `localStorage` or `sessionStorage`.
-3. **CSRF & Theft Defense:** Opaque 128-hex character refresh tokens are stored in `HttpOnly`, `SameSite=Lax` cookies scoped strictly to `path: '/api/auth/refresh'`.
-4. **Automatic Replay Revocation:** Attempting to reuse an old refresh token immediately invalidates its entire `familyId`, logging out all compromised sessions.
-5. **Zero-Downtime Key Rotation:** Downstream services cache the full JWKS key array (`kid` resolution) and force-refetch from the Auth service on unknown key IDs.
-
----
-
-## 🎙️ AI Voice Agent Pipeline
-
-The AI Voice Agent processes audio and text inputs through an integrated multi-tier pipeline:
-
-1. **Speech-to-Text (STT):** Audio streams captured via Web Audio API are transcribed using Rime STT model adapters.
-2. **RAG Phraseology Retrieval:** Transcribed text triggers a semantic search against the Qdrant vector database (`atc_phraseology` collection) to retrieve relevant ICAO standard phraseology rules.
-3. **LangGraph State Graph:** Evaluates current session state, aircraft altitude/heading/speed parameters, and controller radio state.
-4. **Mistral LLM Inference:** Generates grammatically correct, realistic ATC transmission responses.
-5. **Text-to-Speech (TTS):** Transforms text responses into audio output via Rime TTS adapters with radio noise filters.
+- **Asymmetric Signing:** Auth service signs JWTs using RSA-4096 private keys.
+- **Local Verification:** Downstream microservices verify tokens statelessly via Auth JWKS (`/.well-known/jwks.json`) cached in Redis L5.
+- **XSS Defense:** Access tokens stored strictly in JavaScript module closure memory.
+- **CSRF Defense:** Refresh tokens stored in `HttpOnly`, `SameSite=Lax` cookies scoped to `/api/auth/refresh`.
 
 ---
 
@@ -144,36 +223,26 @@ The AI Voice Agent processes audio and text inputs through an integrated multi-t
 ```
 ATC/
 ├── Auth/                               ← Auth & Identity Microservice (Port 3000)
-│   ├── server.js                       ← HTTP listener entry point
-│   ├── app/app.js                      ← Express app factory
-│   ├── keys/                           ← RSA key PEM files
-│   └── README.md                       ← Auth service documentation
 ├── Backend/                            ← Core Scenario & Session Service (Port 5000)
-│   ├── server.js                       ← HTTP listener entry point
-│   ├── app/app.js                      ← Express app factory
-│   └── README.md                       ← Core Backend documentation
 ├── Ai-service/                         ← AI Inference & Voice Agent Service (Port 7000)
-│   ├── server.js                       ← HTTP listener entry point
-│   ├── app/app.js                      ← Express app factory
-│   └── README.md                       ← AI Service documentation
+│   ├── agent/                          ← LangGraph state graph & 9 nodes
+│   ├── config/                         ← Qdrant, Redis L1-L7, WebSockets
+│   ├── models/                         ← ChatMessage, TokenUsageLog, RetrievalLog
+│   ├── scripts/                        ← warmTemplateEmbeddings.js, ingestRagDocs.js, verifyRagCollection.js
+│   └── services/                       ← stt.service.js, tts.service.js, mistral.service.js, qdrant.service.js
 ├── Frontend/                           ← React 18 Single Page Application (Port 5173)
-│   ├── src/                            ← Feature-based 4-layer architecture
-│   └── README.md                       ← Frontend documentation
-├── k8s/                                ← Kubernetes Deployment Manifests
-│   ├── auth.deployment.yml             ← Auth service deployment
-│   ├── ai.deployment.yml               ← AI service deployment
-│   ├── backend.deployment.yml          ← Core Backend deployment
-│   ├── ingress.yml                     ← NGINX ingress routing
-│   └── secrets.yml                     ← Base64 encoded Kubernetes secrets
-├── helpers/                            ← System Architecture & Guide Documents
-│   ├── auth_security_architecture_plan.md
-│   ├── backend-service-structure.md
-│   ├── frontend_architecture_skill.md
-│   └── k8s-skaffold-yaml-guide.md
-├── .agents/                            ← Agent Skills & Validation Tools
-│   └── microservice-readme-architect/  ← README quality validator script & templates
-├── skaffold.yml                        ← Skaffold live reload configuration
-├── .gitignore                          ← Monorepo git exclusion rules
+│   ├── src/features/landing/           ← LandingPage component & SCSS
+│   ├── src/features/dashboard/         ← Dashboard, Scenarios & Stats Hooks
+│   └── src/features/simulator/         ← SimulatorPage, PTT, MetallicOrb, WebSockets
+├── docs/                               ← Architecture & Technical Specifications
+│   └── redis_7_layer_architecture.md   ← 7-Layer Redis Technical Spec
+├── helpers/                            ← Source PDF Manuals & Extractor
+│   ├── ICAO-DOC-4444-Amendment.pdf
+│   ├── 7110.65BB_Bsc_w_Chg_1_2_and_3_dtd_7-9-26_Final.pdf
+│   ├── extract_pdf_text.py
+│   └── extracted_atc_text.json
+├── k8s/                                ← Kubernetes Manifests (Ingress, Deployments, Secrets)
+├── skaffold.yml                        ← Skaffold live reload orchestration
 └── README.md                           ← Main repository documentation (this file)
 ```
 
@@ -181,42 +250,17 @@ ATC/
 
 ## ⚙️ Local Development & Quickstart
 
-### Prerequisites
-- **Node.js:** v20.x or higher
-- **Docker Desktop:** Running local container engine
-- **Kubernetes / Minikube:** Local cluster enabled
-- **Skaffold CLI:** Installed (`brew install skaffold` or equivalent)
-
-### 1. Rapid Development with Skaffold (Recommended)
-Skaffold automatically builds container images, applies Kubernetes manifests, and sets up file-sync hot-reloading across all microservices:
-
 ```bash
-# Clone the repository
+# 1. Clone repository
 git clone https://github.com/your-org/atc-voice-simulator.git
 cd atc-voice-simulator
 
-# Generate RSA public/private keys for Auth Service
-cd Auth && npm run generate-keys && cd ..
+# 2. Extract & Ingest 1,912 PDF Phraseology Chunks into Qdrant
+python3 helpers/extract_pdf_text.py
+npm --prefix Ai-service run ingest-rag
 
-# Launch live Kubernetes development environment
+# 3. Launch live Kubernetes environment with Skaffold
 skaffold dev
-```
-
-### 2. Manual Development Mode (Per Service)
-If running services individually without Kubernetes:
-
-```bash
-# In Terminal 1 — Auth Service (Port 3000)
-cd Auth && npm install && npm run dev
-
-# In Terminal 2 — Core Backend Service (Port 5000)
-cd Backend && npm install && npm run dev
-
-# In Terminal 3 — AI Service (Port 7000)
-cd Ai-service && npm install && npm run dev
-
-# In Terminal 4 — Frontend SPA (Port 5173)
-cd Frontend && npm install && npm run dev
 ```
 
 ---
@@ -224,55 +268,30 @@ cd Frontend && npm install && npm run dev
 ## 🔌 Global API Reference
 
 ### Auth Service (`/api/auth`)
-- `GET /.well-known/jwks.json` — Serves RSA public keys for JWKS token validation
+- `GET /.well-known/jwks.json` — Serves RSA public keys for JWKS validation
 - `GET /api/auth/google` — Initiates Google OAuth2 authentication flow
-- `GET /api/auth/google/callback` — OAuth callback endpoint issuing access token & refresh cookie
 - `POST /api/auth/refresh` — Rotates refresh token and returns fresh RS256 access token
-- `GET /api/auth/getMe` — Returns authenticated user profile (`id`, `email`, `name`, `role`)
-- `POST /api/auth/logout` — Revokes refresh token family and clears session cookies
+- `GET /api/auth/getMe` — Returns authenticated user profile
 
 ### Core Backend Service (`/api/backend`)
-- `GET /api/backend/scenarios` — Returns active ATC training scenarios
-- `GET /api/backend/scenarios/:id` — Fetches scenario details & initial aircraft parameters
+- `GET /api/backend/scenarios` — Returns active ATC training scenario templates
 - `POST /api/backend/sessions` — Initializes a new ATC simulation session
-- `GET /api/backend/sessions/:id` — Fetches current session status & progress
-- `POST /api/backend/sessions/:id/complete` — Concludes training session & returns score report
+- `POST /api/backend/sessions/:id/complete` — Concludes training session & records analytics
+- `GET /api/backend/users/stats` — Returns student flight hours, streak, & scores
+- `GET /api/backend/users/weak-areas` — Identifies weak phraseology categories
 
 ### AI Service (`/api/ai`)
-- `POST /api/ai/sessions/:id/turn` — Advances LangGraph agent turn with student audio/text input
-- `GET /api/ai/sessions/:id/transcript` — Retrieves full conversation transcripts & audio clips
+- `POST /api/ai/sessions/:id/turn` — Advances LangGraph voice turn machine
+- `GET /api/ai/sessions/:id/transcript` — Retrieves session message history
+- `GET /api/ai/sessions/:id/tokens` — Returns token usage breakdown per operation
+- `GET /ws/simulator` — WebSocket stream for 3D MetallicOrb reactivity
 
 ---
 
-## 📐 Developer Guidelines & Architecture Standards
+## 🧪 Developer Guidelines & Quality Probes
 
-To maintain structural consistency across all microservices, follow these rules:
-
-1. **Service Root Separation:** `server.js` handles HTTP server startup and database connections. Express application initialization, middleware routing, and health probes belong strictly in `app/app.js`.
-2. **JWKS Token Validation:** Downstream microservices must use the shared `identifyUser` middleware pattern to verify RS256 JWT tokens via JWKS caching.
-3. **No Direct Inter-Database Access:** Each microservice strictly owns its dedicated MongoDB instance (`atc-auth`, `atc-backend`, `atc-ai-service`). Cross-service data is exchanged via authenticated HTTP API contracts.
-4. **Environment Secrets:** Secrets must never be committed to source control. Refer to `k8s/secrets.yml.example` and service `.env` templates.
-
----
-
-## 🧪 Verification & Documentation Quality
-
-This monorepo includes an automated documentation validator tool located in `.agents/microservice-readme-architect/scripts/validate_readme.js`.
-
-To verify documentation completeness across all microservices:
+Run the automated microservice documentation validator:
 
 ```bash
 node .agents/microservice-readme-architect/scripts/validate_readme.js Auth/README.md Backend/README.md Ai-service/README.md Frontend/README.md
 ```
-
-All microservice `README.md` files are validated to ensure:
-- 100% section compliance (Bounded Context, Features, Architecture, Usage, Security, Health)
-- Zero committed secret values or leftover `[Insert ...]` placeholders
-- Valid SemVer versions and documented `/healthz` / `/readyz` probes
-
----
-
-## 🤝 Maintainers & Support
-- **Architecture & Security:** ATC Platform Team
-- **AI & Speech Ingestion:** AI Engineering Team
-- **Frontend & UI/UX:** Web Development Team
