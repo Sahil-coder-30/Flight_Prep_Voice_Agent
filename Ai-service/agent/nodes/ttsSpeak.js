@@ -13,7 +13,7 @@ import { broadcastSimulatorEvent } from '../../config/ws.js';
  * Output: { audioBase64, transcript: [...] }
  */
 export async function ttsSpeakNode(state) {
-    const { currentLine, currentStep, resolvedSlots, sessionId } = state;
+    const { currentLine, currentStep, resolvedSlots, sessionId, userId } = state;
 
     if (!currentLine) {
         console.error('[ttsSpeak] No currentLine to speak');
@@ -28,10 +28,17 @@ export async function ttsSpeakNode(state) {
         intensity: 0.85,
     });
 
-    const cacheable = isCacheable(resolvedSlots);
-    const { audioBase64, cacheHit } = await speak(currentLine, cacheable);
-
-    console.log(`[ttsSpeak] Audio generated for step "${currentStep?.stepId}" (cached: ${cacheHit})`);
+    let audioBase64 = null;
+    let cacheHit = false;
+    try {
+        const cacheable = isCacheable(resolvedSlots);
+        const ttsRes = await speak(currentLine, cacheable);
+        audioBase64 = ttsRes?.audioBase64 || null;
+        cacheHit = !!ttsRes?.cacheHit;
+        console.log(`[ttsSpeak] Audio generated for step "${currentStep?.stepId}" (cached: ${cacheHit})`);
+    } catch (ttsErr) {
+        console.warn('[ttsSpeak] TTS generation warning (falling back to text):', ttsErr.message);
+    }
 
     const msg = {
         role: 'controller',
@@ -44,6 +51,7 @@ export async function ttsSpeakNode(state) {
 
     ChatMessage.create({
         sessionId,
+        userId: userId || 'anonymous',
         ...msg,
     }).catch((err) => console.error('[ttsSpeak] ChatMessage log error:', err.message));
 

@@ -2,6 +2,7 @@ import { Schema, model } from 'mongoose';
 
 const chatMessageSchema = new Schema({
     sessionId:   { type: String, index: true, required: true },
+    userId:      { type: String, index: true, required: true, default: 'anonymous' },
     role:        { type: String, enum: ['controller', 'pilot'], required: true },
     text:        { type: String, required: true },
     audioRef:    String,
@@ -12,5 +13,8 @@ const chatMessageSchema = new Schema({
     cacheHit:    { type: Boolean, default: false }, // was grounding from Redis?
     timestamp:   { type: Date, default: Date.now },
 });
+
+chatMessageSchema.index({ userId: 1, timestamp: -1 });
+chatMessageSchema.index({ sessionId: 1, timestamp: 1 });
 
 export default model('ChatMessage', chatMessageSchema);

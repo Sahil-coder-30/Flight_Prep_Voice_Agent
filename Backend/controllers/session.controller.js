@@ -1,9 +1,28 @@
+import mongoose from 'mongoose';
 import Session from '../models/session.model.js';
 import Scenario from '../models/scenario.model.js';
 import UserProgress from '../models/userProgress.model.js';
 import SessionAnalytics from '../models/sessionAnalytics.model.js';
 
 // ── Controllers ───────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/backend/sessions/my-sessions
+ * Returns all past training sessions for the authenticated user.
+ */
+export const getUserSessionsController = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const sessions = await Session.find({ userId })
+            .populate('scenarioId', 'title airport difficulty steps')
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({ status: 'success', data: { sessions } });
+    } catch (error) {
+        console.error('[Backend] getUserSessionsController error:', error.message);
+        return res.status(500).json({ status: 'error', message: error.message });
+    }
+};
 
 /**
  * POST /api/backend/sessions
@@ -83,6 +102,10 @@ export const getSessionController = async (req, res) => {
         const { id } = req.params;
         const userId = req.user.id;
 
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(404).json({ status: 'error', message: 'Session not found' });
+        }
+
         const session = await Session.findById(id).select('-__v');
         if (!session) {
             return res.status(404).json({ status: 'error', message: 'Session not found' });
@@ -108,6 +131,18 @@ export const completeSessionController = async (req, res) => {
         const { id } = req.params;
         const userId = req.user.id;
         const { score = 100, stepResults = [] } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            console.log(`[Backend] Session ${id} complete requested (simulated session ID)`);
+            return res.status(200).json({
+                status: 'success',
+                data: {
+                    session: { _id: id, status: 'completed', score },
+                    score,
+                    durationSeconds: 60,
+                },
+            });
+        }
 
         const session = await Session.findById(id);
         if (!session) {

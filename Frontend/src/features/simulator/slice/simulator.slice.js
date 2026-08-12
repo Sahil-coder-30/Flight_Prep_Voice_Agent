@@ -37,7 +37,13 @@ const simulatorSlice = createSlice({
       state.transcript = action.payload;
     },
     addTranscriptMessage(state, action) {
-      state.transcript.push(action.payload);
+      const msg = action.payload;
+      if (!msg || !msg.text) return;
+      const last = state.transcript[state.transcript.length - 1];
+      if (last && last.role === msg.role && last.text.trim() === msg.text.trim()) {
+        return;
+      }
+      state.transcript.push(msg);
     },
     setIsRecording(state, action) {
       state.isRecording = action.payload;

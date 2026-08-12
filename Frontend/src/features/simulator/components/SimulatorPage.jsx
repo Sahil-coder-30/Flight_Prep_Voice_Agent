@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import MetallicOrb from './MetallicOrb/MetallicOrb';
 import DebriefPage from './DebriefPage';
-import { setOrbMode } from '../slice/simulator.slice';
-import { useSimulator } from '../Hooks/simulator.hooks';
+import { setOrbMode, addTranscriptMessage } from '../slice/simulator.slice';
+import { useSimulator, speakLine } from '../Hooks/simulator.hooks';
 import './SimulatorPage.scss';
 
 function MicIcon() {
@@ -51,6 +51,14 @@ function DatabaseIcon() {
   );
 }
 
+function ChatIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  );
+}
+
 export default function SimulatorPage({ scenario, onBack }) {
   const dispatch = useDispatch();
   const { orbMode, transcript, isRecording, isProcessing, audioLevel } = useSelector(s => s.simulator);
@@ -58,9 +66,59 @@ export default function SimulatorPage({ scenario, onBack }) {
 
   const [audioLevels, setAudioLevels] = useState(Array(18).fill(4));
   const [showSourceDrawer, setShowSourceDrawer] = useState(false);
+  const [showChatDrawer, setShowChatDrawer] = useState(true);
+  const [isMinimizedChat, setIsMinimizedChat] = useState(false);
+  const [chatPosition, setChatPosition] = useState({ x: 0, y: 0 });
+  const [isDraggingChat, setIsDraggingChat] = useState(false);
+
   const [wsTalkingIntensity, setWsTalkingIntensity] = useState(0);
   const [sessionCompleted, setSessionCompleted] = useState(false);
   const [sessionResult, setSessionResult] = useState(null);
+
+  const chatEndRef = useRef(null);
+  const dragStartRef = useRef({ mouseX: 0, mouseY: 0, posX: 0, posY: 0 });
+  const dragMovedRef = useRef(false);
+
+  // Drag handler for chat box header & capsule
+  const handleMouseDownChat = (e) => {
+    if (e.target.closest('.drawer-close') || e.target.closest('.drawer-minimize')) return;
+    dragMovedRef.current = false;
+    setIsDraggingChat(true);
+    dragStartRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      posX: chatPosition.x,
+      posY: chatPosition.y,
+    };
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDraggingChat) return;
+      const dx = e.clientX - dragStartRef.current.mouseX;
+      const dy = e.clientY - dragStartRef.current.mouseY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        dragMovedRef.current = true;
+      }
+      setChatPosition({
+        x: dragStartRef.current.posX + dx,
+        y: dragStartRef.current.posY + dy,
+      });
+    };
+
+    const handleMouseUp = () => {
+      if (isDraggingChat) setIsDraggingChat(false);
+    };
+
+    if (isDraggingChat) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingChat]);
 
   // Boot session when scenario is ready
   useEffect(() => {
@@ -71,22 +129,33 @@ export default function SimulatorPage({ scenario, onBack }) {
     }
   }, [scenario?.id, scenario?._id]); // eslint-disable-line
 
+  // Auto-scroll chat drawer to bottom on new message
+  useEffect(() => {
+    if (showChatDrawer && !isMinimizedChat && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [transcript, showChatDrawer, isMinimizedChat]);
+
+  const processTurnResult = useCallback((turnResult) => {
+    if (turnResult?.finished) {
+      setSessionResult({
+        score: turnResult.score || 95,
+        stepResults: turnResult.stepResults || [],
+        transcript: transcript,
+      });
+      setSessionCompleted(true);
+    }
+  }, [transcript]);
+
   const handleMicClick = useCallback(async () => {
     if (isProcessing) return;
     if (isRecording) {
       const turnResult = await stopRecordingAndSubmit();
-      if (turnResult?.finished) {
-        setSessionResult({
-          score: turnResult.score || 95,
-          stepResults: turnResult.stepResults || [],
-          transcript: transcript,
-        });
-        setSessionCompleted(true);
-      }
+      processTurnResult(turnResult);
     } else {
       await startRecording();
     }
-  }, [isRecording, isProcessing, startRecording, stopRecordingAndSubmit, transcript]);
+  }, [isRecording, isProcessing, startRecording, stopRecordingAndSubmit, processTurnResult]);
 
   const handleEndSession = async () => {
     const res = await endSession();
@@ -97,22 +166,6 @@ export default function SimulatorPage({ scenario, onBack }) {
     });
     setSessionCompleted(true);
   };
-
-  if (sessionCompleted) {
-    return (
-      <DebriefPage
-        scenario={scenario}
-        sessionResult={sessionResult}
-        onRetry={() => {
-          setSessionCompleted(false);
-          setSessionResult(null);
-          startSession(scenario.id || scenario._id);
-        }}
-        onNextScenario={onBack}
-        onBackToDashboard={onBack}
-      />
-    );
-  }
 
   // Setup WebSocket connection to AI Service for real-time 3D Orb voice reactivity
   useEffect(() => {
@@ -129,6 +182,22 @@ export default function SimulatorPage({ scenario, onBack }) {
             setWsTalkingIntensity(data.intensity || 0.85);
           } else if (data.type === 'ATC_SPEAKING_END') {
             setWsTalkingIntensity(0);
+          } else if (data.type === 'ATC_RESPONSE') {
+            if (data.pilotTranscript) {
+              dispatch(addTranscriptMessage({
+                role: 'pilot',
+                text: data.pilotTranscript,
+                timestamp: new Date().toISOString(),
+              }));
+            }
+            if (data.currentLine) {
+              dispatch(addTranscriptMessage({
+                role: 'atc',
+                text: data.currentLine,
+                timestamp: new Date().toISOString(),
+              }));
+              speakLine(data.currentLine, data.audioBase64);
+            }
           }
         } catch (e) {
           // ignore non-JSON messages
@@ -141,7 +210,7 @@ export default function SimulatorPage({ scenario, onBack }) {
     return () => {
       if (ws && ws.readyState === 1) ws.close();
     };
-  }, []);
+  }, [dispatch]);
 
   // Animate frequency audio bars from real microphone volume level
   useEffect(() => {
@@ -152,8 +221,6 @@ export default function SimulatorPage({ scenario, onBack }) {
       setAudioLevels(Array(18).fill(4));
     }
   }, [isRecording, audioLevel]);
-
-
 
   // Spacebar Push-To-Talk (PTT) keyboard listener
   useEffect(() => {
@@ -167,12 +234,13 @@ export default function SimulatorPage({ scenario, onBack }) {
       }
     };
 
-    const handleKeyUp = (e) => {
+    const handleKeyUp = async (e) => {
       if (e.code === 'Space' && isRecording && !isProcessing) {
         const target = e.target;
         if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
           e.preventDefault();
-          stopRecordingAndSubmit();
+          const turnResult = await stopRecordingAndSubmit();
+          processTurnResult(turnResult);
         }
       }
     };
@@ -183,10 +251,23 @@ export default function SimulatorPage({ scenario, onBack }) {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [isRecording, isProcessing, startRecording, stopRecordingAndSubmit]);
+  }, [isRecording, isProcessing, startRecording, stopRecordingAndSubmit, processTurnResult]);
 
-  const lastAtcLine = [...transcript].reverse().find(t => t.role === 'atc');
-  const lastPilotLine = [...transcript].reverse().find(t => t.role === 'pilot');
+  if (sessionCompleted) {
+    return (
+      <DebriefPage
+        scenario={scenario}
+        sessionResult={sessionResult}
+        onRetry={() => {
+          setSessionCompleted(false);
+          setSessionResult(null);
+          startSession(scenario.id || scenario._id);
+        }}
+        onNextScenario={onBack}
+        onBackToDashboard={onBack}
+      />
+    );
+  }
 
   const aircraftCallsign = scenario?.aircraftCallsign || 'N172SP';
   const freq = '118.300';
@@ -216,8 +297,28 @@ export default function SimulatorPage({ scenario, onBack }) {
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button
+            className={`sim-source-toggle ${showChatDrawer ? 'active' : ''}`}
+            onClick={() => {
+              if (!showChatDrawer) {
+                setShowChatDrawer(true);
+                setIsMinimizedChat(false);
+              } else {
+                setIsMinimizedChat(m => !m);
+              }
+              if (showSourceDrawer) setShowSourceDrawer(false);
+            }}
+            aria-label="Toggle Live Radio Chat Drawer"
+          >
+            <ChatIcon />
+            <span>{isMinimizedChat ? 'Expand Chat' : 'Live Chat'} ({transcript.length})</span>
+          </button>
+
+          <button
             className={`sim-source-toggle ${showSourceDrawer ? 'active' : ''}`}
-            onClick={() => setShowSourceDrawer(s => !s)}
+            onClick={() => {
+              setShowSourceDrawer(s => !s);
+              if (showChatDrawer) setShowChatDrawer(false);
+            }}
             aria-label="Toggle RAG grounding drawer"
           >
             <DatabaseIcon />
@@ -245,23 +346,6 @@ export default function SimulatorPage({ scenario, onBack }) {
           />
         </div>
       </main>
-
-      {/* ── FLOATING ATC / PILOT STREAMING TRANSMISSION HUD ── */}
-      <div className="sim-hud-overlay">
-        {lastAtcLine && (
-          <div className="hud-line-card atc-card">
-            <span className="line-speaker">ATC TOWER</span>
-            <p className="line-text">{lastAtcLine.text}</p>
-          </div>
-        )}
-
-        {lastPilotLine && (
-          <div className="hud-line-card pilot-card">
-            <span className="line-speaker">PILOT ({aircraftCallsign})</span>
-            <p className="line-text">{lastPilotLine.text}</p>
-          </div>
-        )}
-      </div>
 
       {/* ── BOTTOM FLOATING AUDIO FREQUENCY DECK ── */}
       <footer className="sim-audio-deck">
@@ -314,6 +398,91 @@ export default function SimulatorPage({ scenario, onBack }) {
         </div>
       </footer>
 
+      {/* ── DRAGGABLE & HIDEABLE LIVE RADIO CHAT SYSTEM ── */}
+      {showChatDrawer && (
+        isMinimizedChat ? (
+          /* Minimized Floating Capsule */
+          <div
+            className={`sim-chat-capsule ${isDraggingChat ? 'dragging' : ''}`}
+            style={{
+              transform: `translate(${chatPosition.x}px, ${chatPosition.y}px)`,
+            }}
+            onMouseDown={handleMouseDownChat}
+            onClick={() => {
+              if (!dragMovedRef.current) {
+                setIsMinimizedChat(false);
+              }
+            }}
+            role="button"
+            title="Drag to reposition, click to expand chat"
+            aria-label="Expand Radio Chat"
+          >
+            <span className="capsule-dot" />
+            <ChatIcon />
+            <span className="capsule-text">Radio Chat</span>
+            <span className="capsule-badge">{transcript.length}</span>
+          </div>
+        ) : (
+          /* Full Expanded Chat Drawer */
+          <aside
+            className={`sim-chat-drawer ${isDraggingChat ? 'dragging' : ''}`}
+            style={{
+              transform: `translate(${chatPosition.x}px, ${chatPosition.y}px)`,
+            }}
+            role="region"
+            aria-label="Radio Transmission History"
+          >
+            <div className="drawer-header" onMouseDown={handleMouseDownChat}>
+              <div className="header-title-wrap">
+                <span className="drag-handle" title="Drag to reposition">⋮⋮</span>
+                <ChatIcon />
+                <h4>Radio Transmission Log</h4>
+                <span className="msg-badge">{transcript.length}</span>
+              </div>
+              <div className="header-actions">
+                <button
+                  className="drawer-minimize"
+                  onClick={() => setIsMinimizedChat(true)}
+                  title="Minimize to floating capsule"
+                  aria-label="Minimize chat drawer"
+                >
+                  —
+                </button>
+                <button
+                  className="drawer-close"
+                  onClick={() => setShowChatDrawer(false)}
+                  title="Close chat drawer"
+                  aria-label="Close chat drawer"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="chat-content">
+              {transcript.length === 0 ? (
+                <div className="empty-chat-state">
+                  <p className="empty-title">Awaiting Transmission…</p>
+                  <p className="empty-sub">Initializing radio frequency. Hold Spacebar PTT to transmit radio callout.</p>
+                </div>
+              ) : (
+                transcript.map((msg, idx) => (
+                  <div key={idx} className={`chat-message-bubble ${msg.role === 'pilot' ? 'pilot-bubble' : 'atc-bubble'}`}>
+                    <div className="bubble-meta">
+                      <span className="speaker-tag">{msg.role === 'pilot' ? `PILOT (${aircraftCallsign})` : 'AI CONTROLLER (ATC TOWER)'}</span>
+                      <span className="time-tag">
+                        {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'NOW'}
+                      </span>
+                    </div>
+                    <p className="bubble-text">{msg.text}</p>
+                  </div>
+                ))
+              )}
+              <div ref={chatEndRef} />
+            </div>
+          </aside>
+        )
+      )}
+
       {/* ── COLLAPSIBLE RAG GROUNDING DRAWER ── */}
       {showSourceDrawer && (
         <aside className="sim-source-drawer" role="region" aria-label="Retrieved Grounding Sources">
@@ -333,3 +502,4 @@ export default function SimulatorPage({ scenario, onBack }) {
     </div>
   );
 }
+

@@ -40,3 +40,13 @@ export const getUserWeakAreasAPI = async () => {
   return response.data;
 };
 
+export const getUserSessionsAPI = async () => {
+  const response = await apiClient.get('/api/backend/sessions/my-sessions');
+  return response.data;
+};
+
+export const getSessionTranscriptAPI = async (sessionId) => {
+  const response = await apiClient.get(`/api/ai/sessions/${sessionId}/transcript`);
+  return response.data;
+};
+
