@@ -20,14 +20,6 @@ export async function ttsSpeakNode(state) {
         return {};
     }
 
-    // Broadcast ATC speaking event over WebSocket for 3D Orb reactivity
-    broadcastSimulatorEvent({
-        type: 'ATC_SPEAKING_START',
-        sessionId,
-        text: currentLine,
-        intensity: 0.85,
-    });
-
     let audioBase64 = null;
     let cacheHit = false;
     try {
@@ -54,15 +46,6 @@ export async function ttsSpeakNode(state) {
         userId: userId || 'anonymous',
         ...msg,
     }).catch((err) => console.error('[ttsSpeak] ChatMessage log error:', err.message));
-
-    // Broadcast speaking complete event
-    setTimeout(() => {
-        broadcastSimulatorEvent({
-            type: 'ATC_SPEAKING_END',
-            sessionId,
-            intensity: 0,
-        });
-    }, 1500);
 
     return {
         audioBase64,

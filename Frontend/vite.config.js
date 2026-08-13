@@ -38,4 +38,17 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    target: 'es2022',
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
+          'vendor-redux': ['@reduxjs/toolkit', 'react-redux'],
+          'vendor-animation': ['gsap'],
+        },
+      },
+    },
+  },
 });

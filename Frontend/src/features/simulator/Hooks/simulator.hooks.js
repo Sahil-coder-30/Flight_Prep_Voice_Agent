@@ -4,39 +4,129 @@ import { submitTurnAPI } from '../service/simulator.api';
 import { createSessionAPI, completeSessionAPI, getScenarioByIdAPI } from '../../dashboard/service/dashboard.api';
 import {
   setCurrentSession, addTranscriptMessage, setIsRecording,
-  setIsProcessing, setSimulatorError, setAudioLevel, resetSimulator,
+  setIsProcessing, setIsAgentSpeaking, setAgentAudioLevel, setSimulatorError, setAudioLevel, resetSimulator,
 } from '../slice/simulator.slice';
 
-export function speakLine(text, audioBase64, onEnded) {
-  const finish = () => {
+let currentAudioInstance = null;
+let currentAnimFrame = null;
+
+export function stopCurrentSpeech() {
+  if (currentAnimFrame) {
+    cancelAnimationFrame(currentAnimFrame);
+    currentAnimFrame = null;
+  }
+  if (currentAudioInstance) {
+    try {
+      currentAudioInstance.pause();
+      currentAudioInstance.currentTime = 0;
+    } catch (e) {}
+    currentAudioInstance = null;
+  }
+  if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch (e) {}
+  }
+}
+
+export function speakLine(text, audioBase64, onEnded, onStart, onAudioLevel) {
+  stopCurrentSpeech();
+
+  const handleStart = () => {
+    if (onStart) onStart();
+  };
+
+  const handleEnded = () => {
+    if (currentAnimFrame) {
+      cancelAnimationFrame(currentAnimFrame);
+      currentAnimFrame = null;
+    }
+    if (onAudioLevel) onAudioLevel(0);
     if (onEnded) onEnded();
   };
 
   if (!text && !audioBase64) {
-    finish();
+    handleEnded();
     return;
   }
 
   if (audioBase64) {
     const audio = new Audio(`data:audio/mpeg;base64,${audioBase64}`);
-    audio.onended = finish;
-    audio.onerror = () => fallbackWebSpeech(text, finish);
+    currentAudioInstance = audio;
+
+    let audioCtx = null;
+    let analyser = null;
+    let dataArray = null;
+
+    audio.onplay = () => {
+      handleStart();
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          const source = audioCtx.createMediaElementSource(audio);
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 128;
+          source.connect(analyser);
+          analyser.connect(audioCtx.destination);
+          dataArray = new Uint8Array(analyser.frequencyBinCount);
+        }
+      } catch (e) {
+        analyser = null;
+      }
+
+      const monitorFrequency = () => {
+        if (!audio.paused && !audio.ended) {
+          let level = 0.5;
+          if (analyser && dataArray) {
+            analyser.getByteFrequencyData(dataArray);
+            const sum = dataArray.reduce((acc, v) => acc + v, 0);
+            level = Math.min(1.0, (sum / dataArray.length) / 128);
+          } else {
+            const t = Date.now() * 0.012;
+            level = 0.35 + 0.45 * Math.sin(t) + 0.15 * Math.sin(t * 2.3);
+          }
+          if (onAudioLevel) onAudioLevel(level);
+          currentAnimFrame = requestAnimationFrame(monitorFrequency);
+        }
+      };
+      monitorFrequency();
+    };
+
+    audio.onended = handleEnded;
+    audio.onerror = () => {
+      console.warn('[Simulator] HTML5 Audio playback error, switching to SpeechSynthesis fallback');
+      fallbackWebSpeech(text, handleEnded, handleStart, onAudioLevel);
+    };
 
     audio.play().catch((e) => {
-      console.warn('[Simulator] HTML5 Audio playback blocked or failed, using SpeechSynthesis fallback:', e.message);
-      fallbackWebSpeech(text, finish);
+      console.warn('[Simulator] HTML5 Audio play blocked or failed:', e.message);
+      fallbackWebSpeech(text, handleEnded, handleStart, onAudioLevel);
     });
   } else {
-    fallbackWebSpeech(text, finish);
+    fallbackWebSpeech(text, handleEnded, handleStart, onAudioLevel);
   }
 }
 
-function fallbackWebSpeech(text, onEnded) {
+function fallbackWebSpeech(text, onEnded, onStart, onAudioLevel) {
   if ('speechSynthesis' in window && text) {
     try {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 1.0;
+
+      utterance.onstart = () => {
+        if (onStart) onStart();
+        const monitorSpeech = () => {
+          if (window.speechSynthesis.speaking) {
+            const t = Date.now() * 0.012;
+            const level = 0.35 + 0.45 * Math.sin(t) + 0.15 * Math.sin(t * 2.3);
+            if (onAudioLevel) onAudioLevel(level);
+            currentAnimFrame = requestAnimationFrame(monitorSpeech);
+          }
+        };
+        monitorSpeech();
+      };
+
       utterance.onend = () => { if (onEnded) onEnded(); };
       utterance.onerror = () => { if (onEnded) onEnded(); };
       window.speechSynthesis.speak(utterance);
@@ -52,7 +142,7 @@ export const useSimulator = () => {
   const dispatch = useDispatch();
   const state = useSelector((s) => s.simulator);
 
-  // Web Audio API refs
+  // Web Audio API refs & duplicate execution guards
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const audioCtxRef = useRef(null);
@@ -60,9 +150,39 @@ export const useSimulator = () => {
   const animFrameRef = useRef(null);
   const streamRef = useRef(null);
   const scenarioRef = useRef(null);
+  const initializingScenarioIdRef = useRef(null);
+  const submittingTurnRef = useRef(false);
+
+  const playAgentSpeech = useCallback((text, audioBase64, onEndedCallback) => {
+    speakLine(
+      text,
+      audioBase64,
+      () => {
+        dispatch(setIsAgentSpeaking(false));
+        dispatch(setAgentAudioLevel(0));
+        dispatch(setIsProcessing(false));
+        if (onEndedCallback) onEndedCallback();
+      },
+      () => {
+        dispatch(setIsAgentSpeaking(true));
+      },
+      (lvl) => {
+        dispatch(setAgentAudioLevel(lvl));
+      }
+    );
+  }, [dispatch]);
 
   // Start a new ATC session for a given scenario
   const startSession = useCallback(async (scenarioId) => {
+    if (!scenarioId) return;
+    if (initializingScenarioIdRef.current === scenarioId) {
+      console.log('[Simulator] Session initialization already in progress for scenario:', scenarioId);
+      return;
+    }
+
+    initializingScenarioIdRef.current = scenarioId;
+    stopCurrentSpeech();
+
     try {
       dispatch(resetSimulator());
       dispatch(setIsProcessing(true));
@@ -98,16 +218,14 @@ export const useSimulator = () => {
           });
 
           const turnData = turnRes?.data || turnRes;
+
           if (turnData?.currentLine) {
             dispatch(addTranscriptMessage({
               role: 'atc',
               text: turnData.currentLine,
               timestamp: new Date().toISOString(),
             }));
-            dispatch(setIsProcessing(true));
-            speakLine(turnData.currentLine, turnData.audioBase64, () => {
-              dispatch(setIsProcessing(false));
-            });
+            playAgentSpeech(turnData.currentLine, turnData.audioBase64);
           } else {
             dispatch(setIsProcessing(false));
           }
@@ -121,8 +239,10 @@ export const useSimulator = () => {
     } catch (err) {
       dispatch(setSimulatorError(err.message));
       dispatch(setIsProcessing(false));
+    } finally {
+      initializingScenarioIdRef.current = null;
     }
-  }, [dispatch]);
+  }, [dispatch, playAgentSpeech]);
 
   // Begin microphone recording with live audio level monitoring
   const startRecording = useCallback(async () => {
@@ -175,11 +295,12 @@ export const useSimulator = () => {
 
   // Stop recording and submit audio to AI service safely
   const stopRecordingAndSubmit = useCallback(async () => {
-    if (!mediaRecorderRef.current) {
+    if (!mediaRecorderRef.current || submittingTurnRef.current) {
       dispatch(setIsRecording(false));
       return null;
     }
 
+    submittingTurnRef.current = true;
     const sessionId = state.currentSession?._id || state.currentSession?.id || 'sim_session_' + Date.now();
 
     return new Promise((resolve) => {
@@ -204,6 +325,7 @@ export const useSimulator = () => {
 
         if (audioBlob.size < 100) {
           console.warn('[Simulator] Audio recording was empty or too brief');
+          submittingTurnRef.current = false;
           resolve(null);
           return;
         }
@@ -236,9 +358,7 @@ export const useSimulator = () => {
             }));
 
             // Play AI audio response and keep mic locked until speech finishes
-            speakLine(data.currentLine, data.audioBase64, () => {
-              dispatch(setIsProcessing(false));
-            });
+            playAgentSpeech(data.currentLine, data.audioBase64);
           } else {
             dispatch(setIsProcessing(false));
           }
@@ -262,6 +382,8 @@ export const useSimulator = () => {
           dispatch(setSimulatorError(err.message));
           dispatch(setIsProcessing(false));
           resolve(null);
+        } finally {
+          submittingTurnRef.current = false;
         }
       };
 
@@ -272,7 +394,7 @@ export const useSimulator = () => {
         handleStop();
       }
     });
-  }, [dispatch, state.currentSession]);
+  }, [dispatch, playAgentSpeech, state.currentSession]);
 
   const endSession = useCallback(async () => {
     const sessionId = state.currentSession?._id || state.currentSession?.id;

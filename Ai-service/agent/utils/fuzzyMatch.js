@@ -192,3 +192,53 @@ export function extractFacilityFromTranscript(transcript, fallback = 'Boston Cen
 
     return fallback;
 }
+
+/**
+ * Fast-path rule-based slot extractor (< 0.1ms).
+ * Extracts callsign, runway, taxiway, altitude, heading, squawk from spoken transcript.
+ */
+export function extractSlotsRuleBased(transcript, requiredKeys = [], resolvedSlots = {}) {
+    if (!transcript) return {};
+    const extracted = {};
+
+    for (const key of requiredKeys) {
+        if (key === 'callsign') {
+            const cs = extractCallsignFromTranscript(transcript, resolvedSlots.callsign || 'N172SP');
+            if (cs) extracted.callsign = cs;
+        } else if (key === 'runway') {
+            const rwyMatch = transcript.match(/\b(runway\s*)?([0-3]?[0-9]\s*[lrc]?)\b/i);
+            if (rwyMatch) {
+                const rwy = normalizeSpoken(rwyMatch[2]);
+                if (rwy) extracted.runway = rwy;
+            }
+        } else if (key === 'taxiway') {
+            const twyMatch = transcript.match(/\b(via|taxiway)\s+([a-z0-9]+)\b/i);
+            if (twyMatch) {
+                extracted.taxiway = twyMatch[2].toUpperCase();
+            }
+        } else if (key === 'heading') {
+            const hdgMatch = transcript.match(/\b(heading\s*)?([0-3]?[0-9]{2})\b/i);
+            if (hdgMatch) {
+                extracted.heading = hdgMatch[2];
+            }
+        } else if (key === 'altitude') {
+            const altMatch = transcript.match(/\b(climb|descend|maintain)?\s*([0-9]{3,5})\b/i);
+            if (altMatch) {
+                extracted.altitude = altMatch[2];
+            }
+        } else if (key === 'squawk') {
+            const sqMatch = transcript.match(/\b(squawk\s*)?([0-7]{4})\b/i);
+            if (sqMatch) {
+                extracted.squawk = sqMatch[2];
+            }
+        } else if (resolvedSlots[key] != null) {
+            const normExpected = normalizeSpoken(String(resolvedSlots[key]));
+            const normText = normalizeSpoken(transcript);
+            if (normExpected && normText.includes(normExpected)) {
+                extracted[key] = resolvedSlots[key];
+            }
+        }
+    }
+
+    return extracted;
+}

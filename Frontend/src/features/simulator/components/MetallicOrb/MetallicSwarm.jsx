@@ -88,11 +88,17 @@ export default function MetallicSwarm({ mode = 'IDLE_CORE', settings = {}, onLob
     const tempColor = new THREE.Color();
     const count = particleCount;
 
+    const dummyMatrixObj = new THREE.Object3D();
     for (let i = 0; i < maxParticles; i++) {
       if (i >= count) {
         tempColor.setHex(0x000000);
         baseColors[i].copy(tempColor);
         meshRef.current.setColorAt(i, tempColor);
+
+        dummyMatrixObj.position.set(9999, 9999, 9999);
+        dummyMatrixObj.scale.set(0, 0, 0);
+        dummyMatrixObj.updateMatrix();
+        meshRef.current.setMatrixAt(i, dummyMatrixObj.matrix);
         continue;
       }
 
@@ -108,9 +114,9 @@ export default function MetallicSwarm({ mode = 'IDLE_CORE', settings = {}, onLob
       } else if (colorScheme === 'emerald') {
         colorHex = group === 0 ? '#00FF87' : group === 1 ? '#10B981' : '#059669';
       } else if (colorScheme === 'neon-blue') {
-        colorHex = group === 0 ? '#2563eb' : group === 1 ? '#1d4ed8' : '#1e40af';
+        colorHex = group === 0 ? '#60a5fa' : group === 1 ? '#3b82f6' : '#1d4ed8';
       } else if (colorScheme === 'rose-gold') {
-        colorHex = group === 0 ? '#fda4af' : group === 1 ? '#fca5a5' : '#fb7185';
+        colorHex = group === 0 ? '#fecdd3' : group === 1 ? '#fb7185' : '#e11d48';
       }
 
       tempColor.set(colorHex);
@@ -118,10 +124,9 @@ export default function MetallicSwarm({ mode = 'IDLE_CORE', settings = {}, onLob
       meshRef.current.setColorAt(i, tempColor);
     }
 
-    if (meshRef.current.instanceColor) {
-      meshRef.current.instanceColor.needsUpdate = true;
-    }
-  }, [colorScheme, particleCount, baseColors]);
+    if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
+    if (meshRef.current.instanceMatrix) meshRef.current.instanceMatrix.needsUpdate = true;
+  }, [colorScheme, particleCount, maxParticles, baseColors]);
 
   // Local object wrappers to prevent memory garbage collection in frame loop
   const tempObject = useMemo(() => new THREE.Object3D(), []);
@@ -211,14 +216,7 @@ export default function MetallicSwarm({ mode = 'IDLE_CORE', settings = {}, onLob
     let hoveredLobe = null;
     let minLobeDist = Infinity;
 
-    for (let i = 0; i < maxParticles; i++) {
-      if (i >= count) {
-        tempObject.position.set(9999, 9999, 9999);
-        tempObject.scale.set(0, 0, 0);
-        tempObject.updateMatrix();
-        meshRef.current.setMatrixAt(i, tempObject.matrix);
-        continue;
-      }
+    for (let i = 0; i < count; i++) {
 
       // 1. Core target interpolation
       const source = sourcePositions[i];
