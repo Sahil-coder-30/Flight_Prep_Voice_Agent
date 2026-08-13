@@ -2,51 +2,57 @@ import TokenUsageLog from '../models/tokenUsage.model.js';
 
 // ── Internal helper ────────────────────────────────────────────────────────────
 
-async function callMistral(payload, ctx = {}, retries = 2) {
+async function callMistral(payload, ctx = {}, retries = 1) {
     const t0 = Date.now();
     for (let i = 0; i <= retries; i++) {
-        const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${process.env.MISTRAL_API_KEY || process.env.MISTRALAI_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-        });
+        try {
+            const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${process.env.MISTRAL_API_KEY || process.env.MISTRALAI_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+                signal: AbortSignal.timeout(1800),
+            });
 
-        if (res.status === 429 && i < retries) {
-            console.warn(`[Mistral] 429 Rate limit hit. Retrying in ${1500 * (i + 1)}ms...`);
-            await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
-            continue;
+            if (res.status === 429 && i < retries) {
+                console.warn(`[Mistral] 429 Rate limit hit. Retrying in 300ms...`);
+                await new Promise((r) => setTimeout(r, 300));
+                continue;
+            }
+
+            if (!res.ok) {
+                const err = await res.text();
+                throw new Error(`Mistral API error (${res.status}): ${err}`);
+            }
+
+            const data = await res.json();
+            const latencyMs = Date.now() - t0;
+
+            // Fire-and-forget token log
+            if (ctx.sessionId) {
+                TokenUsageLog.create({
+                    sessionId:        ctx.sessionId,
+                    userId:           ctx.userId,
+                    stepId:           ctx.stepId,
+                    templateId:       ctx.templateId,
+                    operation:        ctx.operation,
+                    model:            payload.model,
+                    promptTokens:     data.usage?.prompt_tokens ?? 0,
+                    completionTokens: data.usage?.completion_tokens ?? 0,
+                    totalTokens:      data.usage?.total_tokens ?? 0,
+                    latencyMs,
+                    cacheHit:         false,
+                }).catch(() => {});
+            }
+
+            const content = data?.choices?.[0]?.message?.content || '';
+            return { content, latencyMs };
+        } catch (err) {
+            if (i === retries) throw err;
+            await new Promise((r) => setTimeout(r, 200));
         }
-
-        if (!res.ok) {
-            const err = await res.text();
-            throw new Error(`Mistral API error (${res.status}): ${err}`);
-        }
-
-        const data = await res.json();
-        const latencyMs = Date.now() - t0;
-
-        // Fire-and-forget token log
-        if (ctx.sessionId) {
-            TokenUsageLog.create({
-                sessionId:        ctx.sessionId,
-                userId:           ctx.userId,
-                stepId:           ctx.stepId,
-                templateId:       ctx.templateId,
-                operation:        ctx.operation,
-                model:            payload.model,
-                promptTokens:     data.usage?.prompt_tokens ?? 0,
-                completionTokens: data.usage?.completion_tokens ?? 0,
-                totalTokens:      data.usage?.total_tokens ?? 0,
-                latencyMs,
-                cacheHit:         false,
-            }).catch(() => {});
-        }
-
-        const content = data?.choices?.[0]?.message?.content || '';
-        return { content, latencyMs };
     }
 }
 

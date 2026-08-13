@@ -10,31 +10,38 @@ export async function speak(text) {
         return { audioBase64: null, cacheHit: false };
     }
 
-    const res = await fetch('https://users.rime.ai/v1/rime-tts', {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${process.env.RIME_API_KEY}`,
-            'Content-Type': 'application/json',
-            Accept: 'audio/mpeg',
-        },
-        body: JSON.stringify({
-            speaker: 'grove',       // Male ATC voice — authoritative cadence
-            text,
-            modelId: 'mist',        // Faster model vs 'coda'
-            language: 'en',
-            speedAlpha: 1.0,        // ATC cadence
-        }),
-    });
+    try {
+        const res = await fetch('https://users.rime.ai/v1/rime-tts', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.RIME_API_KEY}`,
+                'Content-Type': 'application/json',
+                Accept: 'audio/mpeg',
+            },
+            body: JSON.stringify({
+                speaker: 'grove',       // Male ATC voice — authoritative cadence
+                text,
+                modelId: 'mist',        // Faster model vs 'coda'
+                language: 'en',
+                speedAlpha: 1.0,        // ATC cadence
+            }),
+            signal: AbortSignal.timeout(1200),
+        });
 
-    if (!res.ok) {
-        const error = await res.text();
-        throw new Error(`Rime TTS failed (${res.status}): ${error}`);
+        if (!res.ok) {
+            const error = await res.text();
+            console.warn(`[tts.service] Rime TTS warning (${res.status}): ${error}`);
+            return { audioBase64: null, cacheHit: false };
+        }
+
+        const audioBuffer = await res.arrayBuffer();
+        const audioBase64 = Buffer.from(audioBuffer).toString('base64');
+
+        return { audioBase64, cacheHit: false };
+    } catch (err) {
+        console.warn('[tts.service] Rime TTS fetch warning:', err.message);
+        return { audioBase64: null, cacheHit: false };
     }
-
-    const audioBuffer = await res.arrayBuffer();
-    const audioBase64 = Buffer.from(audioBuffer).toString('base64');
-
-    return { audioBase64, cacheHit: false };
 }
 
 export function isCacheable() {

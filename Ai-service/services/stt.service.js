@@ -47,6 +47,7 @@ export async function transcribe(audioBase64, vocabHints = []) {
             // Omit Content-Type: Deepgram auto-detects audio/webm, audio/wav, audio/ogg etc.
         },
         body: audioBuffer,
+        signal: AbortSignal.timeout(2500),
     });
 
     if (!res.ok) {

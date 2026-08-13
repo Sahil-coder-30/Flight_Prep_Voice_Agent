@@ -93,40 +93,44 @@ async function searchQdrant(vector, limit = 3, filter = null) {
 // ── Qdrant Search ──────────────────────────────────────────────────────────────
 
 export async function retrieve(query, procedureType, phase, templateId = null, limit = 3) {
-    const redis = getRedisClient();
+    try {
+        const redis = getRedisClient();
 
-    if (templateId) {
-        const cacheKey = `gnd:tmpl:${templateId}`;
-        const cached = await redis.get(cacheKey);
-        if (cached) return JSON.parse(cached);
+        if (templateId) {
+            const cacheKey = `gnd:tmpl:${templateId}`;
+            const cached = await redis.get(cacheKey);
+            if (cached) return JSON.parse(cached);
+        }
+
+        const vector = await embedText(query, templateId);
+
+        const mustFilter = [];
+        if (procedureType) mustFilter.push({ key: 'procedure_type', match: { value: procedureType } });
+        if (phase) mustFilter.push({ key: 'phase', match: { value: phase } });
+
+        let rawHits = await searchQdrant(vector, limit, mustFilter.length > 0 ? { must: mustFilter } : null);
+
+        // Fallback: search without filter if 0 hits
+        if (!rawHits || rawHits.length === 0) {
+            rawHits = await searchQdrant(vector, limit);
+        }
+
+        const hits = (rawHits || []).map((r) => ({
+            text: r.payload?.text,
+            score: r.score,
+            metadata: r.payload,
+        }));
+
+        if (templateId && hits.length > 0) {
+            const cacheKey = `gnd:tmpl:${templateId}`;
+            await redis.setex(cacheKey, 60 * 60 * 24 * 30, JSON.stringify(hits));
+        }
+
+        return hits;
+    } catch (err) {
+        console.warn('[Qdrant] Retrieval warning:', err.message);
+        return [];
     }
-
-    const vector = await embedText(query, templateId);
-
-    const mustFilter = [];
-    if (procedureType) mustFilter.push({ key: 'procedure_type', match: { value: procedureType } });
-    if (phase) mustFilter.push({ key: 'phase', match: { value: phase } });
-
-    let rawHits = await searchQdrant(vector, limit, mustFilter.length > 0 ? { must: mustFilter } : null);
-
-    // Fallback: search without filter if 0 hits
-    if (!rawHits || rawHits.length === 0) {
-        rawHits = await searchQdrant(vector, limit);
-    }
-
-    const hits = (rawHits || []).map((r) => ({
-        text: r.payload?.text,
-        score: r.score,
-        metadata: r.payload,
-        authority: r.payload?.authority || 'ICAO/FAA',
-    }));
-
-    if (templateId && hits.length > 0) {
-        const cacheKey = `gnd:tmpl:${templateId}`;
-        await redis.setex(cacheKey, 60 * 60 * 24 * 7, JSON.stringify(hits));
-    }
-
-    return hits;
 }
 
 export async function retrieveGeneralQuery(queryText, limit = 3) {

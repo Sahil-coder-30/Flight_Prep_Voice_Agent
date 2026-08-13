@@ -1,5 +1,5 @@
 import { extractReadback } from '../../services/mistral.service.js';
-import { validateSlots, extractCallsignFromTranscript } from '../utils/fuzzyMatch.js';
+import { validateSlots, extractCallsignFromTranscript, extractSlotsRuleBased } from '../utils/fuzzyMatch.js';
 import ChatMessage from '../../models/chatMessage.model.js';
 
 const AVIATION_REQUEST_PATTERNS = [
@@ -69,15 +69,26 @@ export async function validateReadbackNode(state) {
 
     let extracted = {};
     if (requiredSlotKeys.length > 0) {
-        try {
-            extracted = await extractReadback(pilotTranscript, requiredSlotKeys, {
-                sessionId,
-                userId,
-                stepId,
-                templateId,
-            });
-        } catch (err) {
-            console.error('[validateReadback] Extract error:', err.message);
+        // Fast-Path 1: Rule-Based Extraction (< 0.1ms)
+        const ruleBased = extractSlotsRuleBased(pilotTranscript, requiredSlotKeys, resolvedSlots);
+        const { allPassed: rulePassed } = validateSlots(slots, resolvedSlots, ruleBased);
+
+        if (rulePassed) {
+            console.log(`[validateReadback] FAST-PATH — Rule-based extraction validated step "${stepId}" in < 0.1ms`);
+            extracted = ruleBased;
+        } else {
+            // Fast-Path 2: LLM Extraction with strict timeout
+            try {
+                extracted = await extractReadback(pilotTranscript, requiredSlotKeys, {
+                    sessionId,
+                    userId,
+                    stepId,
+                    templateId,
+                });
+            } catch (err) {
+                console.error('[validateReadback] Extract error:', err.message);
+                extracted = ruleBased;
+            }
         }
     }
 

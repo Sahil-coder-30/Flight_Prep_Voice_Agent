@@ -5,6 +5,8 @@ const initialState = {
   transcript: [],
   isRecording: false,
   isProcessing: false,
+  isAgentSpeaking: false,
+  agentAudioLevel: 0,
   error: null,
   // 3D Orb state
   orbMode: 'IDLE_CORE',
@@ -51,6 +53,12 @@ const simulatorSlice = createSlice({
     setIsProcessing(state, action) {
       state.isProcessing = action.payload;
     },
+    setIsAgentSpeaking(state, action) {
+      state.isAgentSpeaking = action.payload;
+    },
+    setAgentAudioLevel(state, action) {
+      state.agentAudioLevel = action.payload;
+    },
     setSimulatorError(state, action) {
       state.error = action.payload;
     },
@@ -76,6 +84,8 @@ const simulatorSlice = createSlice({
       state.transcript = [];
       state.isRecording = false;
       state.isProcessing = false;
+      state.isAgentSpeaking = false;
+      state.agentAudioLevel = 0;
       state.error = null;
       state.talkingState = { isTalking: false, intensity: 0 };
       state.audioLevel = 0;
@@ -85,7 +95,7 @@ const simulatorSlice = createSlice({
 
 export const {
   setCurrentSession, setTranscript, addTranscriptMessage,
-  setIsRecording, setIsProcessing, setSimulatorError,
+  setIsRecording, setIsProcessing, setIsAgentSpeaking, setAgentAudioLevel, setSimulatorError,
   setOrbMode, setTalkingState, setAudioLevel, setSwarmSettings, resetSimulator,
 } = simulatorSlice.actions;
 export default simulatorSlice.reducer;

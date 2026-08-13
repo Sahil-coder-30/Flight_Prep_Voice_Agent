@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import MetallicOrb from './MetallicOrb/MetallicOrb';
 import DebriefPage from './DebriefPage';
-import { setOrbMode, addTranscriptMessage } from '../slice/simulator.slice';
+import { setOrbMode, addTranscriptMessage, setIsAgentSpeaking, setAgentAudioLevel } from '../slice/simulator.slice';
 import { useSimulator, speakLine } from '../Hooks/simulator.hooks';
 import './SimulatorPage.scss';
 
@@ -59,12 +59,40 @@ function ChatIcon() {
   );
 }
 
+const AudioFrequencyBars = React.memo(function AudioFrequencyBars({ isRecording, audioLevel }) {
+  const [bars, setBars] = useState(Array(18).fill(4));
+
+  useEffect(() => {
+    if (isRecording) {
+      const realLevel = audioLevel || 0;
+      setBars(prev => prev.map((_, i) => Math.max(4, (realLevel * 36) * (0.6 + 0.8 * Math.sin(i * 0.7)))));
+    } else {
+      setBars(Array(18).fill(4));
+    }
+  }, [isRecording, audioLevel]);
+
+  return (
+    <div className="audio-freq-bars" aria-hidden="true">
+      {bars.map((h, i) => (
+        <div
+          key={i}
+          className="freq-bar"
+          style={{
+            height: `${h}px`,
+            opacity: isRecording ? 0.95 : 0.25,
+            background: isRecording ? 'var(--alert-red)' : 'var(--nav-cyan)',
+          }}
+        />
+      ))}
+    </div>
+  );
+});
+
 export default function SimulatorPage({ scenario, onBack }) {
   const dispatch = useDispatch();
-  const { orbMode, transcript, isRecording, isProcessing, audioLevel } = useSelector(s => s.simulator);
+  const { orbMode, transcript, isRecording, isProcessing, isAgentSpeaking, agentAudioLevel, audioLevel } = useSelector(s => s.simulator);
   const { startSession, startRecording, stopRecordingAndSubmit, endSession } = useSimulator();
 
-  const [audioLevels, setAudioLevels] = useState(Array(18).fill(4));
   const [showSourceDrawer, setShowSourceDrawer] = useState(false);
   const [showChatDrawer, setShowChatDrawer] = useState(true);
   const [isMinimizedChat, setIsMinimizedChat] = useState(false);
@@ -78,6 +106,7 @@ export default function SimulatorPage({ scenario, onBack }) {
   const chatEndRef = useRef(null);
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, posX: 0, posY: 0 });
   const dragMovedRef = useRef(false);
+  const bootedScenarioIdRef = useRef(null);
 
   // Drag handler for chat box header & capsule
   const handleMouseDownChat = (e) => {
@@ -120,14 +149,16 @@ export default function SimulatorPage({ scenario, onBack }) {
     };
   }, [isDraggingChat]);
 
-  // Boot session when scenario is ready
+  // Boot session when scenario is ready (guaranteed single execution)
   useEffect(() => {
-    if (scenario?.id || scenario?._id) {
+    const scId = scenario?.id || scenario?._id;
+    if (scId && bootedScenarioIdRef.current !== scId) {
+      bootedScenarioIdRef.current = scId;
       setSessionCompleted(false);
       setSessionResult(null);
-      startSession(scenario.id || scenario._id);
+      startSession(scId);
     }
-  }, [scenario?.id, scenario?._id]); // eslint-disable-line
+  }, [scenario?.id, scenario?._id, startSession]);
 
   // Auto-scroll chat drawer to bottom on new message
   useEffect(() => {
@@ -196,7 +227,20 @@ export default function SimulatorPage({ scenario, onBack }) {
                 text: data.currentLine,
                 timestamp: new Date().toISOString(),
               }));
-              speakLine(data.currentLine, data.audioBase64);
+              speakLine(
+                data.currentLine,
+                data.audioBase64,
+                () => {
+                  dispatch(setIsAgentSpeaking(false));
+                  dispatch(setAgentAudioLevel(0));
+                },
+                () => {
+                  dispatch(setIsAgentSpeaking(true));
+                },
+                (lvl) => {
+                  dispatch(setAgentAudioLevel(lvl));
+                }
+              );
             }
           }
         } catch (e) {
@@ -211,16 +255,6 @@ export default function SimulatorPage({ scenario, onBack }) {
       if (ws && ws.readyState === 1) ws.close();
     };
   }, [dispatch]);
-
-  // Animate frequency audio bars from real microphone volume level
-  useEffect(() => {
-    if (isRecording) {
-      const realLevel = audioLevel || 0;
-      setAudioLevels(prev => prev.map((_, i) => Math.max(4, (realLevel * 36) * (0.6 + 0.8 * Math.sin(i * 0.7)))));
-    } else {
-      setAudioLevels(Array(18).fill(4));
-    }
-  }, [isRecording, audioLevel]);
 
   // Spacebar Push-To-Talk (PTT) keyboard listener
   useEffect(() => {
@@ -274,8 +308,12 @@ export default function SimulatorPage({ scenario, onBack }) {
   const runway = scenario?.steps?.[0]?.slots?.find(s => s.key === 'runway')?.staticValue || '22L';
 
   const talkingState = {
-    isTalking: isRecording ? (audioLevel > 0.03) : (wsTalkingIntensity > 0),
-    intensity: isRecording ? Math.min(1.0, (audioLevel || 0) * 2.8) : isProcessing ? 0.4 : wsTalkingIntensity,
+    isTalking: isRecording ? (audioLevel > 0.03) : isAgentSpeaking,
+    intensity: isRecording
+      ? Math.min(1.0, (audioLevel || 0) * 2.8)
+      : isAgentSpeaking
+      ? Math.max(0.35, Math.min(1.0, (agentAudioLevel || 0.6) * 2.8))
+      : 0,
   };
 
   return (
@@ -349,19 +387,7 @@ export default function SimulatorPage({ scenario, onBack }) {
 
       {/* ── BOTTOM FLOATING AUDIO FREQUENCY DECK ── */}
       <footer className="sim-audio-deck">
-        <div className="audio-freq-bars" aria-hidden="true">
-          {audioLevels.map((h, i) => (
-            <div
-              key={i}
-              className="freq-bar"
-              style={{
-                height: `${h}px`,
-                opacity: isRecording ? 0.95 : 0.25,
-                background: isRecording ? 'var(--alert-red)' : 'var(--nav-cyan)',
-              }}
-            />
-          ))}
-        </div>
+        <AudioFrequencyBars isRecording={isRecording} audioLevel={audioLevel} />
 
         <div className="mic-trigger-wrap">
           <button
