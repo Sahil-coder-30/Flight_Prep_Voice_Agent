@@ -883,7 +883,7 @@ Standard AI voice platforms execute remote vector database lookups, LLM inferenc
 
 ### 3. API Vendor Rate Cards & Exact Cost Accounting Formulas
 
-#### Vendor Benchmark Rate Cards (Baseline Conversion: $1 USD = ₹84.00 INR)
+#### Vendor Benchmark Rate Cards (Baseline Conversion: $1 USD = ₹95.00 INR)
 
 | API / Service | Metric | USD Rate Card | INR Converted Rate |
 |---|---|---|---|
