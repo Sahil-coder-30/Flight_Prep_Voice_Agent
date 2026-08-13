@@ -1,9 +1,7 @@
+import "dotenv/config";
 import { QdrantClient } from "@qdrant/js-client-rest";
 
-const qdrantClient = new QdrantClient({
+export const qdrantClient = new QdrantClient({
     url: process.env.QDRANT_URL,
     apiKey: process.env.QDRANT_API_KEY,
-    checkCompatibility: false,
 });
-
-export { qdrantClient };

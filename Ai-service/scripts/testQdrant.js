@@ -1,40 +1,133 @@
 import "dotenv/config";
-import { qdrantClient } from "../config/qdrant.js";
-import { embedText } from "../services/qdrant.service.js";
 
-const COLLECTION = process.env.QDRANT_COLLECTION;
+import { retrieve } from "../services/qdrant.service.js";
 
-const text = "Taxi via Alpha and hold short of runway 27.";
+async function test(
+    name,
+    query,
+    procedureType,
+    phase
+) {
+    console.log(
+        "\n================================="
+    );
 
-async function main() {
-    const vector = await embedText(text);
+    console.log(name);
 
-    console.log("Embedding dimensions:", vector.length);
+    console.log(
+        "================================="
+    );
 
-    await qdrantClient.upsert(COLLECTION, {
-        wait: true,
-        points: [
-            {
-                id: 1,
-                vector,
-                payload: {
-                    text,
-                    procedure_type: "taxi",
-                    phase: "ground",
-                    source: "test",
-                },
-            },
-        ],
-    });
+    const results =
+        await retrieve(
+            query,
+            procedureType,
+            phase
+        );
 
-    console.log("Inserted test point");
+    console.log(
+        "Results:",
+        results.length
+    );
 
-    const results = await qdrantClient.query(COLLECTION, {
-        vector,
-        limit: 3,
-    });
+    for (const result of results) {
+        console.log({
+            text:
+                result.text,
 
-    console.log(results);
+            score:
+                result.score,
+
+            procedure_type:
+                result.metadata?.procedure_type,
+
+            phase:
+                result.metadata?.phase,
+
+            category:
+                result.metadata?.category,
+        });
+    }
+
+    return results;
 }
 
-main().catch(console.error);
+async function main() {
+    const taxi =
+        await test(
+            "TAXI RETRIEVAL",
+            "Issue a taxi clearance to runway 27.",
+            "taxi",
+            "ground"
+        );
+
+    if (taxi.length === 0) {
+        throw new Error(
+            "Taxi retrieval returned no knowledge."
+        );
+    }
+
+    const departure =
+        await test(
+            "DEPARTURE RETRIEVAL",
+            "Issue an IFR departure clearance to the aircraft.",
+            "departure",
+            "clearance"
+        );
+
+    if (departure.length === 0) {
+        throw new Error(
+            "Departure retrieval returned no knowledge."
+        );
+    }
+
+    const landing =
+        await test(
+            "LANDING RETRIEVAL",
+            "Issue a landing clearance to the aircraft.",
+            "landing",
+            "tower"
+        );
+
+    if (landing.length === 0) {
+        throw new Error(
+            "Landing retrieval returned no knowledge."
+        );
+    }
+
+    const frequency =
+        await test(
+            "FREQUENCY CHANGE RETRIEVAL",
+            "Instruct the aircraft to contact departure control on frequency 124.7.",
+            "frequency_change",
+            "departure"
+        );
+
+    if (frequency.length === 0) {
+        throw new Error(
+            "Frequency-change retrieval returned no knowledge."
+        );
+    }
+
+    console.log(
+        "\n================================="
+    );
+
+    console.log(
+        "✅ ATC RETRIEVAL TEST PASSED"
+    );
+
+    console.log(
+        "================================="
+    );
+}
+
+main().catch((error) => {
+    console.error(
+        "\n❌ QDRANT TEST FAILED"
+    );
+
+    console.error(error);
+
+    process.exit(1);
+});

@@ -4,47 +4,154 @@ import {
     extractReadback,
 } from "../services/mistral.service.js";
 
-async function testComposeLine() {
-    console.log("\n--- Testing composeLine ---");
+const start = Date.now();
 
-    const response = await composeLine({
-        grounding: [
-            "Taxi via Alpha and hold short of runway 27.",
-            "Read back runway assignment and taxi instructions.",
-        ],
-        slots: {
-            runway: "27",
-            taxiway: "Alpha",
-        },
-        instruction: "Generate the ATC taxi instruction.",
-    });
-
-    console.log("Mistral response:");
-    console.log(response);
+function elapsed() {
+    return `${Date.now() - start}ms`;
 }
 
-async function testExtractReadback() {
-    console.log("\n--- Testing extractReadback ---");
+async function runTest(name, fn) {
+    console.log(`[${elapsed()}] ${name} queued`);
 
-    const result = await extractReadback(
-        "Taxi via Alpha, hold short runway 27.",
-        {
-            taxiway: null,
-            runway: null,
-            hold_short: null,
-        }
-    );
+    try {
+        const result = await fn();
 
-    console.log("Extracted readback:");
-    console.dir(result, { depth: null });
+        console.log(
+            `[${elapsed()}] ${name} completed`
+        );
+
+        return {
+            name,
+            success: true,
+            result,
+        };
+    } catch (error) {
+        console.log(
+            `[${elapsed()}] ${name} FAILED`
+        );
+
+        console.log(error.message);
+
+        return {
+            name,
+            success: false,
+            error,
+        };
+    }
 }
 
 async function main() {
-    await testComposeLine();
-    await testExtractReadback();
+    console.log("\n=================================");
+    console.log("MISTRAL RATE LIMIT TEST");
+    console.log("=================================\n");
+
+    const requests = [
+        runTest("compose-1", () =>
+            composeLine({
+                grounding: [
+                    "Taxi via Alpha and hold short of runway 27.",
+                ],
+                slots: {
+                    runway: "27",
+                    taxiway: "Alpha",
+                },
+                instruction:
+                    "Generate the ATC instruction.",
+            })
+        ),
+
+        runTest("extract-1", () =>
+            extractReadback(
+                "Taxi via Alpha and hold short of runway 27.",
+                {
+                    taxiway: null,
+                    runway: null,
+                    hold_short: null,
+                }
+            )
+        ),
+
+        runTest("compose-2", () =>
+            composeLine({
+                grounding: [
+                    "Taxi via Alpha and hold short of runway 27.",
+                ],
+                slots: {
+                    runway: "27",
+                    taxiway: "Alpha",
+                },
+                instruction:
+                    "Generate the ATC instruction.",
+            })
+        ),
+
+        runTest("extract-2", () =>
+            extractReadback(
+                "Taxi via Alpha and hold short of runway 27.",
+                {
+                    taxiway: null,
+                    runway: null,
+                    hold_short: null,
+                }
+            )
+        ),
+
+        runTest("compose-3", () =>
+            composeLine({
+                grounding: [
+                    "Taxi via Alpha and hold short of runway 27.",
+                ],
+                slots: {
+                    runway: "27",
+                    taxiway: "Alpha",
+                },
+                instruction:
+                    "Generate the ATC instruction.",
+            })
+        ),
+
+        runTest("extract-3", () =>
+            extractReadback(
+                "Taxi via Alpha and hold short of runway 27.",
+                {
+                    taxiway: null,
+                    runway: null,
+                    hold_short: null,
+                }
+            )
+        ),
+    ];
+
+    const results = await Promise.all(requests);
+
+    console.log("\n=================================");
+    console.log("RESULTS");
+    console.log("=================================\n");
+
+    let successful = 0;
+
+    for (const result of results) {
+        if (result.success) {
+            successful++;
+            console.log(`✅ ${result.name}`);
+        } else {
+            console.log(`❌ ${result.name}`);
+        }
+    }
+
+    console.log(
+        `\nSuccessful: ${successful}/${results.length}`
+    );
+
+    if (successful !== results.length) {
+        process.exit(1);
+    }
+
+    console.log("\n✅ RATE LIMIT TEST PASSED\n");
 }
 
 main().catch((error) => {
-    console.error("Mistral test failed:");
+    console.error("\n❌ TEST FAILED");
     console.error(error);
+    process.exit(1);
 });
