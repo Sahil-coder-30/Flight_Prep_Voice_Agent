@@ -209,3 +209,70 @@ export const completeSessionController = async (req, res) => {
         return res.status(500).json({ status: 'error', message: error.message });
     }
 };
+
+/**
+ * PUT /api/backend/sessions/:id
+ * Updates an existing session (e.g. score or status).
+ */
+export const updateSessionController = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+        const { score, status } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ status: 'error', message: 'Invalid session ID' });
+        }
+
+        const session = await Session.findById(id);
+        if (!session) {
+            return res.status(404).json({ status: 'error', message: 'Session not found' });
+        }
+        if (String(session.userId) !== userId) {
+            return res.status(403).json({ status: 'error', message: 'Forbidden: you do not own this session' });
+        }
+
+        if (score !== undefined) session.score = score;
+        if (status !== undefined) session.status = status;
+
+        await session.save();
+        console.log(`[Backend] Session ${id} updated for user ${userId}`);
+        return res.status(200).json({ status: 'success', data: { session } });
+    } catch (error) {
+        console.error('[Backend] updateSessionController error:', error.message);
+        return res.status(500).json({ status: 'error', message: error.message });
+    }
+};
+
+/**
+ * DELETE /api/backend/sessions/:id
+ * Deletes a session entry from user history.
+ */
+export const deleteSessionController = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ status: 'error', message: 'Invalid session ID' });
+        }
+
+        const session = await Session.findById(id);
+        if (!session) {
+            return res.status(404).json({ status: 'error', message: 'Session not found' });
+        }
+        if (String(session.userId) !== userId) {
+            return res.status(403).json({ status: 'error', message: 'Forbidden: you do not own this session' });
+        }
+
+        await Session.findByIdAndDelete(id);
+        // Also cleanup associated analytics if existing
+        await SessionAnalytics.deleteMany({ sessionId: id });
+
+        console.log(`[Backend] Session ${id} deleted for user ${userId}`);
+        return res.status(200).json({ status: 'success', message: 'Session deleted successfully', data: { id } });
+    } catch (error) {
+        console.error('[Backend] deleteSessionController error:', error.message);
+        return res.status(500).json({ status: 'error', message: error.message });
+    }
+};

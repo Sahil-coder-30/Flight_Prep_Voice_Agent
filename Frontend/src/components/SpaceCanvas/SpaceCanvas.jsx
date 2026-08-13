@@ -13,30 +13,24 @@ export default function SpaceCanvas() {
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
 
-    // ── 1. Aesthetic Twinkling & Drifting Starfield ─────────────────────
-    // Clean, elegant density (approx 90-110 stars)
-    const STAR_COUNT = Math.floor(Math.min(width, height) * 0.10);
+    // ── 1. Pristine Twinkling Starfield ──────────────────────────────────
+    const STAR_COUNT = Math.floor(Math.min(width, height) * 0.12);
     const stars = Array.from({ length: STAR_COUNT }, () => {
       const typeRand = Math.random();
-      let size = Math.random() * 0.7 + 0.4; // 80% micro stars (0.4px - 1.1px)
+      let size = Math.random() * 0.7 + 0.4;
       let isHero = false;
-      if (typeRand > 0.94) {
-        size = Math.random() * 0.7 + 1.7; // 6% hero glowing stars (1.7px - 2.4px)
+      if (typeRand > 0.93) {
+        size = Math.random() * 0.7 + 1.7; // Glowing hero star
         isHero = true;
       } else if (typeRand > 0.80) {
-        size = Math.random() * 0.5 + 1.1; // 14% medium stars (1.1px - 1.6px)
+        size = Math.random() * 0.5 + 1.0;
       }
 
-      // Elegant palette: Pure warm white, champagne gold dust, ice silver, soft mint spark
       const colorRand = Math.random();
-      let color = '#F8FAFC';
-      if (colorRand > 0.82) {
-        color = '#FDE68A'; // Warm champagne gold
-      } else if (colorRand > 0.68) {
-        color = '#A7F3D0'; // Soft mint emerald
-      } else if (colorRand > 0.52) {
-        color = '#E2E8F0'; // Ice silver
-      }
+      let color = '#FAFAFA'; // Pristine Off-White
+      if (colorRand > 0.85) color = '#FDE68A';      // Champagne Gold pinch
+      else if (colorRand > 0.72) color = '#A7F3D0'; // Emerald Mint pinch
+      else if (colorRand > 0.55) color = '#E4E4E7'; // Silver Zinc
 
       return {
         x: Math.random() * width,
@@ -46,56 +40,56 @@ export default function SpaceCanvas() {
         baseAlpha: Math.random() * 0.45 + 0.3,
         twinkleSpeed: Math.random() * 0.025 + 0.01,
         twinklePhase: Math.random() * Math.PI * 2,
-        // Smooth floating motion velocity
-        vx: (Math.random() * 0.16 - 0.08),
-        vy: -(Math.random() * 0.22 + 0.08) * (size * 0.6 + 0.5),
+        vx: (Math.random() * 0.14 - 0.07),
+        vy: -(Math.random() * 0.2 + 0.06) * (size * 0.5 + 0.5),
         color,
       };
     });
 
-    // ── 2. Floating Ambient Cosmic Nebulae Orbs ─────────────────────────
+    // ── 2. Subtle Industry SaaS Blurred Orbs (Zinc/Silver/Emerald Pinches) ─────
     const ambientOrbs = [
       {
         baseX: 0.22, baseY: 0.28,
-        radius: 340,
-        color: '255, 255, 255', // Pristine Off-White Glow
-        opacity: 0.04,
-        speedX: 0.08, speedY: 0.06,
-      },
-      {
-        baseX: 0.78, baseY: 0.55,
-        radius: 380,
-        color: '228, 228, 231', // Silver Dust
+        radius: 400,
+        color: '255, 255, 255', // Pure Crisp White Glow
         opacity: 0.035,
-        speedX: 0.06, speedY: 0.09,
+        speedX: 0.05, speedY: 0.06,
       },
       {
-        baseX: 0.48, baseY: 0.82,
-        radius: 280,
-        color: '244, 244, 245', // Zinc White
+        baseX: 0.78, baseY: 0.48,
+        radius: 450,
+        color: '228, 228, 231', // Zinc Silver
         opacity: 0.03,
-        speedX: 0.1, speedY: 0.07,
+        speedX: 0.04, speedY: 0.05,
+      },
+      {
+        baseX: 0.48, baseY: 0.80,
+        radius: 360,
+        color: '16, 185, 129', // Subtle Emerald Pinch
+        opacity: 0.025,
+        speedX: 0.06, speedY: 0.07,
       },
     ];
 
-    // ── 3. Shooting Stars (Meteors / Comets) ───────────────────────────
+    // ── 3. Shooting Stars (Meteors with Silver & White Trails) ───────────
     const shootingStars = [];
 
     const spawnShootingStar = () => {
       const startOnTop = Math.random() > 0.5;
-      const x = startOnTop ? Math.random() * width * 0.8 : -50;
+      const x = startOnTop ? Math.random() * width * 0.85 : -50;
       const y = startOnTop ? -50 : Math.random() * height * 0.6;
-      const length = Math.random() * 90 + 70;
-      const speed = Math.random() * 6 + 5;
-      const angle = Math.PI / 4 + (Math.random() * 0.15 - 0.075); // ~45 deg
-      const color = Math.random() > 0.5 ? '#FAFAFA' : Math.random() > 0.5 ? '#E4E4E7' : '#FFFFFF';
+      const length = Math.random() * 110 + 80;
+      const speed = Math.random() * 7 + 6;
+      const angle = Math.PI / 4 + (Math.random() * 0.1 - 0.05); // ~45 deg trail
+      const colors = ['#FFFFFF', '#F4F4F5', '#E4E4E7', '#A7F3D0'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
 
       shootingStars.push({
         x, y,
         length, speed, angle, color,
         alpha: 1.0,
         life: 0,
-        maxLife: Math.random() * 38 + 32,
+        maxLife: Math.random() * 36 + 30,
       });
     };
 
@@ -107,25 +101,25 @@ export default function SpaceCanvas() {
     };
     window.addEventListener('resize', handleResize);
 
-    let startTime = performance.now();
+    const startTime = performance.now();
 
     const render = (now) => {
       const time = (now - startTime) / 1000;
       ctx.clearRect(0, 0, width, height);
 
-      // Pitch-Black Luxury SaaS Space Gradient
+      // Pitch-Black Pitch-Zinc Industry Standard SaaS Gradient (Vercel/Linear)
       const baseGrad = ctx.createRadialGradient(
-        width * 0.5, height * 0.4, 100,
-        width * 0.5, height * 0.5, Math.max(width, height) * 0.9
+        width * 0.5, height * 0.35, 120,
+        width * 0.5, height * 0.5, Math.max(width, height) * 0.95
       );
-      baseGrad.addColorStop(0, '#0C0C0F');
-      baseGrad.addColorStop(0.55, '#08080A');
-      baseGrad.addColorStop(1, '#040405');
+      baseGrad.addColorStop(0, '#09090B');   // Deep Obsidian Pitch-Zinc
+      baseGrad.addColorStop(0.6, '#060608'); // Dark Obsidian Void
+      baseGrad.addColorStop(1, '#030304');   // Pure Obsidian Boundary
 
       ctx.fillStyle = baseGrad;
       ctx.fillRect(0, 0, width, height);
 
-      // ── RENDER FLOATING AMBIENT NEBULAE ──────────────────────────────
+      // ── RENDER SUBTLE AMBIENT BLURRED ORBS ────────────────────────────
       ambientOrbs.forEach(orb => {
         const ox = (orb.baseX + Math.sin(time * orb.speedX) * 0.10) * width;
         const oy = (orb.baseY + Math.cos(time * orb.speedY) * 0.10) * height;
@@ -143,31 +137,28 @@ export default function SpaceCanvas() {
         ctx.restore();
       });
 
-      // ── SUBTLE RADAR HUD RINGS ──────────────────────────────────────
+      // ── RENDER SUBTLE TACTICAL COCKPIT HUD RINGS ──────────────────────
       ctx.save();
       ctx.translate(width / 2, height / 2);
-      ctx.strokeStyle = 'rgba(16, 185, 129, 0.015)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.015)';
       ctx.lineWidth = 1;
 
-      for (let r = 220; r <= Math.max(width, height); r += 320) {
+      for (let r = 240; r <= Math.max(width, height); r += 320) {
         ctx.beginPath();
         ctx.arc(0, 0, r, 0, Math.PI * 2);
         ctx.stroke();
       }
       ctx.restore();
 
-      // ── RENDER CLEAN MOVING & TWINKLING STARS ───────────────────────
+      // ── RENDER TWINKLING STARS ────────────────────────────────────────
       stars.forEach(star => {
-        // 1. Smooth Sine-wave Twinkle
         star.twinklePhase += star.twinkleSpeed;
-        const twinkleFactor = (Math.sin(star.twinklePhase) + 1) / 2; // 0 to 1
+        const twinkleFactor = (Math.sin(star.twinklePhase) + 1) / 2;
         const currentAlpha = Math.max(0.12, star.baseAlpha * (0.35 + twinkleFactor * 0.65));
 
-        // 2. Fluid Drift Motion
         star.x += star.vx;
         star.y += star.vy;
 
-        // Wrap around edges seamlessly
         if (star.y < -10) {
           star.y = height + 10;
           star.x = Math.random() * width;
@@ -179,13 +170,12 @@ export default function SpaceCanvas() {
         ctx.globalAlpha = currentAlpha;
 
         if (star.isHero) {
-          // Soft aura glow for hero stars
           const glowGrad = ctx.createRadialGradient(
             star.x, star.y, 0,
             star.x, star.y, star.size * 3.5
           );
           glowGrad.addColorStop(0, star.color);
-          glowGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.15)');
+          glowGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.12)');
           glowGrad.addColorStop(1, 'transparent');
 
           ctx.fillStyle = glowGrad;
@@ -193,7 +183,6 @@ export default function SpaceCanvas() {
           ctx.arc(star.x, star.y, star.size * 3.5, 0, Math.PI * 2);
           ctx.fill();
 
-          // Hero core
           ctx.fillStyle = '#FFFFFF';
           ctx.beginPath();
           ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
@@ -207,8 +196,8 @@ export default function SpaceCanvas() {
         ctx.restore();
       });
 
-      // ── SPAWN & RENDER SHOOTING STARS ──────────────────────────────
-      if (now - lastSpawnTime > (Math.random() * 3000 + 3000)) {
+      // ── SPAWN & RENDER SHOOTING STARS (METEORS) ─────────────────────
+      if (now - lastSpawnTime > (Math.random() * 2200 + 1800)) {
         spawnShootingStar();
         lastSpawnTime = now;
       }
@@ -233,11 +222,11 @@ export default function SpaceCanvas() {
 
         const tailGrad = ctx.createLinearGradient(ss.x, ss.y, tailX, tailY);
         tailGrad.addColorStop(0, '#FFFFFF');
-        tailGrad.addColorStop(0.3, ss.color);
+        tailGrad.addColorStop(0.25, ss.color);
         tailGrad.addColorStop(1, 'transparent');
 
         ctx.strokeStyle = tailGrad;
-        ctx.lineWidth = 1.4;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(ss.x, ss.y);
         ctx.lineTo(tailX, tailY);
@@ -245,7 +234,7 @@ export default function SpaceCanvas() {
 
         ctx.fillStyle = '#FFFFFF';
         ctx.beginPath();
-        ctx.arc(ss.x, ss.y, 1.5, 0, Math.PI * 2);
+        ctx.arc(ss.x, ss.y, 1.6, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }

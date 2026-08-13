@@ -68,14 +68,13 @@ export async function embedText(text, templateId = null, ctx = {}) {
 async function searchQdrant(vector, limit = 3, filter = null) {
     let rawHits = [];
     try {
-        if (typeof qdrantClient.query === 'function') {
-            const response = await qdrantClient.query(COLLECTION, {
-                query: vector,
+        if (typeof qdrantClient.search === 'function') {
+            rawHits = await qdrantClient.search(COLLECTION, {
+                vector,
                 limit,
                 with_payload: true,
                 ...(filter && { filter }),
             });
-            rawHits = response?.points || response || [];
         } else if (typeof qdrantClient.searchPoints === 'function') {
             rawHits = await qdrantClient.searchPoints(COLLECTION, {
                 vector,
@@ -83,6 +82,14 @@ async function searchQdrant(vector, limit = 3, filter = null) {
                 with_payload: true,
                 ...(filter && { filter }),
             });
+        } else if (typeof qdrantClient.query === 'function') {
+            const response = await qdrantClient.query(COLLECTION, {
+                query: { nearest: vector },
+                limit,
+                with_payload: true,
+                ...(filter && { filter }),
+            });
+            rawHits = response?.points || response || [];
         }
     } catch (err) {
         console.warn('[Qdrant] Search call warning:', err.message);

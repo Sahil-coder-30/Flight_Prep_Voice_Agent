@@ -27,7 +27,7 @@ const graph = new StateGraph(AgentState)
     .addEdge('__start__', 'loadStep')
     .addConditionalEdges('loadStep', (state) => {
         if (state.finished || !state.currentStep) return 'debrief';
-        if (state.pilotTranscript) return 'validateReadback';
+        if (state.pilotTranscript && String(state.pilotTranscript).trim() !== '') return 'validateReadback';
         return 'qdrantRetrieve';
     })
     .addEdge('qdrantRetrieve', 'composeLine')

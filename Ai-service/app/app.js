@@ -5,6 +5,9 @@ import aiSessionRoutes from '../routes/aiSession.routes.js';
 
 const app = express();
 
+// Trust reverse proxy for express-rate-limit and X-Forwarded-For headers
+app.set('trust proxy', 1);
+
 // ── CORS & Preflight Middleware ───────────────────────────────────────────────
 app.use((req, res, next) => {
     const origin = req.headers.origin || 'http://localhost:5173';

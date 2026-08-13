@@ -16,9 +16,16 @@
  */
 export async function transcribe(audioBase64, vocabHints = []) {
     const apiKey = process.env.STT_API_KEY || process.env.DEEPGRAM_API_KEY;
-    const audioBuffer = Buffer.from(audioBase64, 'base64');
+    if (!apiKey) {
+        throw new Error('STT API key is not configured (STT_API_KEY / DEEPGRAM_API_KEY missing)');
+    }
 
-    // Build base params — no keyterm to keep it clean and compatible
+    const audioBuffer = Buffer.from(audioBase64, 'base64');
+    if (audioBuffer.length < 100) {
+        throw new Error('Audio payload is too small or empty');
+    }
+
+    // Build base params — clean and compatible
     const baseParams = new URLSearchParams({
         model: 'nova-3',
         language: 'en-US',
@@ -40,35 +47,41 @@ export async function transcribe(audioBase64, vocabHints = []) {
 
     console.log(`[STT] Transcribing ${(audioBuffer.length / 1024).toFixed(1)}KB audio via Deepgram Nova-3`);
 
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-            Authorization: `Token ${apiKey}`,
-            // Omit Content-Type: Deepgram auto-detects audio/webm, audio/wav, audio/ogg etc.
-        },
-        body: audioBuffer,
-        signal: AbortSignal.timeout(2500),
-    });
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Authorization: `Token ${apiKey}`,
+            },
+            body: audioBuffer,
+            signal: AbortSignal.timeout(10000), // 10s robust timeout
+        });
 
-    if (!res.ok) {
-        const errText = await res.text();
-        // If keyterms caused a 400, retry without any keyterms
-        if (res.status === 400 && vocabHints.length > 0) {
-            console.warn('[STT] Keyterm param caused 400 — retrying without keytherms');
-            return transcribe(audioBase64, []); // Retry without hints
+        if (!res.ok) {
+            const errText = await res.text();
+            // If keyterms caused a 400, retry without any keyterms
+            if (res.status === 400 && vocabHints.length > 0) {
+                console.warn('[STT] Keyterm param caused 400 — retrying without keyterms');
+                return transcribe(audioBase64, []); // Retry without hints
+            }
+            throw new Error(`Deepgram STT failed (${res.status}): ${errText}`);
         }
-        throw new Error(`Deepgram STT failed (${res.status}): ${errText}`);
+
+        const data = await res.json();
+        const transcript = data?.results?.channels?.[0]?.alternatives?.[0]?.transcript;
+
+        if (!transcript || transcript.trim() === '') {
+            throw new Error('Deepgram returned empty transcript');
+        }
+
+        console.log(`[STT] Transcribed successfully: "${transcript}"`);
+        return transcript;
+    } catch (err) {
+        if (err.name === 'AbortError' || err.name === 'TimeoutError') {
+            console.warn('[STT] Deepgram request timed out after 10s');
+        }
+        throw err;
     }
-
-    const data = await res.json();
-    const transcript = data?.results?.channels?.[0]?.alternatives?.[0]?.transcript;
-
-    if (!transcript || transcript.trim() === '') {
-        throw new Error('Deepgram returned empty transcript — check audio quality or duration');
-    }
-
-    console.log(`[STT] Transcribed: "${transcript}"`);
-    return transcript;
 }
 
 /**

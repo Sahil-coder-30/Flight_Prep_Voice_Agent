@@ -7,17 +7,28 @@ import { getPilotResponsesFromRag, getTemplateWiseScoresFromRag } from '../servi
 
 const DEFAULT_FALLBACK_STEPS = [
     {
-        stepId: 'step_1',
+        stepId: 'step_1_ground',
+        templateId: 'tmpl_ground_taxi_v1',
         type: 'ground',
-        procedureType: 'taxi_clearance',
-        phase: 'ground',
-        controllerLine: '{callsign}, Boston Ground, taxi to runway {runway} via taxiway Alpha, hold short runway {runway}.',
-        expectedReadback: '{callsign}, taxi to runway {runway} via Alpha, hold short runway {runway}.',
-        correctionLine: '{callsign}, negative, taxi to runway {runway} via Alpha, hold short runway {runway}.',
+        controllerLine: 'Boston Ground, {callsign}, gate 14, ready for taxi with {atis}.',
+        expectedReadback: '{callsign}, taxi to runway {runway} via taxiways Alpha, hold short runway {runway}.',
         slots: [
-            { key: 'callsign', staticValue: 'N172SP', readbackRequired: true },
-            { key: 'runway', staticValue: '22L', readbackRequired: true },
-            { key: 'atis', staticValue: 'Bravo', readbackRequired: false }
+            { key: 'callsign', source: 'session', staticValue: 'N172SP', readbackRequired: true },
+            { key: 'runway', source: 'static', staticValue: '22L', readbackRequired: true },
+            { key: 'atis', source: 'dynamic', dynamicType: 'atis', readbackRequired: false }
+        ]
+    },
+    {
+        stepId: 'step_2_tower',
+        templateId: 'tmpl_tower_takeoff_v1',
+        type: 'departure',
+        controllerLine: '{callsign}, Boston Tower, wind {windDir} at {windSpeed}, runway {runway}, cleared for takeoff.',
+        expectedReadback: 'Runway {runway}, cleared for takeoff, {callsign}.',
+        slots: [
+            { key: 'callsign', source: 'session', staticValue: 'N172SP', readbackRequired: true },
+            { key: 'runway', source: 'static', staticValue: '22L', readbackRequired: true },
+            { key: 'windDir', source: 'dynamic', dynamicType: 'windDir', readbackRequired: false },
+            { key: 'windSpeed', source: 'dynamic', dynamicType: 'windSpeed', readbackRequired: false }
         ]
     }
 ];
@@ -33,23 +44,24 @@ export async function turn(req, res) {
         const { audioBase64, pilotTranscript: inputTranscript, steps, aircraftCallsign, airport } = req.body;
         const config = { configurable: { thread_id: id } };
 
-        let pilotTranscript = inputTranscript;
+        let pilotTranscript = inputTranscript || '';
 
-        // If audio provided, transcribe via Deepgram STT
-        if (audioBase64 && !pilotTranscript) {
+        // If audio provided, attempt transcribe via Deepgram STT
+        if (audioBase64) {
             try {
                 const vocabHints = buildVocabHints({ callsign: aircraftCallsign || 'N172SP' });
-                pilotTranscript = await transcribe(audioBase64, vocabHints);
+                const sttResult = await transcribe(audioBase64, vocabHints);
+                if (sttResult && sttResult.trim()) {
+                    pilotTranscript = sttResult;
+                }
             } catch (sttErr) {
                 console.warn('[aiSession.controller] STT transcription warning:', sttErr.message);
-                // Fallback to general voice prompt if STT returns error
-                pilotTranscript = 'Boston Tower, N172SP ready for departure.';
             }
         }
 
         let result;
 
-        if (pilotTranscript) {
+        if (pilotTranscript && pilotTranscript.trim() !== '') {
             // Check if state machine thread was initialized for this session ID
             let currentState = null;
             try {
@@ -80,11 +92,11 @@ export async function turn(req, res) {
                 pilotTranscript,
                 userId,
                 steps: (steps && Array.isArray(steps) && steps.length > 0) ? steps : undefined,
-                aircraftCallsign,
-                airport,
+                aircraftCallsign: aircraftCallsign || 'N172SP',
+                airport: airport || 'KBOS',
             }, config);
         } else {
-            // Initialize graph for session start
+            // Initialize graph for session start or silent turn prompt
             const activeSteps = (steps && Array.isArray(steps) && steps.length > 0) ? steps : DEFAULT_FALLBACK_STEPS;
 
             result = await compiledGraph.invoke({
@@ -109,7 +121,7 @@ export async function turn(req, res) {
                 pilotTranscript: pilotTranscript || '',
                 audioBase64: result?.audioBase64 || null,
                 finished: result?.finished || false,
-                currentLine: result?.currentLine || 'Tower listening, proceed with transmission.',
+                currentLine: result?.currentLine || 'Boston Tower listening, say again transmission.',
                 stepIndex: result?.stepIndex || 0,
                 slotReport: result?.slotReport || null,
                 stepResults: result?.stepResults || [],
@@ -133,16 +145,9 @@ export async function getTranscript(req, res) {
 
 export async function getUserChatHistory(req, res) {
     try {
-        const userId = req.params.userId || req.user?.id || 'anonymous';
-        const { sessionId, limit } = req.query;
-        const filter = { userId };
-        if (sessionId) filter.sessionId = sessionId;
-
-        const q = ChatMessage.find(filter).sort({ timestamp: 1 });
-        if (limit) q.limit(parseInt(limit, 10));
-
-        const messages = await q;
-        return res.status(200).json({ status: 'success', data: { userId, count: messages.length, messages } });
+        const userId = req.params.userId || req.user?.id;
+        const messages = await ChatMessage.find({ userId }).sort({ timestamp: -1 }).limit(100);
+        return res.status(200).json({ status: 'success', data: { userId, messages } });
     } catch (error) {
         return res.status(500).json({ status: 'error', message: error.message });
     }

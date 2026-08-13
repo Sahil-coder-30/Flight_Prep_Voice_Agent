@@ -14,14 +14,14 @@ export async function issueCorrectionNode(state) {
     const { currentStep = {}, slotReport = {}, resolvedSlots = {}, sessionId, userId } = state;
     const { correctionLine = '', stepId = '', templateId = '' } = currentStep || {};
 
-    const failedSlots = Object.keys(slotReport).filter((k) => !slotReport[k]);
+    const failedSlots = Object.keys(slotReport || {}).filter((k) => !slotReport[k]);
     const callsign = resolvedSlots.callsign || 'aircraft';
 
     // Fast path: use step correction line template if defined
     if (correctionLine) {
         const line = correctionLine.replace('{callsign}', callsign).replace('{failedSlots}', failedSlots.join(', '));
         console.log(`[issueCorrection] Fast path correction for step "${stepId}"`);
-        return { currentLine: line, pilotTranscript: undefined };
+        return { currentLine: line, pilotTranscript: '', isGeneralQuery: false };
     }
 
     // Slow path: short LLM correction call
@@ -33,5 +33,5 @@ export async function issueCorrectionNode(state) {
     });
 
     console.log(`[issueCorrection] LLM correction generated for step "${stepId}"`);
-    return { currentLine: llmCorrection, pilotTranscript: undefined };
+    return { currentLine: llmCorrection, pilotTranscript: '', isGeneralQuery: false };
 }

@@ -5,6 +5,8 @@ import {
     getSessionController,
     completeSessionController,
     getUserSessionsController,
+    updateSessionController,
+    deleteSessionController,
 } from '../controllers/session.controller.js';
 
 const router = express.Router();
@@ -15,6 +17,8 @@ router.use(identifyUser);
 router.get('/my-sessions', getUserSessionsController);
 router.post('/', createSessionController);
 router.get('/:id', getSessionController);
+router.put('/:id', updateSessionController);
+router.delete('/:id', deleteSessionController);
 router.post('/:id/complete', completeSessionController);
 
 export default router;

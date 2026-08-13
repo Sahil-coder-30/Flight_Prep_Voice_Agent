@@ -71,14 +71,27 @@ $color-bg-card-hover: rgba(var(--color-rgb-text), 0.05);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   padding: $space-6;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: var(--shadow-panel);
+
+  &:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-lift);
+  }
 }
 
 @mixin glassmorphism {
-  background: rgba(17, 23, 38, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(18, 18, 22, 0.78);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@mixin glassmorphism-subtle {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
 }
 
@@ -97,11 +110,15 @@ $color-bg-card-hover: rgba(var(--color-rgb-text), 0.05);
 @mixin skeleton {
   background: linear-gradient(
     90deg,
-    rgba(255,255,255,0.03) 25%,
-    rgba(255,255,255,0.07) 50%,
-    rgba(255,255,255,0.03) 75%
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.6s infinite linear;
   border-radius: var(--r-sm);
+}
+
+@mixin text-glow($color) {
+  text-shadow: 0 0 16px $color;
 }

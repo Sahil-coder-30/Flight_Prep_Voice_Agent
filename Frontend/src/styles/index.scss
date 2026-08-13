@@ -1,13 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import './tokens.scss';
 
-/* ─── ATC Aviation Cockpit Premium Black & Off-White SaaS Design System ─── */
+/* ─── ATC Aviation Cockpit Pitch-Black Luxury SaaS Design System ─── */
 :root {
-  /* ── Core Pitch-Black & Charcoal Surfaces (Vercel / Linear Luxury SaaS Standard) ── */
+  /* ── Core Pitch-Black Obsidian & Charcoal Surfaces (Vercel / Linear Luxury Standard) ── */
   --void:   #09090B;   /* Deepest Pitch-Black Zinc Void */
   --panel:  #121215;   /* Elevated Charcoal Cockpit Panel Surface */
   --lift:   #18181B;   /* Floating Obsidian Deck Elevation */
-  --glass:  rgba(255, 255, 255, 0.03);
+  --glass:  rgba(255, 255, 255, 0.035);
   --color-rgb-text: 250, 250, 250;
 
   /* ── Legacy compatibility aliases ── */
@@ -23,24 +23,24 @@
   --border-glow:   rgba(255, 255, 255, 0.45);
   --border-sep:    rgba(255, 255, 255, 0.06);
 
-  /* ── Status & Accent Color Language (Monochrome Tactical Standards) ── */
-  --nav-cyan:       #FAFAFA;   /* Pristine Off-White Accent */
+  /* ── Status & Accent Color Language (Monochrome Tactical with Pinches of Color) ── */
+  --nav-cyan:       #FAFAFA;   /* Pristine White Accent */
   --nav-cyan-dim:   rgba(255, 255, 255, 0.08);
   --nav-cyan-glow:  rgba(255, 255, 255, 0.25);
 
-  --cleared-green:      #FAFAFA;   /* Crisp Silver Off-White */
-  --cleared-green-dim:  rgba(255, 255, 255, 0.08);
-  --cleared-green-glow: rgba(255, 255, 255, 0.25);
+  --cleared-green:      #10B981;   /* Emerald Cleared Green Pinch */
+  --cleared-green-dim:  rgba(16, 185, 129, 0.14);
+  --cleared-green-glow: rgba(16, 185, 129, 0.30);
 
-  --caution-amber:      #F59E0B;   /* Horizon Amber Gold */
+  --caution-amber:      #F59E0B;   /* Horizon Amber Gold Pinch */
   --caution-amber-dim:  rgba(245, 158, 11, 0.14);
   --caution-amber-glow: rgba(245, 158, 11, 0.35);
 
-  --alert-red:      #EF4444;   /* Crimson Alert */
+  --alert-red:      #EF4444;   /* Crimson Alert Pinch */
   --alert-red-dim:  rgba(239, 68, 68, 0.14);
   --alert-red-glow: rgba(239, 68, 68, 0.35);
 
-  /* ── Brand & Primary Action (Pristine High-Contrast White & Off-White) ── */
+  /* ── Brand & Primary Action (High-Contrast White & Off-White) ── */
   --brand-primary: #FFFFFF;
   --brand-hover:   #F4F4F5;
   --brand-subtle:  rgba(255, 255, 255, 0.08);
@@ -49,9 +49,9 @@
   --accent-subtle:  rgba(255, 255, 255, 0.06);
 
   /* ── Typography (Zinc Off-White Scale) ── */
-  --readout:        #FAFAFA;   /* Zinc 50 — High-Contrast Crisp Off-White Header & Primary Text */
-  --readout-dim:    #A1A1AA;   /* Zinc 400 — Muted Off-White / Silver Subtitles & Secondary Text */
-  --readout-muted:  #71717A;   /* Zinc 500 — Captions & Micro-readouts */
+  --readout:        #FAFAFA;   /* Zinc 50 — Crisp Off-White */
+  --readout-dim:    #A1A1AA;   /* Zinc 400 — Muted Off-White / Silver */
+  --readout-muted:  #71717A;   /* Zinc 500 — Subtitles & Captions */
   --readout-faint:  #3F3F46;   /* Zinc 700 — Disabled States */
 
   --text-primary:   var(--readout);
@@ -62,21 +62,21 @@
 
   /* ── Font Stacks ── */
   --font-display: 'Syne', 'Space Grotesk', system-ui, sans-serif;
-  --font-sans:    'Plus Jakarta Sans', 'Public Sans', system-ui, sans-serif;
+  --font-sans:    'Plus Jakarta Sans', system-ui, sans-serif;
   --font-heading: 'Syne', 'Space Grotesk', sans-serif;
   --font-mono:    'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
 
-  /* ── Radius ── */
+  /* ── Border Radius ── */
   --r-sm: 6px;
   --r-md: 10px;
   --r-lg: 14px;
-  --r-xl: 20px;
+  --r-xl: 22px;
 
   /* ── Shadows (Pitch-Black Depth & Pristine White Glows) ── */
   --shadow-panel: 0 4px 24px -2px rgba(0, 0, 0, 0.85), 0 2px 8px -1px rgba(0, 0, 0, 0.6);
   --shadow-lift:  0 16px 40px -4px rgba(0, 0, 0, 0.95), 0 4px 16px -2px rgba(0, 0, 0, 0.75);
   --shadow-glow-cyan:  0 0 32px rgba(255, 255, 255, 0.15);
-  --shadow-glow-green: 0 0 32px rgba(255, 255, 255, 0.20);
+  --shadow-glow-green: 0 0 32px rgba(16, 185, 129, 0.20);
 }
 
 /* ─── Global Reset ────────────────────────────────────────────────────────── */
@@ -127,7 +127,7 @@ img, svg { display: block; }
   overflow: hidden;
 }
 
-/* ─── Type Scale Utilities ─────────────────────────────────────────────────── */
+/* ─── Typography Utility Classes ────────────────────────────────────────────── */
 .t-display { font-family: var(--font-display); }
 .t-mono    { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .t-12      { font-size: 12px; }
@@ -137,7 +137,7 @@ img, svg { display: block; }
 .t-28      { font-size: 28px; font-weight: 600; }
 .t-40      { font-size: 40px; font-weight: 700; }
 
-/* ─── Status Color Utility Classes ────────────────────────────────────────── */
+/* ─── Status Color Utilities ──────────────────────────────────────────────── */
 .status-cyan   { color: var(--nav-cyan); }
 .status-green  { color: var(--cleared-green); }
 .status-amber  { color: var(--caution-amber); }
@@ -149,18 +149,19 @@ img, svg { display: block; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
+  padding: 4px 10px;
   border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-family: var(--font-mono);
+  transition: all 0.2s ease;
 
   &.chip-cyan {
-    background: var(--nav-cyan-dim);
-    color: var(--nav-cyan);
-    border: 1px solid rgba(0, 240, 255, 0.25);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--readout);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
   &.chip-green {
     background: var(--cleared-green-dim);
@@ -178,13 +179,14 @@ img, svg { display: block; }
     border: 1px solid rgba(239, 68, 68, 0.25);
   }
   &.chip-ghost {
-    background: rgba(255,255,255,0.04);
+    background: rgba(255, 255, 255, 0.04);
     color: var(--readout-dim);
     border: 1px solid var(--border);
   }
 
   .chip-dot {
-    width: 5px; height: 5px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: currentColor;
   }
@@ -192,18 +194,20 @@ img, svg { display: block; }
 
 /* ─── Live Pulse Dot ───────────────────────────────────────────────────────── */
 .live-dot {
-  width: 6px; height: 6px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--cleared-green);
+  box-shadow: 0 0 8px currentColor;
   animation: pulse-ring 2s ease-in-out infinite;
 
-  &.cyan  { background: var(--nav-cyan);     --ring-color: 0, 240, 255; }
-  &.green { background: var(--cleared-green);--ring-color: 16, 185, 129; }
-  &.amber { background: var(--caution-amber);--ring-color: 245, 158, 11; }
-  &.red   { background: var(--alert-red);    --ring-color: 239, 68, 68;  }
+  &.cyan  { background: #FFFFFF;              --ring-color: 255, 255, 255; }
+  &.green { background: var(--cleared-green); --ring-color: 16, 185, 129; }
+  &.amber { background: var(--caution-amber); --ring-color: 245, 158, 11; }
+  &.red   { background: var(--alert-red);     --ring-color: 239, 68, 68;  }
 }
 
-/* ─── Buttons ──────────────────────────────────────────────────────────────── */
+/* ─── Button Primitives ────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -214,66 +218,94 @@ img, svg { display: block; }
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.01em;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
   cursor: pointer;
 
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* Cyan — primary action */
-  &.btn-cyan {
-    background: var(--nav-cyan);
-    color: var(--void);
+  /* High-Contrast White Primary action */
+  &.btn-cyan, &.btn-primary-saas {
+    background: #FFFFFF;
+    color: #09090B;
     font-weight: 600;
-    box-shadow: 0 4px 20px rgba(0, 240, 255, 0.35);
-    &:hover:not(:disabled) { background: #38BDF8; box-shadow: 0 6px 28px rgba(0, 240, 255, 0.5); transform: translateY(-1px); }
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.2);
+    &:hover:not(:disabled) {
+      background: #F4F4F5;
+      box-shadow: 0 6px 28px rgba(255, 255, 255, 0.35);
+      transform: translateY(-1px);
+    }
     &:active { transform: translateY(0); }
   }
 
-  /* Green — confirm/cleared */
-  &.btn-green {
-    background: var(--cleared-green);
-    color: var(--void);
-    font-weight: 600;
-    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
-    &:hover:not(:disabled) { background: #34D399; box-shadow: 0 6px 28px rgba(16, 185, 129, 0.45); transform: translateY(-1px); }
-  }
-
-  /* Ghost — secondary */
-  &.btn-ghost {
+  /* Ghost secondary */
+  &.btn-ghost, &.btn-ghost-saas {
     background: rgba(255, 255, 255, 0.04);
     color: var(--readout);
     border: 1px solid var(--border-strong);
-    &:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); transform: translateY(-1px); }
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
   }
 
-  &.btn-lg { padding: 13px 28px; font-size: 15px; }
-  &.btn-sm { padding: 7px 14px;  font-size: 12px; }
+  /* Green confirm */
+  &.btn-green {
+    background: var(--cleared-green);
+    color: #04140D;
+    font-weight: 600;
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+    &:hover:not(:disabled) {
+      background: #34D399;
+      box-shadow: 0 6px 28px rgba(16, 185, 129, 0.45);
+      transform: translateY(-1px);
+    }
+  }
+
+  /* Red alert/cancel */
+  &.btn-red {
+    background: var(--alert-red);
+    color: #1A0404;
+    font-weight: 600;
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+    &:hover:not(:disabled) {
+      background: #F87171;
+      box-shadow: 0 6px 28px rgba(239, 68, 68, 0.45);
+      transform: translateY(-1px);
+    }
+  }
+
+  &.btn-lg { padding: 13px 28px; font-size: 15px; border-radius: var(--r-lg); }
+  &.btn-sm { padding: 7px 14px;  font-size: 12px; border-radius: var(--r-sm); }
 }
 
 /* ─── Scrollbar ────────────────────────────────────────────────────────────── */
-::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar        { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track  { background: transparent; }
-::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.08); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+::-webkit-scrollbar-thumb  { background: rgba(255, 255, 255, 0.10); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
 
 /* ─── Focus Ring ───────────────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid var(--nav-cyan);
+  outline: 2px solid #FFFFFF;
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 /* ─── Animations ───────────────────────────────────────────────────────────── */
 @keyframes page-enter {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pulse-ring {
-  0%   { box-shadow: 0 0 0 0 rgba(var(--ring-color, 16,185,129), 0.5); }
-  70%  { box-shadow: 0 0 0 8px rgba(var(--ring-color, 16,185,129), 0); }
-  100% { box-shadow: 0 0 0 0 rgba(var(--ring-color, 16,185,129), 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(var(--ring-color, 16, 185, 129), 0.5); }
+  70%  { box-shadow: 0 0 0 10px rgba(var(--ring-color, 16, 185, 129), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--ring-color, 16, 185, 129), 0); }
 }
 
 @keyframes orb-spin {
@@ -281,9 +313,9 @@ img, svg { display: block; }
   to   { transform: rotate(360deg); }
 }
 
-@keyframes cursor-blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

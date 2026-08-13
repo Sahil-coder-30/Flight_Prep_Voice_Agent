@@ -20,6 +20,16 @@ export const getSessionAPI = async (sessionId) => {
   return response.data;
 };
 
+export const updateSessionAPI = async (sessionId, data) => {
+  const response = await apiClient.put(`/api/backend/sessions/${sessionId}`, data);
+  return response.data;
+};
+
+export const deleteSessionAPI = async (sessionId) => {
+  const response = await apiClient.delete(`/api/backend/sessions/${sessionId}`);
+  return response.data;
+};
+
 export const completeSessionAPI = async (sessionId, score = 100, stepResults = []) => {
   const response = await apiClient.post(`/api/backend/sessions/${sessionId}/complete`, { score, stepResults });
   return response.data;
@@ -49,4 +59,3 @@ export const getSessionTranscriptAPI = async (sessionId) => {
   const response = await apiClient.get(`/api/ai/sessions/${sessionId}/transcript`);
   return response.data;
 };
-

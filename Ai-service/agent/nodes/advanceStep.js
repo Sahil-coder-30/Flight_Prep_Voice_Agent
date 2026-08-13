@@ -64,7 +64,7 @@ export async function advanceStepNode(state) {
     }
 
     const nextIndex = stepIndex + 1;
-    const isFinished = nextIndex >= steps.length;
+    const isFinished = nextIndex >= (steps?.length || 0);
 
     console.log(`[advanceStep] Step ${stepIndex} -> ${nextIndex} (finished: ${isFinished}, step score: ${resultRecord.score})`);
 
@@ -72,8 +72,9 @@ export async function advanceStepNode(state) {
         stepIndex: nextIndex,
         retries: 0,
         finished: isFinished,
-        pilotTranscript: undefined,
+        pilotTranscript: '',
+        isGeneralQuery: false,
+        allPassed: false,
         stepResults: [resultRecord],
     };
 }
-
