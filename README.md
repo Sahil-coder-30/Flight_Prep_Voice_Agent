@@ -14,6 +14,7 @@
 
 ---
 
+
 ## 📖 Table of Contents
 - [Executive Overview & Core Vision](#-executive-overview--core-vision)
 - [3D MetallicOrb Audio Reactivity & Visualizer](#-3d-metallicorb-audio-reactivity--visualizer)
@@ -23,6 +24,13 @@
   - [3. Deep-Dive Layer Breakdown & Complete Code Blocks](#3-deep-dive-layer-breakdown--complete-code-blocks)
   - [4. Step-by-Step Latency Reduction Breakdown (89.2% Drop)](#4-step-by-step-latency-reduction-breakdown-892-drop)
 - [Why Microservices Architecture?](#-why-microservices-architecture)
+- [Step-by-Step Deployment & Skaffold Setup (Mac & Windows)](#-step-by-step-deployment--skaffold-setup-mac--windows)
+- [LangGraph Agent Flow & System Architecture](#-langgraph-agent-flow--system-architecture)
+  - [Complete Agent Execution Flow (Step-by-Step)](#complete-agent-execution-flow-step-by-step)
+- [1,912-Chunk Qdrant Vector RAG Grounding](#-1912-chunk-qdrant-vector-rag-grounding)
+- [Microservices Inventory & Zero-Trust Security](#-microservices-inventory--zero-trust-security)
+- [Monorepo Directory Layout](#-monorepo-directory-layout)
+- [Global API & WebSocket Reference](#-global-api--websocket-reference)
 - [Market & Business Model Analysis (Investor Brief & Financial Deck)](#-market--business-model-analysis-investor-brief--financial-deck)
   - [1. Executive Pitch Dashboard](#1-executive-pitch-dashboard)
   - [2. Technical & Cost Moat Matrix](#2-technical--cost-moat-matrix)
@@ -35,15 +43,6 @@
   - [9. Operational Engineering Controls](#9-operational-engineering-controls)
   - [10. Cost Optimization Infographic (OLD vs NEW Cost Structure)](#10-cost-optimization-infographic-old-vs-new-cost-structure)
   - [11. Core Business Logic & Enterprise Value Rationale](#11-core-business-logic--enterprise-value-rationale)
-- [LangGraph Agent Flow & System Architecture](#-langgraph-agent-flow--system-architecture)
-  - [Complete Agent Execution Flow (Step-by-Step)](#complete-agent-execution-flow-step-by-step)
-- [Step-by-Step Deployment & Skaffold Setup (Mac & Windows)](#-step-by-step-deployment--skaffold-setup-mac--windows)
-- [1,912-Chunk Qdrant Vector RAG Grounding](#-1912-chunk-qdrant-vector-rag-grounding)
-- [Microservices Inventory & Zero-Trust Security](#-microservices-inventory--zero-trust-security)
-- [Monorepo Directory Layout](#-monorepo-directory-layout)
-- [Global API & WebSocket Reference](#-global-api--websocket-reference)
-
----
 
 ## 🎯 Executive Overview & Core Vision
 
@@ -67,6 +66,7 @@ OPTIMIZED REDIS PLATFORM LATENCY = <280ms (REAL-TIME AVIATION RADIO EMULATION �
 
 ---
 
+
 ## 🔮 3D MetallicOrb Audio Reactivity & Visualizer
 
 The simulator interface features a custom interactive **3D MetallicOrb** built with Three.js and WebGL. It reacts in real-time to microphone audio levels during student transmissions and morphs state dynamically based on WebSocket telemetry emitted by the AI service controller:
@@ -77,6 +77,7 @@ The simulator interface features a custom interactive **3D MetallicOrb** built w
 * **Controller Voice Activity:** When the AI controller transmits speech, WebSocket events (`ATC_SPEAKING_START` / `ATC_SPEAKING_END`) morph the MetallicOrb into active audio emission modes (`SWARM CLOUD`, `RADAR SWEEP`, `LATTICE MATRIX`, `AVIATION HEADSET`).
 
 ---
+
 
 ## ⚡ The Main Selling Proposition (MSP): 7-Layer Redis Caching Architecture
 
@@ -499,6 +500,7 @@ Here is the exact benchmark comparison demonstrating how the 7-Layer Redis Engin
 
 ---
 
+
 ## 🏗️ Why Microservices Architecture?
 
 We specifically decoupled our platform into **4 distinct domain microservices** (`Auth`, `Backend`, `Ai-service`, `Frontend`) rather than building a monolithic application. Here is why this architectural choice was mandatory:
@@ -509,6 +511,324 @@ We specifically decoupled our platform into **4 distinct domain microservices** 
 4. **Fault Tolerance & Resiliency:** If external LLM APIs experience outages, the core authentication system, scenario browsing, and student progress telemetry remain 100% operational.
 
 ---
+
+
+## 🛠️ Step-by-Step Deployment & Skaffold Setup (Mac & Windows)
+
+Follow these exact steps to run the complete platform monorepo on macOS or Windows:
+
+### 1. Install Prerequisites
+
+#### On macOS:
+```bash
+# Install Skaffold via Homebrew
+brew install skaffold
+
+# Verify installation
+skaffold version
+```
+
+#### On Windows:
+```cmd
+:: Install Skaffold via Chocolatey
+choco install -y skaffold
+
+:: OR install via WinGet
+winget install Google.Skaffold
+
+:: Verify installation
+skaffold version
+```
+
+#### Enable Kubernetes Cluster:
+Open **Docker Desktop** settings and enable Kubernetes (`Settings > Kubernetes > Check "Enable Kubernetes" > Apply & Restart`).
+
+---
+
+### 2. Configure Environment Secrets (`k8s/secrets.yml`)
+
+In the project root directory, copy [`k8s/secrets.yml.example`](k8s/secrets.yml.example) to create [`k8s/secrets.yml`](k8s/secrets.yml):
+
+```bash
+cp k8s/secrets.yml.example k8s/secrets.yml
+```
+
+Edit `k8s/secrets.yml` to include your MongoDB URIs and API credentials:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: database
+type: Opaque
+stringData:
+  AUTH: "mongodb+srv://<user>:<pass>@cluster.mongodb.net/atc-auth"
+  AI: "mongodb+srv://<user>:<pass>@cluster.mongodb.net/atc-ai"
+  BACKEND: "mongodb+srv://<user>:<pass>@cluster.mongodb.net/atc-backend"
+  REDIS_URI: "redis://:<password>@redis-host:6379"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ai-secret
+type: Opaque
+stringData:
+  MISTRAL_API_KEY: "your-mistral-api-key"
+  MISTRALAI_API_KEY: "your-mistral-api-key"
+  RIME_API_KEY: "your-rime-api-key"
+  QDRANT_API_KEY: "your-qdrant-api-key"
+  QDRANT_URL: "https://your-qdrant-cluster.qdrant.tech:6333"
+  DEEPGRAM_API_KEY: "your-deepgram-api-key"
+```
+
+---
+
+### 3. Install NGINX Ingress Controller
+
+Apply the official NGINX Ingress Controller manifest to route cluster traffic across microservice ports (`/api/auth`, `/api/backend`, `/api/ai`, `/ws`):
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.1/deploy/static/provider/cloud/deploy.yaml
+```
+
+---
+
+### 4. Launch Microservices Cluster with Skaffold
+
+Run `skaffold dev` inside the root `ATC` folder. Skaffold will build all container images, apply K8s deployment manifests, configure routing, and enable live hot-reloading:
+
+```bash
+skaffold dev
+```
+
+---
+
+### 5. Launch React Frontend
+
+In a secondary terminal window, navigate to the `Frontend` directory and launch the Vite development server:
+
+```bash
+cd Frontend
+npm install
+npm run dev
+```
+
+*🎉 **Success!** Access the interactive 3D voice simulator at `http://localhost:5173` (or via cluster ingress at `http://localhost`).*
+
+---
+
+### Redis Diagnostic Commands
+
+To verify Redis caching layer stats and key allocations in your running cluster:
+
+```bash
+# Check overall Redis stats and hit ratios
+redis-cli info stats
+
+# Verify L1 Template Embedding Keys
+redis-cli keys "emb:tmpl:*"
+
+# Verify L2 Qdrant Grounding Keys
+redis-cli keys "gnd:tmpl:*"
+
+# Verify L3 LangGraph Checkpoint Keys
+redis-cli keys "sess:cp:*"
+
+# Verify L7 TTS Base64 Audio Cache Keys
+redis-cli keys "tts:*"
+```
+
+---
+
+
+## 🧠 LangGraph Agent Flow & System Architecture
+
+```mermaid
+flowchart TD
+    subgraph FRONTEND ["Frontend Layer (React 18 + Redux Toolkit)"]
+        UI["Simulator UI Page"]
+        MIC["Microphone &amp; Web Audio API Analyzer"]
+        GATE["Mic Gating Lock (isProcessing / isRecording)"]
+        AUDIO_PLAY["Dual Audio Engine (HTML5 Audio + WebSpeech Fallback)"]
+        WS_CLIENT["WebSocket Client / HTTP Axio Agent"]
+    end
+
+    subgraph INGRESS ["Ingress &amp; Routing Layer"]
+        PROXY["Vite Proxy / Nginx Ingress Controller"]
+    end
+
+    subgraph AI_SERVICE ["AI Service - LangGraph State Machine (Port 5002)"]
+        WS_SERVER["WebSocket Server (/ws/simulator)"]
+        REST_API["Turn Controller (POST /api/ai/sessions/:id/turn)"]
+
+        subgraph LANGGRAPH ["LangGraph State Machine (MemorySaver Checkpointer)"]
+            LOAD_STEP["Node 1: loadStepNode<br/>- Load scenario step<br/>- Extract callsign &amp; facility"]
+            VALIDATE["Node 2: validateReadbackNode<br/>- Intent Classification<br/>- Callsign &amp; Facility Extraction<br/>- Slot Readback Validation"]
+            RAG_NODE["Node 3: generalAnswerNode<br/>- Qdrant Vector Search<br/>- FAA JO 7110.65 &amp; ICAO Rules"]
+            COMPOSE["Node 4: composeLineNode<br/>- Sub-1ms Fast-Path Slot Renderer<br/>- Mistral LLM Fallback"]
+            CORRECT["Node 5: issueCorrectionNode<br/>- Dynamic Readback Correction"]
+            ADVANCE["Node 6: advanceStepNode<br/>- Advance Step Index (0 to 1 to 2)<br/>- Calculate Performance Score"]
+            TTS_NODE["Node 7: ttsSpeakNode<br/>- Rime TTS Audio Generation"]
+        end
+    end
+
+    subgraph DATA_SERVICES ["External Speech, AI &amp; Knowledge Infrastructure"]
+        MISTRAL["Mistral AI API<br/>- mistral-embed (1024-dim)<br/>- mistral-large-latest<br/>- mistral-small-latest"]
+        QDRANT["Qdrant Cloud Vector DB<br/>- Collection: atc_phraseology<br/>- 1,676 FAA/ICAO Manual Vectors"]
+        RIME_TTS["Rime TTS API<br/>- Speaker: grove (Authoritative ATC)<br/>- Model: mist"]
+        REDIS["Redis In-Memory L1/L2 Cache"]
+        MONGO["MongoDB<br/>- ChatMessage Logs<br/>- TokenUsage Telemetry"]
+    end
+
+    %% Frontend Interactions
+    MIC --> GATE
+    GATE -->|Mic Audio Input| WS_CLIENT
+    WS_CLIENT -->|HTTP / WS Transmissions| PROXY
+    PROXY --> REST_API
+    PROXY --> WS_SERVER
+
+    %% AI Service Entrypoints
+    REST_API --> LANGGRAPH
+    WS_SERVER --> LANGGRAPH
+
+    %% LangGraph Flow Execution
+    LANGGRAPH --> LOAD_STEP
+    LOAD_STEP --> VALIDATE
+    VALIDATE -->|General Query / Airborne Request| RAG_NODE
+    VALIDATE -->|Valid Step Readback| ADVANCE
+    VALIDATE -->|Readback Error| CORRECT
+    
+    ADVANCE --> LOAD_STEP
+    RAG_NODE --> TTS_NODE
+    COMPOSE --> TTS_NODE
+    CORRECT --> TTS_NODE
+    
+    TTS_NODE -->|Base64 Audio + Spoken Text| REST_API
+    TTS_NODE -->|Base64 Audio + Spoken Text| WS_SERVER
+    REST_API -->|Response Payload| AUDIO_PLAY
+    WS_SERVER -->|WebSocket Event| AUDIO_PLAY
+    AUDIO_PLAY --> GATE
+
+    %% External Infrastructure Connectivity
+    RAG_NODE -->|Embed Query + Search Points with_payload: true| QDRANT
+    RAG_NODE -->|Vector Embedding| MISTRAL
+    COMPOSE -->|Phraseology Generation| MISTRAL
+    CORRECT -->|Correction Synthesis| MISTRAL
+    TTS_NODE -->|Direct Synthesis No Cache| RIME_TTS
+    LANGGRAPH -->|Session State Persistence| REDIS
+    LANGGRAPH -->|Log Conversation &amp; Telemetry| MONGO
+```
+
+### Complete Agent Execution Flow (Step-by-Step)
+
+1. **Voice Input & Mic Gating:** The student pilot holds the Spacebar (Push-To-Talk). Web Audio API captures microphone audio. Release triggers `GATE` lock (`isProcessing: true`), preventing race conditions.
+2. **Ingress Transmission:** Audio payload / transcript is sent over HTTP (`POST /api/ai/sessions/:id/turn`) or WebSocket (`/ws/simulator`) through NGINX Ingress Proxy.
+3. **Turn Controller Entry:** [`aiSession.controller.js`](Ai-service/controllers/aiSession.controller.js) initializes or re-hydrates the LangGraph thread state from Redis L3.
+4. **Node 1: `loadStepNode`:** Loads active step definition & resolves dynamic slots (wind, altimeter) via Redis L4.
+5. **Node 2: `validateReadbackNode`:** Uses `mistral-small-latest` & phonetic slot matchers to evaluate pilot readback accuracy.
+   - If general inquiry (*"What is VFR ceiling?"*), routes to **Node 3 (`generalAnswerNode`)**.
+   - If readback correct, routes to **Node 6 (`advanceStepNode`)**.
+   - If readback incorrect, routes to **Node 5 (`issueCorrectionNode`)**.
+6. **Node 3: `generalAnswerNode`:** Performs Qdrant vector search across 1,912 chunks of FAA JO 7110.65 & ICAO Doc 4444.
+7. **Node 4: `composeLineNode`:** Generates controller response via Zero-LLM Fast Path (~0ms template rendering) or Mistral LLM fallback.
+8. **Node 5: `issueCorrectionNode`:** Generates targeted phraseology correction.
+9. **Node 6: `advanceStepNode`:** Increments step index, calculates performance scores, and updates MongoDB analytics.
+10. **Node 7: `ttsSpeakNode`:** Renders base64 MP3 speech via Rime TTS or Redis L7 audio cache (~5ms). Emits WebSocket events to animate 3D MetallicOrb.
+11. **Audio Playback:** Base64 MP3 returns to Frontend `Dual Audio Engine`, releases mic gating lock, and plays controller audio.
+
+---
+
+
+## 📚 1,912-Chunk Qdrant Vector RAG Grounding
+
+The RAG engine indexes official aviation regulatory text from `helpers/`:
+1. **`ICAO-DOC-4444-Amendment.pdf`** (82 Pages) — Worldwide Radiotelephony Procedures.
+2. **`7110.65BB_Bsc_w_Chg_1_2_and_3_dtd_7-9-26_Final.pdf`** (927 Pages) — Official FAA ATC Manual.
+
+### Ingestion & Verification Commands
+
+```bash
+# 1. Parse 100% of PDF pages into 1,912 phraseology chunks (~250 words per chunk)
+python3 helpers/extract_pdf_text.py
+
+# 2. Batch-embed chunks via mistral-embed and upsert into Qdrant 'atc_phraseology' collection
+npm --prefix Ai-service run ingest-rag
+
+# 3. Test Qdrant vector retrieval accuracy
+npm --prefix Ai-service run verify-rag
+```
+
+---
+
+
+## 🧩 Microservices Inventory & Zero-Trust Security
+
+| Service | Path | Port | Core Responsibilities | Health Endpoint |
+|---|---|---|---|---|
+| 🔑 **Auth Service** | [`/Auth`](Auth/README.md) | `3000` | Google OAuth2, RS256 JWT issuance, opaque refresh token rotation, JWKS publication | `/healthz` |
+| ⚙️ **Core Backend** | [`/Backend`](Backend/README.md) | `5000` | Scenario definitions, student flight hours, streak tracking, weak-area analytics | `/healthz` |
+| 🧠 **AI Service** | [`/Ai-service`](Ai-service/README.md) | `7000` | LangGraph agent, 7-Layer Redis Cache, WebSockets, Deepgram STT, Rime TTS, Qdrant RAG | `/healthz` |
+| 🎨 **Frontend SPA** | [`/Frontend`](Frontend/README.md) | `5173` | React 18 SPA, PTT shortcuts, 3D MetallicOrb reactivity, Redux Toolkit state | `/healthz` |
+
+### Security Architecture Highlights
+- **Asymmetric Signing:** Auth service signs JWTs using RSA-4096 private key. Downstream microservices verify signatures statelessly using JWKS public keys cached in Redis L5.
+- **XSS & CSRF Defense:** Short-lived access tokens stored in JS memory closure; refresh tokens stored in `HttpOnly`, `SameSite=Lax` cookies.
+
+---
+
+
+## 📁 Monorepo Directory Layout
+
+```
+ATC/
+├── Auth/                               ← Auth & Identity Microservice (Port 3000)
+├── Backend/                            ← Core Scenario & Session Service (Port 5000)
+├── Ai-service/                         ← AI Inference & Voice Agent Service (Port 7000)
+│   ├── agent/                          ← LangGraph state machine & 7 nodes
+│   │   ├── nodes/                      ← loadStep, validateReadback, qdrantRetrieve, etc.
+│   │   └── utils/                      ← slotResolver.js (Redis L4)
+│   ├── config/                         ← Redis L1-L7, Qdrant, WebSockets
+│   ├── controllers/                    ← aiSession.controller.js (Redis L3)
+│   ├── middleware/                     ← identifyUser.middleware.js (Redis L5)
+│   └── services/                       ← qdrant.service.js (L1/L2), tts.service.js (L7)
+├── Frontend/                           ← React 18 Single Page Application (Port 5173)
+│   └── src/features/simulator/         ← MetallicOrb Three.js & WebSockets
+├── docs/                               ← Architecture & Technical Specifications
+│   ├── assets/                         ← 3D MetallicOrb & UI Screenshots
+│   ├── redis_7_layer_architecture.md   ← 7-Layer Redis Technical Specification
+│   └── redis_presentation_judge_guide.md← Judge Presentation & Defense Strategy
+├── helpers/                            ← PDF Manuals & Extractor scripts
+│   └── Roger AI - Financial & Business Model Brief.pdf ← Financial & Business Brief
+├── k8s/                                ← Kubernetes Manifests (Ingress, Deployments, Secrets)
+│   ├── secrets.yml.example             ← Secrets template file
+│   └── secrets.yml                     ← Git-ignored local secrets file
+├── skaffold.yml                        ← Skaffold orchestration configuration
+└── README.md                           ← Main repository documentation (this file)
+```
+
+---
+
+
+## 🔌 Global API & WebSocket Reference
+
+### Auth Service (`/api/auth`)
+- `GET /.well-known/jwks.json` — Serves RS256 public keys for JWKS validation
+- `GET /api/auth/google` — Initiates Google OAuth2 authentication flow
+- `POST /api/auth/refresh` — Rotates refresh token and returns fresh RS256 access token
+- `GET /api/auth/getMe` — Returns authenticated user profile
+
+### Core Backend Service (`/api/backend`)
+- `GET /api/backend/scenarios` — Returns active ATC training scenario templates
+- `POST /api/backend/sessions` — Initializes a new ATC simulation session
+- `POST /api/backend/sessions/:id/complete` — Concludes training session & logs score
+- `GET /api/backend/users/stats` — Returns student flight hours, streak, & scores
+
+### AI Service (`/api/ai`)
+- `POST /api/ai/sessions/:id/turn` — Advances LangGraph state machine turn
+- `GET /api/ai/sessions/:id/transcript` — Retrieves session transcript logs
+- `GET /api/ai/sessions/:id/tokens` — Returns token usage breakdown per operation
+- `GET /ws/simulator` — WebSocket connection for 3D MetallicOrb reactivity & audio streaming
+
 
 ## 📊 Market & Business Model Analysis (Investor Brief & Financial Deck)
 
@@ -800,314 +1120,3 @@ Assumed Launch Cohort: 100 Free Users, 30 B2C Standard Users, 10 B2C Pro Users, 
    Commercial airlines spend tens of millions annually on pilot recurrent training. Contracting 100-seat enterprise packages ($50,000/year) delivers predictable ARR with **82.80% net monthly operating margin**, creating a scalable path to **$11.85M ARR by Year 3**.
 
 ---
-
-## 🧠 LangGraph Agent Flow & System Architecture
-
-```mermaid
-flowchart TD
-    subgraph FRONTEND ["Frontend Layer (React 18 + Redux Toolkit)"]
-        UI["Simulator UI Page"]
-        MIC["Microphone &amp; Web Audio API Analyzer"]
-        GATE["Mic Gating Lock (isProcessing / isRecording)"]
-        AUDIO_PLAY["Dual Audio Engine (HTML5 Audio + WebSpeech Fallback)"]
-        WS_CLIENT["WebSocket Client / HTTP Axio Agent"]
-    end
-
-    subgraph INGRESS ["Ingress &amp; Routing Layer"]
-        PROXY["Vite Proxy / Nginx Ingress Controller"]
-    end
-
-    subgraph AI_SERVICE ["AI Service - LangGraph State Machine (Port 5002)"]
-        WS_SERVER["WebSocket Server (/ws/simulator)"]
-        REST_API["Turn Controller (POST /api/ai/sessions/:id/turn)"]
-
-        subgraph LANGGRAPH ["LangGraph State Machine (MemorySaver Checkpointer)"]
-            LOAD_STEP["Node 1: loadStepNode<br/>- Load scenario step<br/>- Extract callsign &amp; facility"]
-            VALIDATE["Node 2: validateReadbackNode<br/>- Intent Classification<br/>- Callsign &amp; Facility Extraction<br/>- Slot Readback Validation"]
-            RAG_NODE["Node 3: generalAnswerNode<br/>- Qdrant Vector Search<br/>- FAA JO 7110.65 &amp; ICAO Rules"]
-            COMPOSE["Node 4: composeLineNode<br/>- Sub-1ms Fast-Path Slot Renderer<br/>- Mistral LLM Fallback"]
-            CORRECT["Node 5: issueCorrectionNode<br/>- Dynamic Readback Correction"]
-            ADVANCE["Node 6: advanceStepNode<br/>- Advance Step Index (0 to 1 to 2)<br/>- Calculate Performance Score"]
-            TTS_NODE["Node 7: ttsSpeakNode<br/>- Rime TTS Audio Generation"]
-        end
-    end
-
-    subgraph DATA_SERVICES ["External Speech, AI &amp; Knowledge Infrastructure"]
-        MISTRAL["Mistral AI API<br/>- mistral-embed (1024-dim)<br/>- mistral-large-latest<br/>- mistral-small-latest"]
-        QDRANT["Qdrant Cloud Vector DB<br/>- Collection: atc_phraseology<br/>- 1,676 FAA/ICAO Manual Vectors"]
-        RIME_TTS["Rime TTS API<br/>- Speaker: grove (Authoritative ATC)<br/>- Model: mist"]
-        REDIS["Redis In-Memory L1/L2 Cache"]
-        MONGO["MongoDB<br/>- ChatMessage Logs<br/>- TokenUsage Telemetry"]
-    end
-
-    %% Frontend Interactions
-    MIC --> GATE
-    GATE -->|Mic Audio Input| WS_CLIENT
-    WS_CLIENT -->|HTTP / WS Transmissions| PROXY
-    PROXY --> REST_API
-    PROXY --> WS_SERVER
-
-    %% AI Service Entrypoints
-    REST_API --> LANGGRAPH
-    WS_SERVER --> LANGGRAPH
-
-    %% LangGraph Flow Execution
-    LANGGRAPH --> LOAD_STEP
-    LOAD_STEP --> VALIDATE
-    VALIDATE -->|General Query / Airborne Request| RAG_NODE
-    VALIDATE -->|Valid Step Readback| ADVANCE
-    VALIDATE -->|Readback Error| CORRECT
-    
-    ADVANCE --> LOAD_STEP
-    RAG_NODE --> TTS_NODE
-    COMPOSE --> TTS_NODE
-    CORRECT --> TTS_NODE
-    
-    TTS_NODE -->|Base64 Audio + Spoken Text| REST_API
-    TTS_NODE -->|Base64 Audio + Spoken Text| WS_SERVER
-    REST_API -->|Response Payload| AUDIO_PLAY
-    WS_SERVER -->|WebSocket Event| AUDIO_PLAY
-    AUDIO_PLAY --> GATE
-
-    %% External Infrastructure Connectivity
-    RAG_NODE -->|Embed Query + Search Points with_payload: true| QDRANT
-    RAG_NODE -->|Vector Embedding| MISTRAL
-    COMPOSE -->|Phraseology Generation| MISTRAL
-    CORRECT -->|Correction Synthesis| MISTRAL
-    TTS_NODE -->|Direct Synthesis No Cache| RIME_TTS
-    LANGGRAPH -->|Session State Persistence| REDIS
-    LANGGRAPH -->|Log Conversation &amp; Telemetry| MONGO
-```
-
-### Complete Agent Execution Flow (Step-by-Step)
-
-1. **Voice Input & Mic Gating:** The student pilot holds the Spacebar (Push-To-Talk). Web Audio API captures microphone audio. Release triggers `GATE` lock (`isProcessing: true`), preventing race conditions.
-2. **Ingress Transmission:** Audio payload / transcript is sent over HTTP (`POST /api/ai/sessions/:id/turn`) or WebSocket (`/ws/simulator`) through NGINX Ingress Proxy.
-3. **Turn Controller Entry:** [`aiSession.controller.js`](Ai-service/controllers/aiSession.controller.js) initializes or re-hydrates the LangGraph thread state from Redis L3.
-4. **Node 1: `loadStepNode`:** Loads active step definition & resolves dynamic slots (wind, altimeter) via Redis L4.
-5. **Node 2: `validateReadbackNode`:** Uses `mistral-small-latest` & phonetic slot matchers to evaluate pilot readback accuracy.
-   - If general inquiry (*"What is VFR ceiling?"*), routes to **Node 3 (`generalAnswerNode`)**.
-   - If readback correct, routes to **Node 6 (`advanceStepNode`)**.
-   - If readback incorrect, routes to **Node 5 (`issueCorrectionNode`)**.
-6. **Node 3: `generalAnswerNode`:** Performs Qdrant vector search across 1,912 chunks of FAA JO 7110.65 & ICAO Doc 4444.
-7. **Node 4: `composeLineNode`:** Generates controller response via Zero-LLM Fast Path (~0ms template rendering) or Mistral LLM fallback.
-8. **Node 5: `issueCorrectionNode`:** Generates targeted phraseology correction.
-9. **Node 6: `advanceStepNode`:** Increments step index, calculates performance scores, and updates MongoDB analytics.
-10. **Node 7: `ttsSpeakNode`:** Renders base64 MP3 speech via Rime TTS or Redis L7 audio cache (~5ms). Emits WebSocket events to animate 3D MetallicOrb.
-11. **Audio Playback:** Base64 MP3 returns to Frontend `Dual Audio Engine`, releases mic gating lock, and plays controller audio.
-
----
-
-## 🛠️ Step-by-Step Deployment & Skaffold Setup (Mac & Windows)
-
-Follow these exact steps to run the complete platform monorepo on macOS or Windows:
-
-### 1. Install Prerequisites
-
-#### On macOS:
-```bash
-# Install Skaffold via Homebrew
-brew install skaffold
-
-# Verify installation
-skaffold version
-```
-
-#### On Windows:
-```cmd
-:: Install Skaffold via Chocolatey
-choco install -y skaffold
-
-:: OR install via WinGet
-winget install Google.Skaffold
-
-:: Verify installation
-skaffold version
-```
-
-#### Enable Kubernetes Cluster:
-Open **Docker Desktop** settings and enable Kubernetes (`Settings > Kubernetes > Check "Enable Kubernetes" > Apply & Restart`).
-
----
-
-### 2. Configure Environment Secrets (`k8s/secrets.yml`)
-
-In the project root directory, copy [`k8s/secrets.yml.example`](k8s/secrets.yml.example) to create [`k8s/secrets.yml`](k8s/secrets.yml):
-
-```bash
-cp k8s/secrets.yml.example k8s/secrets.yml
-```
-
-Edit `k8s/secrets.yml` to include your MongoDB URIs and API credentials:
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: database
-type: Opaque
-stringData:
-  AUTH: "mongodb+srv://<user>:<pass>@cluster.mongodb.net/atc-auth"
-  AI: "mongodb+srv://<user>:<pass>@cluster.mongodb.net/atc-ai"
-  BACKEND: "mongodb+srv://<user>:<pass>@cluster.mongodb.net/atc-backend"
-  REDIS_URI: "redis://:<password>@redis-host:6379"
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: ai-secret
-type: Opaque
-stringData:
-  MISTRAL_API_KEY: "your-mistral-api-key"
-  MISTRALAI_API_KEY: "your-mistral-api-key"
-  RIME_API_KEY: "your-rime-api-key"
-  QDRANT_API_KEY: "your-qdrant-api-key"
-  QDRANT_URL: "https://your-qdrant-cluster.qdrant.tech:6333"
-  DEEPGRAM_API_KEY: "your-deepgram-api-key"
-```
-
----
-
-### 3. Install NGINX Ingress Controller
-
-Apply the official NGINX Ingress Controller manifest to route cluster traffic across microservice ports (`/api/auth`, `/api/backend`, `/api/ai`, `/ws`):
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.1/deploy/static/provider/cloud/deploy.yaml
-```
-
----
-
-### 4. Launch Microservices Cluster with Skaffold
-
-Run `skaffold dev` inside the root `ATC` folder. Skaffold will build all container images, apply K8s deployment manifests, configure routing, and enable live hot-reloading:
-
-```bash
-skaffold dev
-```
-
----
-
-### 5. Launch React Frontend
-
-In a secondary terminal window, navigate to the `Frontend` directory and launch the Vite development server:
-
-```bash
-cd Frontend
-npm install
-npm run dev
-```
-
-*🎉 **Success!** Access the interactive 3D voice simulator at `http://localhost:5173` (or via cluster ingress at `http://localhost`).*
-
----
-
-### Redis Diagnostic Commands
-
-To verify Redis caching layer stats and key allocations in your running cluster:
-
-```bash
-# Check overall Redis stats and hit ratios
-redis-cli info stats
-
-# Verify L1 Template Embedding Keys
-redis-cli keys "emb:tmpl:*"
-
-# Verify L2 Qdrant Grounding Keys
-redis-cli keys "gnd:tmpl:*"
-
-# Verify L3 LangGraph Checkpoint Keys
-redis-cli keys "sess:cp:*"
-
-# Verify L7 TTS Base64 Audio Cache Keys
-redis-cli keys "tts:*"
-```
-
----
-
-## 📚 1,912-Chunk Qdrant Vector RAG Grounding
-
-The RAG engine indexes official aviation regulatory text from `helpers/`:
-1. **`ICAO-DOC-4444-Amendment.pdf`** (82 Pages) — Worldwide Radiotelephony Procedures.
-2. **`7110.65BB_Bsc_w_Chg_1_2_and_3_dtd_7-9-26_Final.pdf`** (927 Pages) — Official FAA ATC Manual.
-
-### Ingestion & Verification Commands
-
-```bash
-# 1. Parse 100% of PDF pages into 1,912 phraseology chunks (~250 words per chunk)
-python3 helpers/extract_pdf_text.py
-
-# 2. Batch-embed chunks via mistral-embed and upsert into Qdrant 'atc_phraseology' collection
-npm --prefix Ai-service run ingest-rag
-
-# 3. Test Qdrant vector retrieval accuracy
-npm --prefix Ai-service run verify-rag
-```
-
----
-
-## 🧩 Microservices Inventory & Zero-Trust Security
-
-| Service | Path | Port | Core Responsibilities | Health Endpoint |
-|---|---|---|---|---|
-| 🔑 **Auth Service** | [`/Auth`](Auth/README.md) | `3000` | Google OAuth2, RS256 JWT issuance, opaque refresh token rotation, JWKS publication | `/healthz` |
-| ⚙️ **Core Backend** | [`/Backend`](Backend/README.md) | `5000` | Scenario definitions, student flight hours, streak tracking, weak-area analytics | `/healthz` |
-| 🧠 **AI Service** | [`/Ai-service`](Ai-service/README.md) | `7000` | LangGraph agent, 7-Layer Redis Cache, WebSockets, Deepgram STT, Rime TTS, Qdrant RAG | `/healthz` |
-| 🎨 **Frontend SPA** | [`/Frontend`](Frontend/README.md) | `5173` | React 18 SPA, PTT shortcuts, 3D MetallicOrb reactivity, Redux Toolkit state | `/healthz` |
-
-### Security Architecture Highlights
-- **Asymmetric Signing:** Auth service signs JWTs using RSA-4096 private key. Downstream microservices verify signatures statelessly using JWKS public keys cached in Redis L5.
-- **XSS & CSRF Defense:** Short-lived access tokens stored in JS memory closure; refresh tokens stored in `HttpOnly`, `SameSite=Lax` cookies.
-
----
-
-## 📁 Monorepo Directory Layout
-
-```
-ATC/
-├── Auth/                               ← Auth & Identity Microservice (Port 3000)
-├── Backend/                            ← Core Scenario & Session Service (Port 5000)
-├── Ai-service/                         ← AI Inference & Voice Agent Service (Port 7000)
-│   ├── agent/                          ← LangGraph state machine & 7 nodes
-│   │   ├── nodes/                      ← loadStep, validateReadback, qdrantRetrieve, etc.
-│   │   └── utils/                      ← slotResolver.js (Redis L4)
-│   ├── config/                         ← Redis L1-L7, Qdrant, WebSockets
-│   ├── controllers/                    ← aiSession.controller.js (Redis L3)
-│   ├── middleware/                     ← identifyUser.middleware.js (Redis L5)
-│   └── services/                       ← qdrant.service.js (L1/L2), tts.service.js (L7)
-├── Frontend/                           ← React 18 Single Page Application (Port 5173)
-│   └── src/features/simulator/         ← MetallicOrb Three.js & WebSockets
-├── docs/                               ← Architecture & Technical Specifications
-│   ├── assets/                         ← 3D MetallicOrb & UI Screenshots
-│   ├── redis_7_layer_architecture.md   ← 7-Layer Redis Technical Specification
-│   └── redis_presentation_judge_guide.md← Judge Presentation & Defense Strategy
-├── helpers/                            ← PDF Manuals & Extractor scripts
-│   └── Roger AI - Financial & Business Model Brief.pdf ← Financial & Business Brief
-├── k8s/                                ← Kubernetes Manifests (Ingress, Deployments, Secrets)
-│   ├── secrets.yml.example             ← Secrets template file
-│   └── secrets.yml                     ← Git-ignored local secrets file
-├── skaffold.yml                        ← Skaffold orchestration configuration
-└── README.md                           ← Main repository documentation (this file)
-```
-
----
-
-## 🔌 Global API & WebSocket Reference
-
-### Auth Service (`/api/auth`)
-- `GET /.well-known/jwks.json` — Serves RS256 public keys for JWKS validation
-- `GET /api/auth/google` — Initiates Google OAuth2 authentication flow
-- `POST /api/auth/refresh` — Rotates refresh token and returns fresh RS256 access token
-- `GET /api/auth/getMe` — Returns authenticated user profile
-
-### Core Backend Service (`/api/backend`)
-- `GET /api/backend/scenarios` — Returns active ATC training scenario templates
-- `POST /api/backend/sessions` — Initializes a new ATC simulation session
-- `POST /api/backend/sessions/:id/complete` — Concludes training session & logs score
-- `GET /api/backend/users/stats` — Returns student flight hours, streak, & scores
-
-### AI Service (`/api/ai`)
-- `POST /api/ai/sessions/:id/turn` — Advances LangGraph state machine turn
-- `GET /api/ai/sessions/:id/transcript` — Retrieves session transcript logs
-- `GET /api/ai/sessions/:id/tokens` — Returns token usage breakdown per operation
-- `GET /ws/simulator` — WebSocket connection for 3D MetallicOrb reactivity & audio streaming
