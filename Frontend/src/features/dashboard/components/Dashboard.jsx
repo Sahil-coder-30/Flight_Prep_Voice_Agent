@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useDashboard } from '../Hooks/dashboard.hooks';
 import MetallicOrb from '../../simulator/components/MetallicOrb/MetallicOrb';
 import MetallicOrbControls from './MetallicOrbControls';
@@ -10,13 +10,14 @@ const FREE_TALK_SCENARIO = {
   name: 'Direct Controller Voice Talk',
   title: 'Direct Controller Voice Talk',
   icao: 'VFR',
+  airport: 'KBOS',
   runway: 'ANY',
   difficulty: 'All Levels',
   progress: 100,
   color: 'cyan',
   tag: 'TALK',
   aircraftCallsign: 'N172SP',
-  airport: 'KBOS',
+  description: 'Unscripted, free-form aviation radio dialogue with AI Controllers. Ask general aviation questions or practice custom clearances.',
   steps: [
     {
       stepId: 'free_01',
@@ -30,32 +31,118 @@ const FREE_TALK_SCENARIO = {
   ],
 };
 
+const DEFAULT_TEMPLATES = [
+  {
+    id: '1',
+    _id: '1',
+    name: 'KBOS Ground Start & Taxi Clearance',
+    title: 'KBOS Ground Start & Taxi Clearance',
+    airport: 'Boston Logan Intl (KBOS)',
+    icao: 'KBOS',
+    runway: '22L',
+    difficulty: 'Beginner',
+    tag: 'GND',
+    color: 'cyan',
+    aircraftCallsign: 'N172SP',
+    description: 'Master engine start, pushback request, taxi routing via Taxiway Alpha, and holding short instructions with Boston Ground.',
+    steps: [1, 2, 3],
+  },
+  {
+    id: '2',
+    _id: '2',
+    name: 'KJFK VFR Tower Departure',
+    title: 'KJFK VFR Tower Departure',
+    airport: 'John F. Kennedy Intl (KJFK)',
+    icao: 'KJFK',
+    runway: '31L',
+    difficulty: 'Beginner',
+    tag: 'DEP',
+    color: 'green',
+    aircraftCallsign: 'N5CD',
+    description: 'Request VFR departure clearance, read back line up & wait directives, and execute clean takeoff roll clearances.',
+    steps: [1, 2],
+  },
+  {
+    id: '3',
+    _id: '3',
+    name: 'KLAX ILS Approach & Landing',
+    title: 'KLAX ILS Approach & Landing',
+    airport: 'Los Angeles Intl (KLAX)',
+    icao: 'KLAX',
+    runway: '25L',
+    difficulty: 'Intermediate',
+    tag: 'APP',
+    color: 'amber',
+    aircraftCallsign: 'N9028',
+    description: 'Interlock with SoCal Approach for radar vectors onto ILS 25L localizer, glide slope intercept, and landing clearance.',
+    steps: [1, 2, 3],
+  },
+  {
+    id: '4',
+    _id: '4',
+    name: 'KORD Enroute Center Handoff',
+    title: 'KORD Enroute Center Handoff',
+    airport: "Chicago O'Hare Intl (KORD)",
+    icao: 'KORD',
+    runway: '10C',
+    difficulty: 'Intermediate',
+    tag: 'ENR',
+    color: 'cyan',
+    aircraftCallsign: 'AAL104',
+    description: 'Execute high-altitude radar handoffs, altimeter setting confirmations, and speed restriction compliance with Chicago Center.',
+    steps: [1, 2],
+  },
+  {
+    id: '5',
+    _id: '5',
+    name: 'KSFO Emergency Squawk 7700',
+    title: 'KSFO Emergency Squawk 7700',
+    airport: 'San Francisco Intl (KSFO)',
+    icao: 'KSFO',
+    runway: '28R',
+    difficulty: 'Advanced',
+    tag: 'EMG',
+    color: 'red',
+    aircraftCallsign: 'N770EM',
+    description: 'Declare MAYDAY emergency due to engine failure, request priority vectoring, and coordinate emergency equipment response.',
+    steps: [1, 2],
+  },
+];
+
 function StatIcon({ type }) {
   switch (type) {
     case 'sessions': return (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
         <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
       </svg>
     );
     case 'score': return (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-        <polyline points="16 7 22 7 22 13"/>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
       </svg>
     );
     case 'hours': return (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
         <circle cx="12" cy="12" r="10"/>
         <polyline points="12 6 12 12 16 14"/>
       </svg>
     );
     case 'streak': return (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
       </svg>
     );
     default: return null;
   }
+}
+
+function SearchIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <circle cx="11" cy="11" r="8"/>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+  );
 }
 
 function ChevronRight() {
@@ -66,9 +153,24 @@ function ChevronRight() {
   );
 }
 
+function MicIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+      <line x1="12" y1="19" x2="12" y2="22"/>
+    </svg>
+  );
+}
+
 export default function Dashboard({ onStartScenario, onResumeSession, activeSession }) {
-  const { stats, scenarios = [], loading, loadDashboard } = useDashboard();
+  const { stats = {}, scenarios = [], recentSessions = [], loading, loadDashboard } = useDashboard();
   const [selectedId, setSelectedId] = useState(null);
+
+  // Filters state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('ALL');
+  const [activeDifficulty, setActiveDifficulty] = useState('ALL');
 
   // Metallic Orb State
   const [orbMode, setOrbMode] = useState('IDLE_CORE');
@@ -83,27 +185,42 @@ export default function Dashboard({ onStartScenario, onResumeSession, activeSess
   };
 
   const statCards = [
-    { type: 'sessions', label: 'Sessions Logged', value: stats.sessionsCompleted || 0, unit: '', iconClass: 'cyan', trend: 'Total Sorties' },
-    { type: 'score', label: 'Phraseology Score', value: stats.phraseologyScore || 100, unit: '%', iconClass: 'green', trend: 'Average Grade' },
-    { type: 'hours', label: 'Flight Practice', value: stats.hoursLogged || 0, unit: 'h', iconClass: 'amber', trend: 'Practice Time' },
+    { type: 'sessions', label: 'Sessions Logged', value: stats.sessionsCompleted || 0, unit: '', iconClass: 'cyan', trend: 'Total Flight Sorties' },
+    { type: 'score', label: 'Phraseology Score', value: stats.phraseologyScore || 100, unit: '%', iconClass: 'green', trend: 'Average Accuracy' },
+    { type: 'hours', label: 'Flight Practice', value: stats.hoursLogged || 0, unit: 'h', iconClass: 'amber', trend: 'Cockpit Practice Time' },
     { type: 'streak', label: 'Daily Streak', value: stats.streak || 0, unit: 'd', iconClass: 'cyan', trend: 'Consecutive Days' },
   ];
 
-  const activeScenariosList = scenarios.length > 0 ? scenarios : [
-    { id: '1', name: 'KBOS Ground Start & Taxi Clearance', title: 'KBOS Ground Start & Taxi Clearance', airport: 'KBOS', icao: 'KBOS', runway: '22L', difficulty: 'beginner', color: 'cyan', tag: 'GND' },
-    { id: '2', name: 'KJFK VFR Tower Departure', title: 'KJFK VFR Tower Departure', airport: 'KJFK', icao: 'KJFK', runway: '31L', difficulty: 'beginner', color: 'green', tag: 'DEP' },
-    { id: '3', name: 'KLAX ILS Approach & Landing', title: 'KLAX ILS Approach & Landing', airport: 'KLAX', icao: 'KLAX', runway: '25L', difficulty: 'intermediate', color: 'amber', tag: 'APP' },
-    { id: '4', name: 'KORD Enroute Center Handoff', title: 'KORD Enroute Center Handoff', airport: 'KORD', icao: 'KORD', runway: '10C', difficulty: 'intermediate', color: 'cyan', tag: 'ENR' },
-    { id: '5', name: 'KSFO Emergency Squawk 7700', title: 'KSFO Emergency Squawk 7700', airport: 'KSFO', icao: 'KSFO', runway: '28R', difficulty: 'advanced', color: 'red', tag: 'EMG' },
-  ];
+  const rawScenarios = scenarios.length > 0 ? scenarios : DEFAULT_TEMPLATES;
+
+  const filteredTemplates = useMemo(() => {
+    return rawScenarios.filter((sc) => {
+      const title = (sc.title || sc.name || '').toLowerCase();
+      const airport = (sc.airport || sc.icao || '').toLowerCase();
+      const query = searchQuery.toLowerCase().trim();
+
+      const matchesSearch = !query || title.includes(query) || airport.includes(query);
+
+      const scTag = (sc.tag || '').toUpperCase();
+      const matchesCategory = activeCategory === 'ALL' || scTag === activeCategory;
+
+      const scDiff = (sc.difficulty || 'beginner').toLowerCase();
+      const matchesDifficulty = activeDifficulty === 'ALL' || scDiff === activeDifficulty.toLowerCase();
+
+      return matchesSearch && matchesCategory && matchesDifficulty;
+    });
+  }, [rawScenarios, searchQuery, activeCategory, activeDifficulty]);
 
   return (
     <main className="dashboard-space" aria-label="Flight Deck Dashboard">
-      {/* ── HERO BANNER WITH METALLIC ORB ── */}
-      <section className="dashboard-hero-section">
+
+      {/* ── HERO BANNER WITH METALLIC ORB (GLASSMORPHISM) ── */}
+      <header className="dashboard-hero-glass">
+        <div className="hero-glass-ambient-glow" aria-hidden="true" />
+        
         <div className="hero-content">
           <div className="hero-badge">
-            <span className="live-dot cyan" aria-hidden="true" />
+            <span className="live-dot green" aria-hidden="true" />
             <span className="badge-text">AIRSPACE SIMULATION CONTROL · FREQ 118.300</span>
           </div>
 
@@ -112,20 +229,20 @@ export default function Dashboard({ onStartScenario, onResumeSession, activeSess
           </h1>
 
           <p className="hero-description">
-            Practice real-world ICAO air traffic control radio exchanges. Master departure clearances, ground navigation, and emergency procedures with instant RAG grounding.
+            Practice real-world ICAO air traffic control radio exchanges. Master departure clearances, ground navigation, and emergency procedures with instant RAG feedback.
           </p>
 
           <div className="hero-actions">
             <button
               id="btn-launch-direct-talk"
-              className="btn btn-cyan btn-lg"
+              className="btn btn-cyan btn-lg hero-direct-talk-btn"
               onClick={() => onStartScenario?.(FREE_TALK_SCENARIO)}
             >
-              🎙️ Direct Controller Voice Talk <ChevronRight />
+              <MicIcon /> Direct Controller Voice Talk <ChevronRight />
             </button>
 
             <button
-              className="btn btn-ghost btn-lg"
+              className="btn btn-ghost btn-lg hero-orb-morph-btn"
               onClick={() => setOrbMode(m => m === 'SWARM_OUT' ? 'IDLE_CORE' : 'SWARM_OUT')}
             >
               Morph Orb Matrix
@@ -159,7 +276,7 @@ export default function Dashboard({ onStartScenario, onResumeSession, activeSess
             />
           </div>
         </div>
-      </section>
+      </header>
 
       {/* ── RESUME ACTIVE SESSION CARD ── */}
       {activeSession && (
@@ -173,12 +290,13 @@ export default function Dashboard({ onStartScenario, onResumeSession, activeSess
           <div className="resume-details">
             <div className="resume-top-line">
               <span className="chip chip-cyan">IN FLIGHT</span>
+              <span className="resume-time">ACTIVE ATC SESSION</span>
             </div>
             <h3 className="resume-scenario-title">{activeSession.scenarioName || 'Active ATC Flight Session'}</h3>
           </div>
           <button
             id="btn-resume-session"
-            className="btn btn-cyan"
+            className="btn btn-cyan btn-lg resume-action-btn"
             onClick={() => onResumeSession?.(activeSession)}
           >
             Resume Flight Deck <ChevronRight />
@@ -189,7 +307,7 @@ export default function Dashboard({ onStartScenario, onResumeSession, activeSess
       {/* ── TELEMETRY STATS GRID ── */}
       <section className="telemetry-grid" role="region" aria-label="Flight Metrics">
         {statCards.map((s) => (
-          <div key={s.type} className="telemetry-card" aria-label={`${s.label}: ${s.value}${s.unit}`}>
+          <article key={s.type} className="telemetry-card" aria-label={`${s.label}: ${s.value}${s.unit}`}>
             <div className="card-top">
               <span className="card-label">{s.label}</span>
               <div className={`card-icon ${s.iconClass}`}>
@@ -201,80 +319,234 @@ export default function Dashboard({ onStartScenario, onResumeSession, activeSess
               {s.unit && <span className="card-unit">{s.unit}</span>}
             </div>
             <div className="card-trend">{s.trend}</div>
-          </div>
+          </article>
         ))}
       </section>
 
-      {/* ── SCENARIOS LISTING GRID ── */}
-      <div className="dashboard-deck-grid">
-        <section className="deck-panel scenario-deck" role="region" aria-label="Training Scenarios">
-          <div className="panel-header">
-            <div>
-              <h2 className="panel-title">Training Sortie Templates</h2>
-              <p className="panel-subtitle">Select an ATC simulation template grounded in ICAO protocol</p>
-            </div>
-            <span className="chip chip-green">
-              <span className="live-dot green" aria-hidden="true" />
-              {activeScenariosList.length} Templates Ready
+      {/* ── FEATURED QUICK START: DIRECT VOICE CONTROLLER TALK ── */}
+      <article className="featured-direct-talk-banner">
+        <div className="banner-bg-glow" />
+        <div className="banner-left">
+          <div className="banner-badge-row">
+            <span className="tag-chip tag-cyan">DIRECT VOICE</span>
+            <span className="icao-chip">ICAO VFR</span>
+            <span className="live-wave-indicator">
+              <span className="wave-bar" />
+              <span className="wave-bar" />
+              <span className="wave-bar" />
+              <span className="wave-text">UNSCRIPTED ATC</span>
             </span>
           </div>
+          <h2 className="banner-title">🎙️ Free-Form Controller Voice Talk</h2>
+          <p className="banner-desc">
+            Engage in unscripted aviation radio dialogue. Practice radio checks, general airport inquiries, custom clearances, or emergency declarations directly with the AI Controller.
+          </p>
+        </div>
+        <div className="banner-right">
+          <button
+            id="btn-launch-direct-talk-banner"
+            className="btn btn-cyan btn-lg banner-launch-btn"
+            onClick={() => onStartScenario?.(FREE_TALK_SCENARIO)}
+          >
+            Start Voice Dialogue <ChevronRight />
+          </button>
+        </div>
+      </article>
 
-          <div className="scenario-card-grid">
-            {/* Direct Talk Card */}
-            <div
-              className="scenario-deck-card active"
-              onClick={() => onStartScenario?.(FREE_TALK_SCENARIO)}
-              style={{ borderLeft: '4px solid var(--nav-cyan)' }}
-            >
-              <div className="card-header">
-                <span className="tag-badge cyan">DIRECT VOICE</span>
-                <span className="icao-badge">FREE TALK</span>
-              </div>
-              <h3 className="scenario-name">🎙️ Direct Voice Controller Chat</h3>
-              <p className="scenario-specs">Ask general aviation questions or engage in free-form ATC dialogue.</p>
-              <div className="card-footer" style={{ marginTop: 12 }}>
-                <span className="launch-text" style={{ color: 'var(--nav-cyan)' }}>Start Free Voice Talk <ChevronRight /></span>
-              </div>
+      {/* ── TRAINING TEMPLATES SECTION ── */}
+      <section className="templates-section" role="region" aria-label="Training Scenarios">
+        {/* Section Header & Toolbar */}
+        <div className="templates-header">
+          <div className="header-title-wrap">
+            <h2 className="section-title">ICAO Training Sortie Templates</h2>
+            <p className="section-subtitle">Select an ATC simulation template grounded in standard ICAO procedure</p>
+          </div>
+
+          <div className="templates-toolbar">
+            {/* Search Input */}
+            <div className="template-search-box">
+              <SearchIcon />
+              <input
+                type="text"
+                placeholder="Search templates, airports (KBOS, KJFK)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search training templates"
+              />
+              {searchQuery && (
+                <button className="clear-search-btn" onClick={() => setSearchQuery('')}>✕</button>
+              )}
             </div>
 
-            {/* Template Cards */}
-            {activeScenariosList.map((sc) => {
+            {/* Category Filter Pills */}
+            <div className="filter-pill-group" role="tablist" aria-label="Filter by ATC phase">
+              {[
+                { id: 'ALL', label: 'All Phases' },
+                { id: 'GND', label: 'Ground' },
+                { id: 'DEP', label: 'Departure' },
+                { id: 'APP', label: 'Approach' },
+                { id: 'ENR', label: 'Enroute' },
+                { id: 'EMG', label: 'Emergency' },
+              ].map((cat) => (
+                <button
+                  key={cat.id}
+                  role="tab"
+                  aria-selected={activeCategory === cat.id}
+                  className={`filter-pill ${activeCategory === cat.id ? 'active' : ''}`}
+                  onClick={() => setActiveCategory(cat.id)}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Difficulty Filter */}
+            <div className="filter-pill-group difficulty-pills" role="tablist" aria-label="Filter by difficulty">
+              {['ALL', 'Beginner', 'Intermediate', 'Advanced'].map((lvl) => (
+                <button
+                  key={lvl}
+                  role="tab"
+                  aria-selected={activeDifficulty === lvl}
+                  className={`filter-pill diff-pill ${activeDifficulty === lvl ? 'active' : ''}`}
+                  onClick={() => setActiveDifficulty(lvl)}
+                >
+                  {lvl}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Templates Card Grid */}
+        {filteredTemplates.length === 0 ? (
+          <div className="templates-empty-state">
+            <p>No training templates match your search filters.</p>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => { setSearchQuery(''); setActiveCategory('ALL'); setActiveDifficulty('ALL'); }}
+            >
+              Reset Filters
+            </button>
+          </div>
+        ) : (
+          <div className="templates-grid">
+            {filteredTemplates.map((sc) => {
               const id = sc._id || sc.id;
               const title = sc.title || sc.name;
-              const code = sc.airport || sc.icao || 'KBOS';
-              const difficulty = sc.difficulty || 'beginner';
+              const icao = sc.icao || (sc.airport ? sc.airport.split(' ')[0] : 'KBOS');
+              const airportName = sc.airport || `${icao} Airport`;
+              const difficulty = sc.difficulty || 'Beginner';
+              const diffClass = difficulty.toLowerCase();
+              const tag = (sc.tag || 'ATC').toUpperCase();
+
+              let tagColor = sc.color || 'cyan';
+              if (tag === 'GND') tagColor = 'cyan';
+              else if (tag === 'DEP') tagColor = 'green';
+              else if (tag === 'APP') tagColor = 'amber';
+              else if (tag === 'ENR') tagColor = 'indigo';
+              else if (tag === 'EMG') tagColor = 'red';
+
               return (
-                <div
+                <article
                   key={id}
                   id={`btn-scenario-${id}`}
-                  className={`scenario-deck-card ${selectedId === id ? 'active' : ''}`}
+                  className={`template-card ${selectedId === id ? 'active' : ''}`}
                   onClick={() => { setSelectedId(id); onStartScenario?.(sc); }}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setSelectedId(id); onStartScenario?.(sc); } }}
                 >
-                  <div className="card-header">
-                    <span className="tag-badge green">{sc.tag || 'ATC'}</span>
-                    <span className="icao-badge">{code}</span>
+                  {/* Card Header Badges */}
+                  <div className="template-card-header">
+                    <div className="badges-left">
+                      <span className={`tag-chip tag-${tagColor}`}>{tag}</span>
+                      <span className="icao-chip">{icao}</span>
+                    </div>
+                    <span className={`diff-chip diff-${diffClass}`}>{difficulty}</span>
                   </div>
 
-                  <h3 className="scenario-name">{title}</h3>
-
-                  <div className="scenario-specs">
-                    <span className="spec-item">RWY {sc.runway || '22L'}</span>
-                    <span className="spec-divider">•</span>
-                    <span className="spec-item">{difficulty}</span>
+                  {/* Card Title & Airport */}
+                  <h3 className="template-title">{title}</h3>
+                  <div className="template-location">
+                    <span className="airport-name">{airportName}</span>
+                    <span className="runway-badge">RWY {sc.runway || '22L'}</span>
                   </div>
 
-                  <div className="card-footer">
-                    <span className="launch-text">Launch Sortie <ChevronRight /></span>
+                  {/* Description Snippet */}
+                  <p className="template-description">
+                    {sc.description || 'Master standard ICAO radio check and ATC clearances with instant phraseology feedback.'}
+                  </p>
+
+                  {/* Card Meta & Footer */}
+                  <div className="template-card-footer">
+                    <div className="card-specs">
+                      <span className="spec-tag">Callsign: {sc.aircraftCallsign || 'N172SP'}</span>
+                      <span className="spec-dot">•</span>
+                      <span className="spec-tag">{sc.steps?.length || 3} Procedure Steps</span>
+                    </div>
+
+                    <div className="template-launch-action">
+                      <span className="launch-text">Launch Sortie <ChevronRight /></span>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ── RECENT SORTIES & FLIGHT ACTIVITY PANEL ── */}
+      <section className="recent-activity-section" role="region" aria-label="Recent Flight Activity">
+        <div className="activity-header">
+          <div>
+            <h2 className="section-title">Recent Sortie Telemetry</h2>
+            <p className="section-subtitle">History of completed phraseology evaluation sessions</p>
+          </div>
+        </div>
+
+        {recentSessions.length === 0 ? (
+          <div className="activity-empty-card">
+            <div className="empty-icon">✈</div>
+            <h4>No Flight Telemetry Recorded Yet</h4>
+            <p>Select any training template above to initiate your first ICAO simulation session.</p>
+          </div>
+        ) : (
+          <div className="activity-list">
+            {recentSessions.map((session, idx) => {
+              const score = session.score ?? session.phraseologyScore ?? 100;
+              let scoreColor = 'green';
+              if (score < 70) scoreColor = 'red';
+              else if (score < 85) scoreColor = 'amber';
+
+              return (
+                <div key={session._id || session.id || idx} className="activity-row">
+                  <div className="row-left">
+                    <div className="flight-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3.5c-.5-.5-2.5 0-4 1.5L13.5 8.5 5.3 6.7c-.5-.1-.9.1-1.2.5l-.9.9c-.3.3-.3.8 0 1.1l5.1 4-3.1 3.1-2.4-.6c-.3-.1-.6 0-.8.2l-.6.6c-.2.2-.2.6 0 .8l3.2 3.2 3.2 3.2c.2.2.6.2.8 0l.6-.6c.2-.2.3-.5.2-.8l-.6-2.4 3.1-3.1 4 5.1c.3.3.8.3 1.1 0l.9-.9c.4-.3.6-.7.5-1.2z"/>
+                      </svg>
+                    </div>
+                    <div className="flight-meta">
+                      <h4 className="flight-title">{session.scenarioName || 'ATC Practice Session'}</h4>
+                      <span className="flight-time">
+                        {session.createdAt ? new Date(session.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Completed'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="row-right">
+                    <span className={`score-badge score-${scoreColor}`}>
+                      {score}% Grade
+                    </span>
                   </div>
                 </div>
               );
             })}
           </div>
-        </section>
-      </div>
+        )}
+      </section>
+
     </main>
   );
 }

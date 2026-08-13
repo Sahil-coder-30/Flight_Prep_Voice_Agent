@@ -1,19 +1,21 @@
 .orb-controls {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  background: rgba(19, 26, 34, 0.65);
+  gap: 8px;
+  background: rgba(14, 18, 24, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 12px 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 8px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  max-width: 100%;
+  box-sizing: border-box;
 
   .group-label {
     font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
+    font-size: 10px;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--readout-dim);
     white-space: nowrap;
@@ -22,48 +24,59 @@
   &__group {
     display: flex;
     align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   .btn-group {
     display: flex;
     align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
+    gap: 4px;
+    flex-wrap: nowrap;
   }
 
   .orb-mode-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.09);
     color: var(--readout);
     font-family: var(--font-sans);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     cursor: pointer;
+    white-space: nowrap;
     transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 
     .btn-icon {
-      font-size: 13px;
-      color: var(--nav-cyan);
+      font-size: 12px;
+      color: var(--readout-dim);
     }
 
     &:hover {
-      background: rgba(56, 198, 224, 0.12);
-      border-color: rgba(56, 198, 224, 0.3);
-      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #FFFFFF;
     }
 
     &.active {
-      background: rgba(56, 198, 224, 0.22);
-      border-color: var(--nav-cyan);
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #FFFFFF;
       color: #ffffff;
-      box-shadow: 0 0 12px rgba(56, 198, 224, 0.25);
+      font-weight: 600;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+
+      .btn-icon { color: #FFFFFF; }
     }
   }
 
@@ -71,27 +84,29 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding-top: 10px;
+    gap: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    padding-top: 6px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .color-presets {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
 
   .color-dot-btn {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background: var(--dot-color);
-    border: 2px solid transparent;
+    border: 1.5px solid transparent;
     cursor: pointer;
     transition: all 0.15s ease;
-    box-shadow: 0 0 6px var(--dot-color);
+    box-shadow: 0 0 4px var(--dot-color);
+    flex-shrink: 0;
 
     &:hover {
       transform: scale(1.2);
@@ -99,47 +114,50 @@
 
     &.active {
       border-color: #ffffff;
-      transform: scale(1.25);
-      box-shadow: 0 0 12px var(--dot-color);
+      transform: scale(1.2);
+      box-shadow: 0 0 10px var(--dot-color);
     }
   }
 
   .voice-sim-btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     color: var(--readout);
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
     cursor: pointer;
+    white-space: nowrap;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 
     .voice-dot {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: var(--readout-dim);
 
       &.pulse {
-        background: var(--cleared-green);
-        box-shadow: 0 0 8px var(--cleared-green);
+        background: #FAFAFA;
+        box-shadow: 0 0 6px #FAFAFA;
         animation: pulse-ring 1.5s infinite ease-in-out;
       }
     }
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.25);
     }
 
     &.simulating {
-      border-color: var(--cleared-green);
-      background: rgba(63, 224, 138, 0.12);
-      color: var(--cleared-green);
+      border-color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.15);
+      color: #FFFFFF;
     }
   }
 }

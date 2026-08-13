@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getScenariosAPI, getUserStatsAPI } from '../service/dashboard.api';
-import { setScenarios, setDashboardLoading, setDashboardError, setStats } from '../slice/dashboard.slice';
+import { getScenariosAPI, getUserStatsAPI, getUserSessionsAPI } from '../service/dashboard.api';
+import { setScenarios, setDashboardLoading, setDashboardError, setStats, setRecentSessions } from '../slice/dashboard.slice';
 
 const DEFAULT_STATS = {
   sessionsCompleted: 0,
@@ -18,9 +18,10 @@ export const useDashboard = () => {
   const loadDashboard = useCallback(async () => {
     try {
       dispatch(setDashboardLoading(true));
-      const [scenariosRes, statsRes] = await Promise.allSettled([
+      const [scenariosRes, statsRes, sessionsRes] = await Promise.allSettled([
         getScenariosAPI(),
         getUserStatsAPI(),
+        getUserSessionsAPI(),
       ]);
 
       if (scenariosRes.status === 'fulfilled') {
@@ -39,6 +40,11 @@ export const useDashboard = () => {
         }));
       } else {
         dispatch(setStats(DEFAULT_STATS));
+      }
+
+      if (sessionsRes.status === 'fulfilled' && sessionsRes.value) {
+        const sess = sessionsRes.value?.data || sessionsRes.value;
+        dispatch(setRecentSessions(Array.isArray(sess) ? sess.slice(0, 5) : []));
       }
     } catch (err) {
       dispatch(setDashboardError(err.message));

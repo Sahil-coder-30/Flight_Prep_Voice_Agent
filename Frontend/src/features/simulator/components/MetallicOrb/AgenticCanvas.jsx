@@ -8,7 +8,7 @@ export default function AgenticCanvas({ mode = 'IDLE_CORE', settings = {}, theme
     <div style={{ width: '100%', height: '100%', position: 'relative', outline: 'none' }} id="canvas-container">
       <Suspense fallback={null}>
         <Canvas
-          camera={{ position: [0, 0, 5.5], fov: 60 }}
+          camera={{ position: [0, 0.35, 5.2], fov: 56 }}
           gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
           dpr={[1, 1.5]}
           shadows
