@@ -69,7 +69,7 @@ OPTIMIZED REDIS PLATFORM LATENCY = <280ms (REAL-TIME AVIATION RADIO EMULATION �
 
 The simulator interface features a custom interactive **3D MetallicOrb** built with Three.js and WebGL. It reacts in real-time to microphone audio levels during student transmissions and morphs state dynamically based on WebSocket telemetry emitted by the AI service controller:
 
-![3D MetallicOrb Simulator Visualizer](file:///Users/home/Desktop/ATC/docs/assets/3d_metallic_orb_simulator.png)
+![3D MetallicOrb Simulator Visualizer](docs/assets/3d_metallic_orb_simulator.png)
 
 * **Push-To-Talk (PTT) Gating:** Holding the Spacebar locks microphone audio input, preventing race conditions while real-time Web Audio API frequency analyzers drive vertex shader wave displacement on the MetallicOrb.
 * **Controller Voice Activity:** When the AI controller transmits speech, WebSocket events (`ATC_SPEAKING_START` / `ATC_SPEAKING_END`) morph the MetallicOrb into active audio emission modes (`SWARM CLOUD`, `RADAR SWEEP`, `LATTICE MATRIX`, `AVIATION HEADSET`).
@@ -78,7 +78,7 @@ The simulator interface features a custom interactive **3D MetallicOrb** built w
 
 ## ⚡ The Main Selling Proposition (MSP): 7-Layer Redis Caching Architecture
 
-> 📄 *Detailed technical specification available in [`docs/redis_7_layer_architecture.md`](file:///Users/home/Desktop/ATC/docs/redis_7_layer_architecture.md)*
+> 📄 *Detailed technical specification available in [`docs/redis_7_layer_architecture.md`](docs/redis_7_layer_architecture.md)*
 
 ### 1. Simplest Language Explanation (Why Redis & Why Latency Drop Matters)
 
@@ -122,22 +122,22 @@ flowchart TD
 
 | Tier | Layer Name | Redis Key Pattern | Data Structure | TTL | Hit Latency | Concerned File / Endpoint | Key Responsibility |
 |---|---|---|---|---|---|---|---|
-| **L1** | **Template Embedding Cache** | `emb:tmpl:{templateId}` | String (JSON Array) | 30 Days | `~2ms` | [`services/qdrant.service.js`](file:///Users/home/Desktop/ATC/Ai-service/services/qdrant.service.js) | Caches pre-computed 1024-dim `mistral-embed` vectors per scenario step. Bypasses remote embedding API calls. |
-| **L2** | **Qdrant Grounding Cache** | `gnd:tmpl:{templateId}` | String (JSON Array) | 7 Days | `~3ms` | [`agent/nodes/qdrantRetrieve.js`](file:///Users/home/Desktop/ATC/Ai-service/agent/nodes/qdrantRetrieve.js) | Caches top-k phraseology excerpts from FAA JO 7110.65 / ICAO Doc 4444. Bypasses vector DB search. |
-| **L3** | **State Checkpoint Cache** | `sess:cp:{sessionId}` | String (JSON Map) | 24 Hours | `~4ms` | [`controllers/aiSession.controller.js`](file:///Users/home/Desktop/ATC/Ai-service/controllers/aiSession.controller.js) | Stores LangGraph `AgentState` checkpoints for active sessions. Enables instant graph re-hydration upon PTT press. |
-| **L4** | **Dynamic Session Slot Cache** | `sess:slots:{sessionId}` | Hash / String Map | 24 Hours | `~2ms` | [`agent/utils/slotResolver.js`](file:///Users/home/Desktop/ATC/Ai-service/agent/utils/slotResolver.js) | Holds session-randomized variables (wind, altimeter, squawk, ATIS). Guarantees turn data consistency across turns. |
-| **L5** | **JWKS Public Key Cache** | `auth:jwks:cache` | String (JSON Array) | 24 Hours | `~1ms` | [`middleware/identifyUser.middleware.js`](file:///Users/home/Desktop/ATC/Ai-service/middleware/identifyUser.middleware.js) | Caches Auth service RS256 RSA public keys. Enables zero-latency local JWT signature verification per request. |
-| **L6** | **Rate Limiter Counter** | `rl:ip:{ipAddress}` | String / Int Counter | 15 Mins | `~1ms` | [`config/redis.js`](file:///Users/home/Desktop/ATC/Ai-service/config/redis.js) | Atomic sliding window request counter preventing API flooding while supporting rapid-fire radio transmissions. |
-| **L7** | **TTS Audio Output Cache** | `tts:{sha256(text)}` | String (Base64 MP3) | 7 Days | `~5ms` | [`services/tts.service.js`](file:///Users/home/Desktop/ATC/Ai-service/services/tts.service.js) | Caches SHA-256 hashed audio output for static controller lines. Cuts speech rendering from ~650ms to ~5ms. |
+| **L1** | **Template Embedding Cache** | `emb:tmpl:{templateId}` | String (JSON Array) | 30 Days | `~2ms` | [`services/qdrant.service.js`](Ai-service/services/qdrant.service.js) | Caches pre-computed 1024-dim `mistral-embed` vectors per scenario step. Bypasses remote embedding API calls. |
+| **L2** | **Qdrant Grounding Cache** | `gnd:tmpl:{templateId}` | String (JSON Array) | 7 Days | `~3ms` | [`agent/nodes/qdrantRetrieve.js`](Ai-service/agent/nodes/qdrantRetrieve.js) | Caches top-k phraseology excerpts from FAA JO 7110.65 / ICAO Doc 4444. Bypasses vector DB search. |
+| **L3** | **State Checkpoint Cache** | `sess:cp:{sessionId}` | String (JSON Map) | 24 Hours | `~4ms` | [`controllers/aiSession.controller.js`](Ai-service/controllers/aiSession.controller.js) | Stores LangGraph `AgentState` checkpoints for active sessions. Enables instant graph re-hydration upon PTT press. |
+| **L4** | **Dynamic Session Slot Cache** | `sess:slots:{sessionId}` | Hash / String Map | 24 Hours | `~2ms` | [`agent/utils/slotResolver.js`](Ai-service/agent/utils/slotResolver.js) | Holds session-randomized variables (wind, altimeter, squawk, ATIS). Guarantees turn data consistency across turns. |
+| **L5** | **JWKS Public Key Cache** | `auth:jwks:cache` | String (JSON Array) | 24 Hours | `~1ms` | [`middleware/identifyUser.middleware.js`](Ai-service/middleware/identifyUser.middleware.js) | Caches Auth service RS256 RSA public keys. Enables zero-latency local JWT signature verification per request. |
+| **L6** | **Rate Limiter Counter** | `rl:ip:{ipAddress}` | String / Int Counter | 15 Mins | `~1ms` | [`config/redis.js`](Ai-service/config/redis.js) | Atomic sliding window request counter preventing API flooding while supporting rapid-fire radio transmissions. |
+| **L7** | **TTS Audio Output Cache** | `tts:{sha256(text)}` | String (Base64 MP3) | 7 Days | `~5ms` | [`services/tts.service.js`](Ai-service/services/tts.service.js) | Caches SHA-256 hashed audio output for static controller lines. Cuts speech rendering from ~650ms to ~5ms. |
 
 ---
 
 ### 3. Deep-Dive Layer Breakdown & Complete Code Blocks
 
 #### 🟢 Layer 1: Template Embedding Cache (`L1`)
-* **Concerned File:** [`Ai-service/services/qdrant.service.js`](file:///Users/home/Desktop/ATC/Ai-service/services/qdrant.service.js#L13-L64)
+* **Concerned File:** [`Ai-service/services/qdrant.service.js`](Ai-service/services/qdrant.service.js#L13-L64)
 * **Key Pattern:** `emb:tmpl:{templateId}` | **TTL:** 30 Days | **Latency:** `~2ms`
-* **How it works:** Scenario step prompts (e.g. `tmpl_ground_taxi_v1`) are pre-embedded during application startup via [`scripts/warmTemplateEmbeddings.js`](file:///Users/home/Desktop/ATC/Ai-service/scripts/warmTemplateEmbeddings.js). The 1024-dimensional Mistral vector is read directly from Redis in ~2ms, eliminating remote HTTP calls.
+* **How it works:** Scenario step prompts (e.g. `tmpl_ground_taxi_v1`) are pre-embedded during application startup via [`scripts/warmTemplateEmbeddings.js`](Ai-service/scripts/warmTemplateEmbeddings.js). The 1024-dimensional Mistral vector is read directly from Redis in ~2ms, eliminating remote HTTP calls.
 
 ```javascript
 // File: Ai-service/services/qdrant.service.js
@@ -187,7 +187,7 @@ export async function embedText(text, templateId = null, ctx = {}) {
 ---
 
 #### 🟢 Layer 2: Qdrant Grounding Cache (`L2`)
-* **Concerned File:** [`Ai-service/services/qdrant.service.js`](file:///Users/home/Desktop/ATC/Ai-service/services/qdrant.service.js#L102-L141) & [`agent/nodes/qdrantRetrieve.js`](file:///Users/home/Desktop/ATC/Ai-service/agent/nodes/qdrantRetrieve.js)
+* **Concerned File:** [`Ai-service/services/qdrant.service.js`](Ai-service/services/qdrant.service.js#L102-L141) & [`agent/nodes/qdrantRetrieve.js`](Ai-service/agent/nodes/qdrantRetrieve.js)
 * **Key Pattern:** `gnd:tmpl:{templateId}` | **TTL:** 7 Days | **Latency:** `~3ms`
 * **How it works:** Caches top-3 retrieved ICAO Doc 4444 and FAA JO 7110.65 phraseology excerpts for scenario step templates. Cuts vector DB search latency from 380ms to 3ms.
 
@@ -242,7 +242,7 @@ export async function retrieve(query, procedureType, phase, templateId = null, l
 ---
 
 #### 🟢 Layer 3: LangGraph State Checkpoint Cache (`L3`)
-* **Concerned File:** [`Ai-service/controllers/aiSession.controller.js`](file:///Users/home/Desktop/ATC/Ai-service/controllers/aiSession.controller.js#L62-L134)
+* **Concerned File:** [`Ai-service/controllers/aiSession.controller.js`](Ai-service/controllers/aiSession.controller.js#L62-L134)
 * **Key Pattern:** `sess:cp:{sessionId}` | **TTL:** 24 Hours | **Latency:** `~4ms`
 * **How it works:** When the controller stops speaking, LangGraph hits an `awaitReadback` interrupt boundary. The entire state object is serialized and saved in Redis L3. Upon pilot PTT press, Redis re-hydrates the state machine in <5ms.
 
@@ -290,7 +290,7 @@ export async function turn(req, res) {
 ---
 
 #### 🟢 Layer 4: Dynamic Session Slot Cache (`L4`)
-* **Concerned File:** [`Ai-service/agent/utils/slotResolver.js`](file:///Users/home/Desktop/ATC/Ai-service/agent/utils/slotResolver.js#L18-L79)
+* **Concerned File:** [`Ai-service/agent/utils/slotResolver.js`](Ai-service/agent/utils/slotResolver.js#L18-L79)
 * **Key Pattern:** `sess:slots:{sessionId}` | **TTL:** 24 Hours | **Latency:** `~2ms`
 * **How it works:** Flight variables (wind `270@14`, altimeter `29.92`, squawk `4521`, ATIS letter `Bravo`) are generated once at session start and cached in Redis L4. Guarantees 100% turn consistency across the entire flight session.
 
@@ -352,7 +352,7 @@ export async function resolveSlots(step, sessionId, scenarioMeta = {}) {
 ---
 
 #### 🟢 Layer 5: JWKS Public Key Cache (`L5`)
-* **Concerned File:** [`Ai-service/middleware/identifyUser.middleware.js`](file:///Users/home/Desktop/ATC/Ai-service/middleware/identifyUser.middleware.js#L13-L68)
+* **Concerned File:** [`Ai-service/middleware/identifyUser.middleware.js`](Ai-service/middleware/identifyUser.middleware.js#L13-L68)
 * **Key Pattern:** `auth:jwks:cache` | **TTL:** 24 Hours | **Latency:** `~1ms`
 * **How it works:** Microservices verify student RS256 JWT access tokens locally. The Auth service RSA public keys are cached in Redis L5, eliminating inter-service HTTP auth calls (95ms → 1ms).
 
@@ -401,7 +401,7 @@ async function resolvePublicKey(token) {
 ---
 
 #### 🟢 Layer 6: Sliding Window Rate Limiter Counter (`L6`)
-* **Concerned File:** [`Ai-service/config/redis.js`](file:///Users/home/Desktop/ATC/Ai-service/config/redis.js#L57-L63) & [`server.js`](file:///Users/home/Desktop/ATC/Ai-service/server.js)
+* **Concerned File:** [`Ai-service/config/redis.js`](Ai-service/config/redis.js#L57-L63) & [`server.js`](Ai-service/server.js)
 * **Key Pattern:** `rl:ip:{ipAddress}` | **TTL:** 15 Minutes | **Latency:** `~1ms`
 * **How it works:** Uses Redis atomic counter commands (`INCR` & `EXPIRE`) to track API requests per student IP within a 15-minute sliding window (max 300 requests), shielding expensive LLM APIs from DDoS.
 
@@ -436,7 +436,7 @@ export async function checkRateLimit(ipAddress, limit = 300, windowSeconds = 900
 ---
 
 #### 🟢 Layer 7: TTS Audio Output Cache (`L7`)
-* **Concerned File:** [`Ai-service/agent/nodes/ttsSpeak.js`](file:///Users/home/Desktop/ATC/Ai-service/agent/nodes/ttsSpeak.js#L23-L34) & [`services/tts.service.js`](file:///Users/home/Desktop/ATC/Ai-service/services/tts.service.js)
+* **Concerned File:** [`Ai-service/agent/nodes/ttsSpeak.js`](Ai-service/agent/nodes/ttsSpeak.js#L23-L34) & [`services/tts.service.js`](Ai-service/services/tts.service.js)
 * **Key Pattern:** `tts:{sha256(text)}` | **TTL:** 7 Days | **Latency:** `~5ms`
 * **How it works:** Standard static controller responses (e.g. *"Readback correct, contact tower on 118.3"*) are hashed using SHA-256 and stored as base64 MP3 strings in `tts:{sha256(text)}`.
 
@@ -510,7 +510,7 @@ We specifically decoupled our platform into **4 distinct domain microservices** 
 
 ## 📊 Market & Business Model Analysis (Investor Brief & Financial Deck)
 
-> 📄 *Extracted & synthesized from [`helpers/Roger AI - Financial & Business Model Brief.pdf`](file:///Users/home/Desktop/ATC/helpers/Roger%20AI%20-%20Financial%20%26%20Business%20Model%20Brief.pdf)*
+> 📄 *Extracted & synthesized from [`helpers/Roger AI - Financial & Business Model Brief.pdf`](helpers/Roger%20AI%20-%20Financial%20%26%20Business%20Model%20Brief.pdf)*
 
 ### 1. Executive Pitch Dashboard
 
@@ -838,7 +838,7 @@ flowchart TD
 
 1. **Voice Input & Mic Gating:** The student pilot holds the Spacebar (Push-To-Talk). Web Audio API captures microphone audio. Release triggers `GATE` lock (`isProcessing: true`), preventing race conditions.
 2. **Ingress Transmission:** Audio payload / transcript is sent over HTTP (`POST /api/ai/sessions/:id/turn`) or WebSocket (`/ws/simulator`) through NGINX Ingress Proxy.
-3. **Turn Controller Entry:** [`aiSession.controller.js`](file:///Users/home/Desktop/ATC/Ai-service/controllers/aiSession.controller.js) initializes or re-hydrates the LangGraph thread state from Redis L3.
+3. **Turn Controller Entry:** [`aiSession.controller.js`](Ai-service/controllers/aiSession.controller.js) initializes or re-hydrates the LangGraph thread state from Redis L3.
 4. **Node 1: `loadStepNode`:** Loads active step definition & resolves dynamic slots (wind, altimeter) via Redis L4.
 5. **Node 2: `validateReadbackNode`:** Uses `mistral-small-latest` & phonetic slot matchers to evaluate pilot readback accuracy.
    - If general inquiry (*"What is VFR ceiling?"*), routes to **Node 3 (`generalAnswerNode`)**.
@@ -887,7 +887,7 @@ Open **Docker Desktop** settings and enable Kubernetes (`Settings > Kubernetes >
 
 ### 2. Configure Environment Secrets (`k8s/secrets.yml`)
 
-In the project root directory, copy [`k8s/secrets.yml.example`](file:///Users/home/Desktop/ATC/k8s/secrets.yml.example) to create [`k8s/secrets.yml`](file:///Users/home/Desktop/ATC/k8s/secrets.yml):
+In the project root directory, copy [`k8s/secrets.yml.example`](k8s/secrets.yml.example) to create [`k8s/secrets.yml`](k8s/secrets.yml):
 
 ```bash
 cp k8s/secrets.yml.example k8s/secrets.yml
@@ -1005,10 +1005,10 @@ npm --prefix Ai-service run verify-rag
 
 | Service | Path | Port | Core Responsibilities | Health Endpoint |
 |---|---|---|---|---|
-| 🔑 **Auth Service** | [`/Auth`](file:///Users/home/Desktop/ATC/Auth/README.md) | `3000` | Google OAuth2, RS256 JWT issuance, opaque refresh token rotation, JWKS publication | `/healthz` |
-| ⚙️ **Core Backend** | [`/Backend`](file:///Users/home/Desktop/ATC/Backend/README.md) | `5000` | Scenario definitions, student flight hours, streak tracking, weak-area analytics | `/healthz` |
-| 🧠 **AI Service** | [`/Ai-service`](file:///Users/home/Desktop/ATC/Ai-service/README.md) | `7000` | LangGraph agent, 7-Layer Redis Cache, WebSockets, Deepgram STT, Rime TTS, Qdrant RAG | `/healthz` |
-| 🎨 **Frontend SPA** | [`/Frontend`](file:///Users/home/Desktop/ATC/Frontend/README.md) | `5173` | React 18 SPA, PTT shortcuts, 3D MetallicOrb reactivity, Redux Toolkit state | `/healthz` |
+| 🔑 **Auth Service** | [`/Auth`](Auth/README.md) | `3000` | Google OAuth2, RS256 JWT issuance, opaque refresh token rotation, JWKS publication | `/healthz` |
+| ⚙️ **Core Backend** | [`/Backend`](Backend/README.md) | `5000` | Scenario definitions, student flight hours, streak tracking, weak-area analytics | `/healthz` |
+| 🧠 **AI Service** | [`/Ai-service`](Ai-service/README.md) | `7000` | LangGraph agent, 7-Layer Redis Cache, WebSockets, Deepgram STT, Rime TTS, Qdrant RAG | `/healthz` |
+| 🎨 **Frontend SPA** | [`/Frontend`](Frontend/README.md) | `5173` | React 18 SPA, PTT shortcuts, 3D MetallicOrb reactivity, Redux Toolkit state | `/healthz` |
 
 ### Security Architecture Highlights
 - **Asymmetric Signing:** Auth service signs JWTs using RSA-4096 private key. Downstream microservices verify signatures statelessly using JWKS public keys cached in Redis L5.
