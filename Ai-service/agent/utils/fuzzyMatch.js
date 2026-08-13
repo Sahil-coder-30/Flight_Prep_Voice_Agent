@@ -51,18 +51,12 @@ export function normalizeSpoken(text) {
 
 // ── Individual Slot Matchers ───────────────────────────────────────────────────
 
-/**
- * Exact match (after normalization). Used for callsigns, runways, squawk codes.
- */
 function matchExact(expected, extracted) {
     const e = normalizeSpoken(String(expected));
     const x = normalizeSpoken(String(extracted ?? ''));
     return x.includes(e) || e.includes(x);
 }
 
-/**
- * Approximate numeric match within a tolerance. Used for headings, altimeters, frequencies.
- */
 function matchApproximate(expected, extracted, tolerance) {
     const e = parseFloat(normalizeSpoken(String(expected)));
     const x = parseFloat(normalizeSpoken(String(extracted ?? '')));
@@ -70,31 +64,16 @@ function matchApproximate(expected, extracted, tolerance) {
     return Math.abs(e - x) <= tolerance;
 }
 
-/**
- * Phonetic match: compare after full NATO normalization.
- * Effective for callsigns mixed with phonetics.
- */
 function matchPhonetic(expected, extracted) {
     return matchExact(expected, extracted);
 }
 
 // ── Master Slot Validator ──────────────────────────────────────────────────────
 
-/**
- * Validate all readback-required slots from a step definition against extracted values.
- *
- * @param {Array}  stepSlots      — step.slots[] from scenario (SlotSchema objects)
- * @param {Object} resolvedSlots  — Expected values { callsign: 'N172SP', runway: '22L' }
- * @param {Object} extracted      — Extracted by LLM { callsign: 'N172SP', runway: null }
- * @returns {{ report: Object, allPassed: boolean, failedSlots: string[] }}
- *
- * report: { callsign: true, runway: false, windDir: true }
- */
 export function validateSlots(stepSlots = [], resolvedSlots = {}, extracted = {}) {
     const report = {};
     const failedSlots = [];
 
-    // Determine target keys: explicit slots or active resolved keys
     const keysToCheck = new Set();
     
     for (const slot of stepSlots) {
@@ -103,7 +82,6 @@ export function validateSlots(stepSlots = [], resolvedSlots = {}, extracted = {}
         }
     }
 
-    // If no explicit keys set, default to key slots present in resolvedSlots
     if (keysToCheck.size === 0) {
         for (const k of Object.keys(resolvedSlots)) {
             if (resolvedSlots[k] != null && k !== 'airport' && k !== 'atis') {
@@ -144,8 +122,8 @@ export function validateSlots(stepSlots = [], resolvedSlots = {}, extracted = {}
 /**
  * Extract dynamic callsign spoken by the pilot in standard aviation format.
  * Examples:
+ *   "Center, Skyline four one two, losing pressure..." -> "SKYLINE 412"
  *   "NorCal Approach, Cessna 5678, request VFR flight following" -> "CESSNA 5678"
- *   "Boston Ground, N172SP ready for taxi" -> "N172SP"
  *   "United 456 climbing FL330" -> "UNITED 456"
  */
 export function extractCallsignFromTranscript(transcript, fallback = 'N172SP') {
@@ -153,15 +131,26 @@ export function extractCallsignFromTranscript(transcript, fallback = 'N172SP') {
 
     const clean = transcript.trim();
 
-    // Match type + number (e.g. Cessna 5678, Skyhawk 172SP, Cherokee 4321, United 456)
-    const typeMatch = clean.match(/\b(cessna|piper|skyhawk|cherokee|bonanza|cirrus|beechcraft|boeing|airbus|citrus|united|delta|american|southwest|fedex|ups|november)\s+([a-z0-9\s]{2,10})\b/i);
+    // 1. Match specific known callsign prefixes (e.g. Skyline 412, Cessna 5678, Delta 3088)
+    const typeMatch = clean.match(/\b(skyline|cessna|piper|skyhawk|cherokee|bonanza|cirrus|beechcraft|boeing|airbus|citrus|united|delta|american|southwest|fedex|ups|november|envoy|brickyard|cactus|speedbird|lufthansa|alaska|jetblue|spirit|frontier|republic|skywest|endeavor)\s+([a-z0-9\s]{1,12})\b/i);
     if (typeMatch) {
         const type = typeMatch[1].toUpperCase();
-        const num = typeMatch[2].replace(/[^a-z0-9]/gi, '').toUpperCase();
+        const numNorm = normalizeSpoken(typeMatch[2]);
+        const num = numNorm ? numNorm : typeMatch[2].replace(/[^a-z0-9]/gi, '').toUpperCase();
         return `${type} ${num}`.trim();
     }
 
-    // Match tail number (e.g. N172SP, C5678, N5678, N12345)
+    // 2. Generic word + number match (e.g. "Skyline four one two" -> "SKYLINE 412")
+    const genericMatch = clean.match(/\b([a-z]{3,12})\s+([0-9\s]{1,10}|four|one|two|three|five|six|seven|eight|nine|zero|niner){1,4}\b/i);
+    if (genericMatch) {
+        const word = genericMatch[1].toUpperCase();
+        const digits = normalizeSpoken(genericMatch[0]);
+        if (digits && word !== 'REQUEST' && word !== 'CENTER' && word !== 'TOWER' && word !== 'GROUND') {
+            return `${word} ${digits}`.trim();
+        }
+    }
+
+    // 3. Match tail number (e.g. N172SP, C5678, N5678, N12345)
     const tailMatch = clean.match(/\b([a-z]{1,2}[0-9]{2,5}[a-z]{0,2})\b/i);
     if (tailMatch) {
         return tailMatch[1].toUpperCase();
@@ -173,12 +162,18 @@ export function extractCallsignFromTranscript(transcript, fallback = 'N172SP') {
 /**
  * Extract dynamic ATC facility spoken by the pilot.
  * Examples:
- *   "Boston Center, Delta 421, flight level 340" -> "Boston Center"
+ *   "Center skyline four one two..." -> "Boston Center"
  *   "NorCal Approach, Cessna 5678..." -> "NorCal Approach"
- *   "Seattle Tower, N172SP..." -> "Seattle Tower"
  */
 export function extractFacilityFromTranscript(transcript, fallback = 'Boston Center') {
     if (!transcript || typeof transcript !== 'string') return fallback;
+
+    const lower = transcript.toLowerCase();
+
+    if (lower.includes('center')) return 'Boston Center';
+    if (lower.includes('approach')) return 'Boston Approach';
+    if (lower.includes('tower')) return 'Boston Tower';
+    if (lower.includes('ground')) return 'Boston Ground';
 
     const match = transcript.match(/\b([a-z0-9\s]{2,20})\s+(center|approach|departure|tower|ground|delivery|clearance)\b/i);
     if (match) {
@@ -195,7 +190,6 @@ export function extractFacilityFromTranscript(transcript, fallback = 'Boston Cen
 
 /**
  * Fast-path rule-based slot extractor (< 0.1ms).
- * Extracts callsign, runway, taxiway, altitude, heading, squawk from spoken transcript.
  */
 export function extractSlotsRuleBased(transcript, requiredKeys = [], resolvedSlots = {}) {
     if (!transcript) return {};

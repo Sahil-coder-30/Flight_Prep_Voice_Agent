@@ -7,6 +7,7 @@ const GENERAL_EXPLICIT_QUERY_PATTERNS = [
     /\b(what|how|why|where|when|explain|tell me|can you explain|could you explain|what is|how do)\b/i,
     /\b(hello|hi|hey|good morning|good afternoon|good evening|test|testing)\b/i,
     /\b(request\s+push\s*back|push\s*back|pushback|request\s+start|engine\s+start|start\s+and\s+pushback|request\s+taxi|ready\s+for\s+taxi|ready\s+for\s+pushback|request\s+clearance|request\s+vfr|flight\s+following|gate\s+[a-z0-9]+)\b/i,
+    /\b(mayday|pan\s*pan|emergency|problem|cabin\s+pressure|immediate\s+descent|losing\s+pressure|engine\s+failure|engine\s+out|medical\s+emergency|squawk\s+7700|declaring\s+an\s+emergency|descent|requesting\s+[0-9,]+|looking\s+for\s+an\s+immediate)\b/i,
     /\b(radio\s+check|say\ +again|say\ +altimeter|say\ +wind|information\ +[a-z])\b/i,
 ];
 
@@ -19,7 +20,7 @@ function isExplicitGeneralQuery(text) {
 /**
  * validateReadback — Node 6
  *
- * 1. Checks if input is an explicit informational query or unscripted pilot request (e.g. pushback/start/taxi request).
+ * 1. Checks if input is an explicit informational query, emergency, or unscripted pilot request (e.g. pressure loss/descent/pushback/start).
  *    If so, routes directly to generalAnswerNode (Qdrant RAG).
  * 2. Otherwise extracts readback slots and validates against step slots.
  *
@@ -38,13 +39,13 @@ export async function validateReadbackNode(state) {
         };
     }
 
-    // Extract dynamic callsign if pilot spoke it (e.g. Delta 3088, N172SP)
+    // Extract dynamic callsign if pilot spoke it (e.g. Skyline 412, Delta 3088, N172SP)
     const activeCallsign = extractCallsignFromTranscript(pilotTranscript, state.aircraftCallsign || 'N172SP');
     const { stepId = '', templateId = '', slots = [] } = currentStep || {};
 
-    // ── 1. Route explicit queries & unscripted requests to generalAnswerNode (RAG) ──
+    // ── 1. Route explicit queries, emergencies & unscripted requests to generalAnswerNode (RAG) ──
     if (isExplicitGeneralQuery(pilotTranscript)) {
-        console.log(`[validateReadback] Unscripted request/query detected: "${pilotTranscript}" (callsign: ${activeCallsign}) -> Routing to generalAnswer`);
+        console.log(`[validateReadback] Emergency/unscripted request detected: "${pilotTranscript}" (callsign: ${activeCallsign}) -> Routing to generalAnswer`);
         const pilotMsg = {
             role: 'pilot',
             text: pilotTranscript,
