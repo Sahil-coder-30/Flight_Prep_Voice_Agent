@@ -15,14 +15,16 @@
 
 ## 📖 Table of Contents
 - [Executive Overview & Core Vision](#-executive-overview--core-vision)
+- [3D MetallicOrb Audio Reactivity & Visualizer](#-3d-metallicorb-audio-reactivity--visualizer)
 - [The Main Selling Proposition (MSP): 7-Layer Redis Caching Architecture](#-the-main-selling-proposition-msp-7-layer-redis-caching-architecture)
   - [1. Simplest Language Explanation (Why Redis?)](#1-simplest-language-explanation-why-redis)
   - [2. The 7-Layer Architecture Matrix](#2-the-7-layer-architecture-matrix)
   - [3. Deep-Dive Layer Breakdown & Complete Code Blocks](#3-deep-dive-layer-breakdown--complete-code-blocks)
   - [4. Step-by-Step Latency Reduction Breakdown](#4-step-by-step-latency-reduction-breakdown)
+- [Why Microservices Architecture?](#-why-microservices-architecture)
 - [LangGraph Agent Flow & System Architecture](#-langgraph-agent-flow--system-architecture)
   - [Complete Agent Execution Flow (Step-by-Step)](#complete-agent-execution-flow-step-by-step)
-- [Step-by-Step Deployment & Skaffold Setup](#-step-by-step-deployment--skaffold-setup)
+- [Step-by-Step Deployment & Skaffold Setup (Mac & Windows)](#-step-by-step-deployment--skaffold-setup-mac--windows)
 - [1,912-Chunk Qdrant Vector RAG Grounding](#-1912-chunk-qdrant-vector-rag-grounding)
 - [Microservices Inventory & Zero-Trust Security](#-microservices-inventory--zero-trust-security)
 - [Monorepo Directory Layout](#-monorepo-directory-layout)
@@ -49,6 +51,17 @@ By engineering a **7-Tier Multi-Model Redis Caching Architecture**, our platform
 =========================================================================================================================
 OPTIMIZED REDIS PLATFORM LATENCY = <280ms (REAL-TIME AVIATION RADIO EMULATION — 89.2% FASTER)
 ```
+
+---
+
+## 🔮 3D MetallicOrb Audio Reactivity & Visualizer
+
+The simulator interface features a custom interactive **3D MetallicOrb** built with Three.js and WebGL. It reacts in real-time to microphone audio levels during student transmissions and morphs state dynamically based on WebSocket telemetry emitted by the AI service controller:
+
+![3D MetallicOrb Simulator Visualizer](file:///Users/home/Desktop/ATC/docs/assets/3d_metallic_orb_simulator.png)
+
+* **Push-To-Talk (PTT) Gating:** Holding the Spacebar locks microphone audio input, preventing race conditions while real-time Web Audio API frequency analyzers drive vertex shader wave displacement on the MetallicOrb.
+* **Controller Voice Activity:** When the AI controller transmits speech, WebSocket events (`ATC_SPEAKING_START` / `ATC_SPEAKING_END`) morph the MetallicOrb into active audio emission modes (`SWARM CLOUD`, `RADAR SWEEP`, `LATTICE MATRIX`, `AVIATION HEADSET`).
 
 ---
 
@@ -470,6 +483,17 @@ Here is the exact benchmark comparison demonstrating how the 7-Layer Redis Engin
 
 ---
 
+## 🏗️ Why Microservices Architecture?
+
+We specifically decoupled our platform into **4 distinct domain microservices** (`Auth`, `Backend`, `Ai-service`, `Frontend`) rather than building a monolithic application. Here is why this architectural choice was mandatory:
+
+1. **Workload Isolation & Non-Blocking Event Loops:** The `Ai-service` executes heavy asynchronous audio processing, vector embeddings, persistent WebSockets, and state machine transitions. Separating it ensures that CPU-intensive audio parsing or external API timeouts in `Ai-service` never block user logins in `Auth` or scenario browsing in `Backend`.
+2. **Horizontal Pod Autoscaling (HPA):** Under peak student pilot training loads, Kubernetes scales `ai-service` deployment replicas independently (e.g. scaling from 2 to 20 pods) based on active WebSocket connections and RAM usage, without wasting cloud resources scaling authentication databases.
+3. **Stateless Auth Verification (RS256 JWKS):** By storing RSA-4096 public keys in Redis Layer 5, both `Backend` and `Ai-service` verify student JWT access tokens locally in ~1ms without making blocking HTTP network calls back to `Auth`.
+4. **Fault Tolerance & Resiliency:** If external LLM APIs experience outages, the core authentication system, scenario browsing, and student progress telemetry remain 100% operational.
+
+---
+
 ## 🧠 LangGraph Agent Flow & System Architecture
 
 ```mermaid
@@ -567,41 +591,47 @@ flowchart TD
 
 ---
 
-## 🛠️ Step-by-Step Deployment & Skaffold Setup
+## 🛠️ Step-by-Step Deployment & Skaffold Setup (Mac & Windows)
 
-Follow these exact steps to deploy the full platform monorepo in a local Kubernetes dev environment:
+Follow these exact steps to run the complete platform monorepo on macOS or Windows:
 
-### Prerequisites
+### 1. Install Prerequisites
 
-1. **Docker Desktop:** Ensure Docker Desktop is installed and running with Kubernetes enabled (`Settings > Kubernetes > Enable Kubernetes`).
-2. **Skaffold CLI:** Install Skaffold for automated Kubernetes deployment and live hot-reloading:
-   ```bash
-   # macOS via Homebrew
-   brew install skaffold
+#### On macOS:
+```bash
+# Install Skaffold via Homebrew
+brew install skaffold
 
-   # Verify installation
-   skaffold version
-   ```
+# Verify installation
+skaffold version
+```
+
+#### On Windows:
+```cmd
+:: Install Skaffold via Chocolatey
+choco install -y skaffold
+
+:: OR install via WinGet
+winget install Google.Skaffold
+
+:: Verify installation
+skaffold version
+```
+
+#### Enable Kubernetes Cluster:
+Open **Docker Desktop** settings and enable Kubernetes (`Settings > Kubernetes > Check "Enable Kubernetes" > Apply & Restart`).
 
 ---
 
-### Deployment Workflow
+### 2. Configure Environment Secrets (`k8s/secrets.yml`)
 
-#### Step 1: Clone Repository & Install Dependencies
-```bash
-git clone https://github.com/your-org/atc-voice-simulator.git
-cd atc-voice-simulator
-npm install
-```
-
-#### Step 2: Configure Environment Secrets (`k8s/secrets.yml`)
-Copy the template secret configuration file [`k8s/secrets.yml.example`](file:///Users/home/Desktop/ATC/k8s/secrets.yml.example) to create [`k8s/secrets.yml`](file:///Users/home/Desktop/ATC/k8s/secrets.yml):
+In the project root directory, copy [`k8s/secrets.yml.example`](file:///Users/home/Desktop/ATC/k8s/secrets.yml.example) to create [`k8s/secrets.yml`](file:///Users/home/Desktop/ATC/k8s/secrets.yml):
 
 ```bash
 cp k8s/secrets.yml.example k8s/secrets.yml
 ```
 
-Edit `k8s/secrets.yml` with your database URIs and API keys:
+Edit `k8s/secrets.yml` to include your MongoDB URIs and API credentials:
 
 ```yaml
 apiVersion: v1
@@ -629,14 +659,39 @@ stringData:
   DEEPGRAM_API_KEY: "your-deepgram-api-key"
 ```
 
-#### Step 3: Launch Cluster via Skaffold
-Run `skaffold dev` to build all Docker images, apply Kubernetes manifests, configure ingress routing, and start live file syncing:
+---
+
+### 3. Install NGINX Ingress Controller
+
+Apply the official NGINX Ingress Controller manifest to route cluster traffic across microservice ports (`/api/auth`, `/api/backend`, `/api/ai`, `/ws`):
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.1/deploy/static/provider/cloud/deploy.yaml
+```
+
+---
+
+### 4. Launch Microservices Cluster with Skaffold
+
+Run `skaffold dev` inside the root `ATC` folder. Skaffold will build all container images, apply K8s deployment manifests, configure routing, and enable live hot-reloading:
 
 ```bash
 skaffold dev
 ```
 
-*🎉 **Success!** All 4 microservices (Auth, Core Backend, AI Service, Frontend) and Redis/Qdrant connectivity will be running in hot-reload mode! Access the platform at `http://localhost`.*
+---
+
+### 5. Launch React Frontend
+
+In a secondary terminal window, navigate to the `Frontend` directory and launch the Vite development server:
+
+```bash
+cd Frontend
+npm install
+npm run dev
+```
+
+*🎉 **Success!** Access the interactive 3D voice simulator at `http://localhost:5173` (or via cluster ingress at `http://localhost`).*
 
 ---
 
@@ -714,7 +769,9 @@ ATC/
 │   ├── middleware/                     ← identifyUser.middleware.js (Redis L5)
 │   └── services/                       ← qdrant.service.js (L1/L2), tts.service.js (L7)
 ├── Frontend/                           ← React 18 Single Page Application (Port 5173)
+│   └── src/features/simulator/         ← MetallicOrb Three.js & WebSockets
 ├── docs/                               ← Architecture & Technical Specifications
+│   ├── assets/                         ← 3D MetallicOrb & UI Screenshots
 │   ├── redis_7_layer_architecture.md   ← 7-Layer Redis Technical Specification
 │   └── redis_presentation_judge_guide.md← Judge Presentation & Defense Strategy
 ├── helpers/                            ← PDF Manuals & Extractor scripts
