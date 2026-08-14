@@ -65,7 +65,7 @@ Our platform implements a **Zero-Trust RS256 JWKS Architecture**:
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Student as Student Pilot (React SPA)
+    actor Student as Student Pilot (Frontend SPA - Port 5173)
     participant Ingress as NGINX Ingress Controller
     participant Auth as Auth Service (Port 5000)
     participant Redis as Redis Cache (L5)

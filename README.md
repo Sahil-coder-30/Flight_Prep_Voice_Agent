@@ -75,16 +75,18 @@ The following diagram illustrates how incoming student requests route from the *
 
 ```mermaid
 flowchart TD
-    subgraph ClientLayer ["Client & Ingress Layer"]
-        Student["Student Pilot / Browser SPA"]
-        NGINX["NGINX Ingress Controller<br/>(Path Routing & SSL Termination)"]
+    subgraph ClientLayer ["Client Application Layer"]
+        Frontend["🎨 Frontend SPA<br/>React 18 / Redux / WebGL<br/>(Runs Independently on Port 5173)"]
     end
 
-    subgraph Microservices ["Microservices Cluster (Kubernetes Pods)"]
+    subgraph IngressLayer ["Ingress Controller Gateway"]
+        NGINX["NGINX Ingress Controller<br/>(Microservice API Path Router)"]
+    end
+
+    subgraph Microservices ["Backend Microservices Cluster (Kubernetes Pods)"]
         Auth["🔑 Auth Service<br/>Port 5000<br/>(OAuth2 & RS256 Token Signer)"]
         Backend["⚙️ Core Backend<br/>Port 5001<br/>(Scenarios & Telemetry)"]
         AIService["🧠 AI Service Engine<br/>Port 5002<br/>(LangGraph & Voice Inference)"]
-        Frontend["🎨 Frontend SPA<br/>Port 5173 / WebGL<br/>(3D MetallicOrb Visualizer)"]
     end
 
     subgraph DataInfra ["Persistence & Caching Infrastructure"]
@@ -93,11 +95,10 @@ flowchart TD
         Mongo["💾 MongoDB Atlas<br/>(Users, Scenarios, Telemetry)"]
     end
 
-    Student -->|HTTP / WebSocket| NGINX
+    Frontend -->|API HTTP / WebSockets| NGINX
     NGINX -->|/api/auth| Auth
     NGINX -->|/api/backend| Backend
     NGINX -->|/api/ai & /ws/simulator| AIService
-    NGINX -->|/| Frontend
 
     Auth -->|Stores Refresh Tokens| Mongo
     Auth -->|Publishes Public Keys| Redis
@@ -636,16 +637,18 @@ We specifically decoupled our platform into **4 distinct domain microservices** 
 
 ```mermaid
 flowchart TD
-    subgraph ClientLayer ["Client & Ingress Layer"]
-        Student["Student Pilot / Browser SPA"]
-        NGINX["NGINX Ingress Controller<br/>(Path Routing & SSL Termination)"]
+    subgraph ClientLayer ["Client Application Layer"]
+        Frontend["🎨 Frontend SPA<br/>React 18 / Redux / WebGL<br/>(Runs Independently on Port 5173)"]
     end
 
-    subgraph Microservices ["Microservices Cluster (Kubernetes Pods)"]
+    subgraph IngressLayer ["Ingress Controller Gateway"]
+        NGINX["NGINX Ingress Controller<br/>(Microservice API Path Router)"]
+    end
+
+    subgraph Microservices ["Backend Microservices Cluster (Kubernetes Pods)"]
         Auth["🔑 Auth Service<br/>Port 5000<br/>(OAuth2 & RS256 Token Signer)"]
         Backend["⚙️ Core Backend<br/>Port 5001<br/>(Scenarios & Telemetry)"]
         AIService["🧠 AI Service Engine<br/>Port 5002<br/>(LangGraph & Voice Inference)"]
-        Frontend["🎨 Frontend SPA<br/>Port 5173 / WebGL<br/>(3D MetallicOrb Visualizer)"]
     end
 
     subgraph DataInfra ["Persistence & Caching Infrastructure"]
@@ -654,11 +657,10 @@ flowchart TD
         Mongo["💾 MongoDB Atlas<br/>(Users, Scenarios, Telemetry)"]
     end
 
-    Student -->|HTTP / WebSocket| NGINX
+    Frontend -->|API HTTP / WebSockets| NGINX
     NGINX -->|/api/auth| Auth
     NGINX -->|/api/backend| Backend
     NGINX -->|/api/ai & /ws/simulator| AIService
-    NGINX -->|/| Frontend
 
     Auth -->|Stores Refresh Tokens| Mongo
     Auth -->|Publishes Public Keys| Redis
