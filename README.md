@@ -14,8 +14,19 @@
 
 ---
 
+## 💡 Project Description & Core Motivation
+
+* **Why We Built This Project:** Student pilots face intense "mic fright" and phraseology anxiety when transmitting over real air traffic control radio frequencies. Traditional ground school tools only offer static multiple-choice tests or pre-recorded audio tracks, failing to build real-time radio muscle memory. We built the **ATC Voice Simulator** to provide an autonomous, 24/7 interactive speech-to-speech simulation environment where student pilots can practice dynamic radio dialogues risk-free.
+* **Why the Problem Matters:** In real-world aviation, radio miscommunications or delays lead to stepped-over transmissions, dangerous runway incursions, and pilot training delays. Meanwhile, human flight simulator instructor billable time costs **$150 to $300 per hour**, creating a massive financial barrier for aspiring aviators. An AI voice simulation engine running at real-time speeds (<500ms SLA) drastically reduces flight training costs and enhances airspace safety.
+* **Scientific & Development Contributions:** 
+  - **Sub-280ms Voice Agent Latency (89.2% Speedup):** Engineered a multi-model **7-Layer Redis Caching Architecture** that bypasses vector database queries, LLM inference, and TTS audio rendering for 80% of routine phraseology turns, slashing end-to-end voice latency from ~2.5 seconds down to `<280ms`.
+  - **Zero-Trust Microservices Security Architecture:** Designed an asymmetric **RS256 JWKS authentication framework** with Redis Layer 5 (`auth:jwks:cache`) public key distribution, enabling zero-latency local token verification (~1ms) across decoupled microservices.
+  - **1,912-Chunk Regulatory Vector Grounding:** Embedded complete FAA JO 7110.65 and ICAO Doc 4444 phraseology standards into Qdrant Cloud vector DB coupled with a 9-node LangGraph state machine agent for deterministic aviation clearance validation.
+
+---
 
 ## 📖 Table of Contents
+- [Project Description & Core Motivation](#-project-description--core-motivation)
 - [Executive Overview & Core Vision](#-executive-overview--core-vision)
 - [Quick Start & Microservices Directory](#-quick-start--microservices-directory)
 - [3D MetallicOrb Audio Reactivity & Visualizer](#-3d-metallicorb-audio-reactivity--visualizer)
@@ -23,7 +34,7 @@
 - [The Main Selling Proposition (MSP): 7-Layer Redis Caching Architecture](#-the-main-selling-proposition-msp-7-layer-redis-caching-architecture)
   - [1. Simplest Language Explanation (Why Redis & Why Latency Drop Matters)](#1-simplest-language-explanation-why-redis--why-latency-drop-matters)
   - [2. The 7-Layer Architecture Matrix](#2-the-7-layer-architecture-matrix)
-  - [3. Deep-Dive Layer Breakdown & Complete Code Blocks](#3-deep-dive-layer-breakdown--complete-code-blocks)
+  - [3. Deep-Dive Layer Summaries & Architecture Links](#3-deep-dive-layer-summaries--architecture-links)
   - [4. Step-by-Step Latency Reduction Breakdown (89.2% Drop)](#4-step-by-step-latency-reduction-breakdown-892-drop)
 - [Why Microservices Architecture?](#-why-microservices-architecture)
 - [Step-by-Step Deployment & Skaffold Setup (Mac & Windows)](#-step-by-step-deployment--skaffold-setup-mac--windows)
@@ -33,19 +44,8 @@
 - [Microservices Inventory & Zero-Trust Security](#-microservices-inventory--zero-trust-security)
 - [Monorepo Directory Layout](#-monorepo-directory-layout)
 - [Global API & WebSocket Reference](#-global-api--websocket-reference)
-- [Market & Business Model Analysis (Investor Brief & Financial Deck)](#-market--business-model-analysis-investor-brief--financial-deck)
-  - [Executive Business Summary (TL;DR)](#-executive-summary--business--financial-model-tldr)
-  - [1. Executive Pitch Dashboard](#1-executive-pitch-dashboard)
-  - [2. Technical & Cost Moat Matrix](#2-technical--cost-moat-matrix)
-  - [3. API Vendor Rate Cards & Exact Cost Accounting Formulas](#3-api-vendor-rate-cards--exact-cost-accounting-formulas)
-  - [4. Fixed Infrastructure & Dynamic Compute Costs](#4-fixed-infrastructure--dynamic-compute-costs)
-  - [5. Multi-Tiered Unit Economics & Margin Accounting](#5-multi-tiered-unit-economics--margin-accounting)
-  - [6. Launch Cohort Financial Statement (August 1 P&L)](#6-launch-cohort-financial-statement-august-1-pl)
-  - [7. 3-Year Investor ROI & Scale Forecast](#7-3-year-investor-roi--scale-forecast)
-  - [8. Frequently Asked Questions (FAQ) & Technical Defense Strategy](#8-frequently-asked-questions-faq--technical-defense-strategy)
-  - [9. Operational Engineering Controls](#9-operational-engineering-controls)
-  - [10. Cost Optimization Infographic (OLD vs NEW Cost Structure)](#10-cost-optimization-infographic-old-vs-new-cost-structure)
-  - [11. Core Business Logic & Enterprise Value Rationale](#11-core-business-logic--enterprise-value-rationale)
+- [Business Model & Unit Economics Overview](#-business-model--unit-economics-overview)
+- [Credits & Ecosystem Partners](#-credits--ecosystem-partners)
 
 ## 🎯 Executive Overview & Core Vision
 
@@ -163,6 +163,14 @@ Click any microservice below to jump directly to its dedicated README documentat
 | ⚙️ **Core Backend (`backend-service`)** | `Port 5001` | Scenario Catalog Engine, Active Simulation Session Telemetry, Student Performance Scoring | 📄 [**`Backend/README.md`**](Backend/README.md) |
 | 🎨 **Frontend SPA (`frontend`)** | `Port 5173` | React 18, Redux Toolkit, Web Audio API Push-To-Talk Analyzer, **3D MetallicOrb WebGL Visualizer** | 📄 [**`Frontend/README.md`**](Frontend/README.md) |
 
+> [!NOTE]
+> **🤝 Credits & Ecosystem Partners:**
+> Special thanks and shout-out to our technology partners empowering the ATC Voice Simulator platform:
+> - 🤝 **Pathway** — Real-time event streaming & telemetry analytics engine
+> - 🤝 **Rime** — Sub-200ms ultra-low latency Neural Text-to-Speech (TTS) voice synthesis engine
+> - 🤝 **Weya** — Enterprise AI compute & cloud infrastructure ecosystem
+> - 🤝 **Qdrant** — High-performance vector database powering 1,912 phraseology RAG grounding chunks
+
 ---
 
 ## 🔮 3D MetallicOrb Audio Reactivity & Visualizer
@@ -263,352 +271,17 @@ flowchart TD
 
 ---
 
-### 3. Deep-Dive Layer Breakdown & Complete Code Blocks
+### 3. Deep-Dive Layer Summaries & Architecture Links
 
-#### 🟢 Layer 1: Template Embedding Cache (`L1`)
-* **Concerned File:** [`Ai-service/services/qdrant.service.js`](Ai-service/services/qdrant.service.js#L13-L64)
-* **Key Pattern:** `emb:tmpl:{templateId}` | **TTL:** 30 Days | **Latency:** `~2ms`
-* **How it works:** Scenario step prompts (e.g. `tmpl_ground_taxi_v1`) are pre-embedded during application startup via [`scripts/warmTemplateEmbeddings.js`](Ai-service/scripts/warmTemplateEmbeddings.js). The 1024-dimensional Mistral vector is read directly from Redis in ~2ms, eliminating remote HTTP calls.
+> 📄 *Complete, un-truncated JavaScript code implementations, file line references, and operational verification commands for all 7 layers are available in [`docs/redis_7_layer_architecture.md`](docs/redis_7_layer_architecture.md)*
 
-```javascript
-// File: Ai-service/services/qdrant.service.js
-
-/**
- * Layer 1 (L1): Template Embedding Cache
- * Checks Redis L1 before triggering remote Mistral embedding computation.
- */
-export async function embedText(text, templateId = null, ctx = {}) {
-    const redis = getRedisClient();
-
-    // 1. CHECK LAYER 1 REDIS CACHE: Look up pre-computed vector by templateId
-    if (templateId) {
-        const cacheKey = `emb:tmpl:${templateId}`;
-        const cached = await redis.get(cacheKey);
-        if (cached) {
-            console.log(`[Redis L1 Hit] Served template embedding for key "${cacheKey}" in ~2ms`);
-            return JSON.parse(cached); // Fast L1 Cache Return (~2ms)
-        }
-    }
-
-    // 2. COLD PATH: Remote call to Mistral Embedding API (~450ms)
-    const apiKey = process.env.MISTRAL_API_KEY || process.env.MISTRALAI_API_KEY;
-    const t0 = Date.now();
-    const res = await fetch('https://api.mistral.ai/v1/embeddings', {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ model: 'mistral-embed', input: [text] }),
-    });
-
-    const data = await res.json();
-    const vector = data?.data?.[0]?.embedding;
-
-    // 3. CACHE WRITE: Save vector to Redis L1 with a 30-day TTL
-    if (templateId && vector) {
-        const cacheKey = `emb:tmpl:${templateId}`;
-        await redis.setex(cacheKey, 60 * 60 * 24 * 30, JSON.stringify(vector));
-    }
-
-    return vector;
-}
-```
-
----
-
-#### 🟢 Layer 2: Qdrant Grounding Cache (`L2`)
-* **Concerned File:** [`Ai-service/services/qdrant.service.js`](Ai-service/services/qdrant.service.js#L102-L141) & [`agent/nodes/qdrantRetrieve.js`](Ai-service/agent/nodes/qdrantRetrieve.js)
-* **Key Pattern:** `gnd:tmpl:{templateId}` | **TTL:** 7 Days | **Latency:** `~3ms`
-* **How it works:** Caches top-3 retrieved ICAO Doc 4444 and FAA JO 7110.65 phraseology excerpts for scenario step templates. Cuts vector DB search latency from 380ms to 3ms.
-
-```javascript
-// File: Ai-service/services/qdrant.service.js
-
-/**
- * Layer 2 (L2): Qdrant Grounding Cache
- * Serves phraseology grounding rules from Redis RAM in ~3ms.
- */
-export async function retrieve(query, procedureType, phase, templateId = null, limit = 3) {
-    try {
-        const redis = getRedisClient();
-
-        // 1. CHECK LAYER 2 REDIS CACHE: Look up phraseology grounding rules
-        if (templateId) {
-            const cacheKey = `gnd:tmpl:${templateId}`;
-            const cached = await redis.get(cacheKey);
-            if (cached) {
-                console.log(`[Redis L2 Hit] Served Qdrant grounding rules for "${cacheKey}" in ~3ms`);
-                return JSON.parse(cached); // Fast L2 Cache Return (~3ms)
-            }
-        }
-
-        // 2. COLD PATH: Vector search in Qdrant Cloud Vector Database (~380ms)
-        const vector = await embedText(query, templateId);
-        const mustFilter = [];
-        if (procedureType) mustFilter.push({ key: 'procedure_type', match: { value: procedureType } });
-        if (phase) mustFilter.push({ key: 'phase', match: { value: phase } });
-
-        let rawHits = await searchQdrant(vector, limit, mustFilter.length > 0 ? { must: mustFilter } : null);
-        const hits = (rawHits || []).map((r) => ({
-            text: r.payload?.text,
-            score: r.score,
-            metadata: r.payload,
-        }));
-
-        // 3. CACHE WRITE: Save retrieved grounding rules to Redis L2 (7-day TTL)
-        if (templateId && hits.length > 0) {
-            const cacheKey = `gnd:tmpl:${templateId}`;
-            await redis.setex(cacheKey, 60 * 60 * 24 * 7, JSON.stringify(hits));
-        }
-
-        return hits;
-    } catch (err) {
-        console.warn('[Qdrant] Retrieval warning:', err.message);
-        return [];
-    }
-}
-```
-
----
-
-#### 🟢 Layer 3: LangGraph State Checkpoint Cache (`L3`)
-* **Concerned File:** [`Ai-service/controllers/aiSession.controller.js`](Ai-service/controllers/aiSession.controller.js#L62-L134)
-* **Key Pattern:** `sess:cp:{sessionId}` | **TTL:** 24 Hours | **Latency:** `~4ms`
-* **How it works:** When the controller stops speaking, LangGraph hits an `awaitReadback` interrupt boundary. The entire state object is serialized and saved in Redis L3. Upon pilot PTT press, Redis re-hydrates the state machine in <5ms.
-
-```javascript
-// File: Ai-service/controllers/aiSession.controller.js
-
-/**
- * Layer 3 (L3): LangGraph State Checkpoint Cache
- * Endpoint: POST /api/ai/sessions/:id/turn
- */
-export async function turn(req, res) {
-    const { id } = req.params;
-    const { pilotTranscript } = req.body;
-    const config = { configurable: { thread_id: id } };
-    const redis = getRedisClient();
-
-    let result;
-    if (pilotTranscript && pilotTranscript.trim() !== '') {
-        // RESUME STATE MACHINE: Re-hydrate state from Redis L3 checkpoint and resume from interrupt
-        result = await compiledGraph.invoke({
-            resume: pilotTranscript,
-            pilotTranscript,
-        }, config);
-    } else {
-        // INITIALIZE THREAD STATE
-        result = await compiledGraph.invoke({ sessionId: id, stepIndex: 0 }, config);
-    }
-
-    // 3. CACHE WRITE: Save active AgentState checkpoint snapshot in Redis L3 (24h TTL)
-    await redis.setex(`sess:cp:${id}`, 86400, JSON.stringify(result)).catch(() => {});
-
-    return res.status(200).json({
-        status: 'success',
-        data: {
-            sessionId: id,
-            audioBase64: result?.audioBase64 || null,
-            finished: result?.finished || false,
-            currentLine: result?.currentLine || '',
-            stepIndex: result?.stepIndex || 0,
-        },
-    });
-}
-```
-
----
-
-#### 🟢 Layer 4: Dynamic Session Slot Cache (`L4`)
-* **Concerned File:** [`Ai-service/agent/utils/slotResolver.js`](Ai-service/agent/utils/slotResolver.js#L18-L79)
-* **Key Pattern:** `sess:slots:{sessionId}` | **TTL:** 24 Hours | **Latency:** `~2ms`
-* **How it works:** Flight variables (wind `270@14`, altimeter `29.92`, squawk `4521`, ATIS letter `Bravo`) are generated once at session start and cached in Redis L4. Guarantees 100% turn consistency across the entire flight session.
-
-```javascript
-// File: Ai-service/agent/utils/slotResolver.js
-
-/**
- * Layer 4 (L4): Dynamic Session Slot Cache
- * Manages randomized session variable persistence in Redis RAM.
- */
-
-// 1. GENERATE & CACHE: Create randomized flight parameters at session initialization
-export async function generateAndCacheSessionSlots(sessionId, steps) {
-    const redis = getRedisClient();
-    const cacheKey = `sess:slots:${sessionId}`;
-
-    const existing = await redis.get(cacheKey);
-    if (existing) return JSON.parse(existing);
-
-    const dynamicValues = {};
-    for (const step of (steps || [])) {
-        for (const slot of (step.slots || [])) {
-            const key = slot.dynamicType || slot.key;
-            if ((slot.source === 'dynamic' || !slot.staticValue) && key && !dynamicValues[key]) {
-                const generator = DYNAMIC_GENERATORS[key];
-                if (generator) dynamicValues[key] = generator();
-            }
-        }
-    }
-
-    // CACHE WRITE: Store dynamic slot dictionary in Redis L4 (24h TTL)
-    await redis.setex(cacheKey, 60 * 60 * 24, JSON.stringify(dynamicValues));
-    return dynamicValues;
-}
-
-// 2. RESOLVE SLOTS: Read dynamic slot dictionary from Redis L4 during turn execution (~2ms)
-export async function resolveSlots(step, sessionId, scenarioMeta = {}) {
-    const redis = getRedisClient();
-
-    // READ FROM REDIS L4 CACHE
-    const sessionSlotsRaw = await redis.get(`sess:slots:${sessionId}`);
-    const sessionDynamic = sessionSlotsRaw ? JSON.parse(sessionSlotsRaw) : {};
-
-    const resolved = {};
-    for (const slot of (step.slots || [])) {
-        const { key, source, staticValue, dynamicType } = slot;
-        const lookupKey = dynamicType || key;
-
-        if (source === 'static' && staticValue != null) {
-            resolved[key] = staticValue;
-        } else if (source === 'dynamic' && sessionDynamic[lookupKey] != null) {
-            resolved[key] = sessionDynamic[lookupKey]; // ~2ms L4 Redis Hit!
-        }
-    }
-    return resolved;
-}
-```
-
----
-
-#### 🟢 Layer 5: JWKS Public Key Cache (`L5`)
-* **Concerned File:** [`Ai-service/middleware/identifyUser.middleware.js`](Ai-service/middleware/identifyUser.middleware.js#L13-L68)
-* **Key Pattern:** `auth:jwks:cache` | **TTL:** 24 Hours | **Latency:** `~1ms`
-* **How it works:** Microservices verify student RS256 JWT access tokens locally. The Auth service RSA public keys are cached in Redis L5, eliminating inter-service HTTP auth calls (95ms → 1ms).
-
-```javascript
-// File: Ai-service/middleware/identifyUser.middleware.js
-
-/**
- * Layer 5 (L5): JWKS Public Key Cache
- * Enables zero-latency local RS256 JWT verification without Auth Service HTTP requests.
- */
-let cachedJwks = null;
-let lastFetchedTime = 0;
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 Hours
-
-async function fetchJwks(forceRefresh = false) {
-    const now = Date.now();
-    
-    // 1. CHECK LAYER 5 REDIS / MEMORY CACHE: Serve cached JWKS public keys if fresh (~1ms)
-    if (!forceRefresh && cachedJwks && now - lastFetchedTime < CACHE_TTL_MS) {
-        return cachedJwks; // ~1ms L5 JWKS Hit (0 HTTP inter-service calls)!
-    }
-
-    // 2. COLD PATH: Fetch JWKS RSA public keys from Auth Service (~95ms HTTP hop)
-    const response = await fetch('http://auth-service/api/auth/.well-known/jwks.json');
-    const data = await response.json();
-
-    cachedJwks = data.keys;
-    lastFetchedTime = now;
-    return cachedJwks;
-}
-
-async function resolvePublicKey(token) {
-    const header = jwt.decode(token, { complete: true })?.header;
-    let keys = await fetchJwks();
-    let jwk = keys.find((k) => k.kid === header.kid);
-
-    // Dynamic recovery: On key ID mismatch (e.g. key rotation), force refresh cache once
-    if (!jwk) {
-        keys = await fetchJwks(true);
-        jwk = keys.find((k) => k.kid === header.kid);
-    }
-    return createPublicKey({ key: jwk, format: 'jwk' }).export({ type: 'spki', format: 'pem' });
-}
-```
-
----
-
-#### 🟢 Layer 6: Sliding Window Rate Limiter Counter (`L6`)
-* **Concerned File:** [`Ai-service/config/redis.js`](Ai-service/config/redis.js#L57-L63) & [`server.js`](Ai-service/server.js)
-* **Key Pattern:** `rl:ip:{ipAddress}` | **TTL:** 15 Minutes | **Latency:** `~1ms`
-* **How it works:** Uses Redis atomic counter commands (`INCR` & `EXPIRE`) to track API requests per student IP within a 15-minute sliding window (max 300 requests), shielding expensive LLM APIs from DDoS.
-
-```javascript
-// File: Ai-service/config/redis.js
-
-/**
- * Layer 6 (L6): Sliding Window Rate Limiter Counter
- * Atomic Redis memory counter protecting downstream voice LLM pipelines.
- */
-export async function checkRateLimit(ipAddress, limit = 300, windowSeconds = 900) {
-    const redis = getRedisClient();
-    const key = `rl:ip:${ipAddress}`;
-
-    // 1. ATOMIC INCREMENT: Increment request counter in Redis RAM (~1ms)
-    const current = await redis.incr(key);
-
-    // 2. WINDOW EXPIRY: Set expiration on window initialization
-    if (current === 1) {
-        await redis.expire(key, windowSeconds);
-    }
-
-    // 3. THRESHOLD ENFORCEMENT: Block requests if client exceeds quota
-    if (current > limit) {
-        return { allowed: false, current, limit };
-    }
-
-    return { allowed: true, current, limit };
-}
-```
-
----
-
-#### 🟢 Layer 7: TTS Audio Output Cache (`L7`)
-* **Concerned File:** [`Ai-service/agent/nodes/ttsSpeak.js`](Ai-service/agent/nodes/ttsSpeak.js#L23-L34) & [`services/tts.service.js`](Ai-service/services/tts.service.js)
-* **Key Pattern:** `tts:{sha256(text)}` | **TTL:** 7 Days | **Latency:** `~5ms`
-* **How it works:** Standard static controller responses (e.g. *"Readback correct, contact tower on 118.3"*) are hashed using SHA-256 and stored as base64 MP3 strings in `tts:{sha256(text)}`.
-
-```javascript
-// File: Ai-service/services/tts.service.js
-
-/**
- * Layer 7 (L7): TTS Audio Output Cache
- * Hashes controller text and serves pre-synthesized MP3 base64 audio from Redis in ~5ms.
- */
-import crypto from 'crypto';
-import { getRedisClient } from '../config/redis.js';
-
-export async function speakWithCache(text) {
-    const redis = getRedisClient();
-    const hash = crypto.createHash('sha256').update(text.trim()).digest('hex').slice(0, 16);
-    const cacheKey = `tts:${hash}`;
-
-    // 1. CHECK LAYER 7 REDIS CACHE: Look up pre-synthesized base64 MP3 audio string
-    const cachedAudio = await redis.get(cacheKey);
-    if (cachedAudio) {
-        console.log(`[Redis L7 Hit] Served TTS audio base64 for "${text.slice(0, 20)}..." in ~5ms`);
-        return { audioBase64: cachedAudio, cacheHit: true }; // Fast L7 Cache Return (~5ms)!
-    }
-
-    // 2. COLD PATH: Remote call to Rime TTS API (~650ms audio rendering)
-    const res = await fetch('https://users.rime.ai/v1/rime-tts', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${process.env.RIME_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ speaker: 'grove', text, modelId: 'mist' }),
-    });
-
-    const audioBuffer = await res.arrayBuffer();
-    const audioBase64 = Buffer.from(audioBuffer).toString('base64');
-
-    // 3. CACHE WRITE: Save base64 MP3 payload into Redis L7 (7-day TTL)
-    await redis.setex(cacheKey, 60 * 60 * 24 * 7, audioBase64);
-
-    return { audioBase64, cacheHit: false };
-}
-```
+- **🟢 Layer 1: Template Embedding Cache (`L1`):** Caches pre-computed 1024-dim `mistral-embed` vectors for scenario step templates in Redis RAM (`emb:tmpl:{templateId}`). Slashes embedding generation latency from ~450ms down to `~2ms`. *Read full code in [`docs/redis_7_layer_architecture.md#layer-1-template-embedding-cache-l1`](docs/redis_7_layer_architecture.md#🟢-layer-1-template-embedding-cache-l1).*
+- **🟢 Layer 2: Qdrant Grounding Cache (`L2`):** Caches top-k retrieved FAA JO 7110.65 and ICAO Doc 4444 phraseology grounding rules in Redis RAM (`gnd:tmpl:{templateId}`). Slashes vector search latency from ~380ms down to `~3ms`. *Read full code in [`docs/redis_7_layer_architecture.md#layer-2-qdrant-grounding-cache-l2`](docs/redis_7_layer_architecture.md#🟢-layer-2-qdrant-grounding-cache-l2).*
+- **🟢 Layer 3: LangGraph State Checkpoint Cache (`L3`):** Serializes active `AgentState` checkpoints to Redis (`sess:cp:{sessionId}`) upon hitting the `awaitReadback` interrupt boundary. Enables instant graph re-hydration in `~4ms` upon Push-To-Talk press. *Read full code in [`docs/redis_7_layer_architecture.md#layer-3-langgraph-state-checkpoint-cache-l3`](docs/redis_7_layer_architecture.md#🟢-layer-3-langgraph-state-checkpoint-cache-l3).*
+- **🟢 Layer 4: Dynamic Session Slot Cache (`L4`):** Holds randomized flight session variables (wind `270@14`, altimeter `29.92`, squawk `4521`, ATIS letter `Bravo`) in Redis RAM (`sess:slots:{sessionId}`). Resolves variables in `~2ms`, guaranteeing 100% turn data consistency. *Read full code in [`docs/redis_7_layer_architecture.md#layer-4-dynamic-session-slot-cache-l4`](docs/redis_7_layer_architecture.md#🟢-layer-4-dynamic-session-slot-cache-l4).*
+- **🟢 Layer 5: JWKS Public Key Cache (`L5`):** Caches Auth service RSA-4096 public keys (`auth:jwks:cache`) for local RS256 JWT signature verification in `~1ms`, eliminating inter-service HTTP auth calls (95ms → 1ms). *Read full code in [`docs/redis_7_layer_architecture.md#layer-5-jwks-public-key-cache-l5`](docs/redis_7_layer_architecture.md#🟢-layer-5-jwks-public-key-cache-l5).*
+- **🟢 Layer 6: Sliding Window Rate Limiter (`L6`):** Atomic Redis request counter (`rl:ip:{ipAddress}`) allowing up to 300 turns per 15-minute window per IP, shielding expensive LLM APIs from DDoS. *Read full code in [`docs/redis_7_layer_architecture.md#layer-6-sliding-window-rate-limiter-counter-l6`](docs/redis_7_layer_architecture.md#🟢-layer-6-sliding-window-rate-limiter-counter-l6).*
+- **🟢 Layer 7: TTS Audio Output Cache (`L7`):** Caches SHA-256 hashed base64 MP3 audio strings (`tts:{sha256(text)}`) for static controller lines, cutting speech rendering latency from ~650ms down to `~5ms`. *Read full code in [`docs/redis_7_layer_architecture.md#layer-7-tts-audio-output-cache-l7`](docs/redis_7_layer_architecture.md#🟢-layer-7-tts-audio-output-cache-l7).*
 
 ---
 
@@ -1001,304 +674,27 @@ ATC/
 - `GET /ws/simulator` — WebSocket connection for 3D MetallicOrb reactivity & audio streaming
 
 
-## 📊 Market & Business Model Analysis (Investor Brief & Financial Deck)
+## 📈 Business Model & Unit Economics Overview
 
-> 📄 *Extracted & synthesized from [`helpers/Roger AI - Financial & Business Model Brief.pdf`](helpers/Roger%20AI%20-%20Financial%20%26%20Business%20Model%20Brief.pdf)*
+> 📄 *Full commercial analysis, financial modeling deck, API vendor rate cards, and 3-year P&L forecasts are available in [**`docs/business_architecture.md`**](docs/business_architecture.md)*
 
-### 📌 Executive Summary — Business & Financial Model (TL;DR)
+### Key Business & Unit Economics Highlights
 
-> [!IMPORTANT]
-> **Key Business Highlights & Unit Economics at a Glance:**
-> 1. **High-Margin B2B/B2C SaaS Model (91.8% Gross Margin):** Traditional flight simulator instructor time costs **$150 to $300 per hour**. We provide 24/7 unlimited radio phraseology training at **$15–$30/mo for B2C cadets** and **$50/seat/mo for B2B flight academies**, delivering 10x savings to flight schools while maintaining an **87.38% contribution margin**.
-> 2. **Sub-280ms Redis Fast-Path Cost Moat:** Standard AI voice agents cost **$0.08 per turn** and take **~2.6 seconds**. Our 7-Layer Redis Cache routes 80% of routine radio clearance turns through in-memory RAM, dropping unit cost down to **$0.000287 (₹0.024) per turn** — an **87.7% cost reduction**.
-> 3. **36.5% Annual Infrastructure Cost Savings:** By pairing browser-native STT fallback with Deepgram Nova-3, we eliminate third-party STT overhead on standard phraseology, saving **₹3,09,924 ($3,689) annually** and dropping total monthly operational burn from ₹70,740 to **₹44,913 / month**.
-> 4. **Rapid Scalability & High Investor ROI:** With a customer payback period of **1.1 months** and a **28.5x B2B LTV:CAC ratio**, the business scales from **$524k ARR in Year 1** to **$11.85M ARR in Year 3** at a **91.10% net EBITDA margin**.
+- **High-Margin B2B/B2C SaaS Model (91.8% Gross Margin):** Traditional flight simulator instructor time costs **\$150 to \$300 per hour**. We provide 24/7 unlimited radio phraseology practice at **\$15–\$30/mo for B2C cadets** and **\$50/seat/mo for B2B flight academies**, delivering 10x savings while maintaining an **87.38% contribution margin**.
+- **Sub-280ms Redis Fast-Path Cost Moat:** Standard AI voice agents cost **\$0.08 per turn** and take **~2.6 seconds**. Our 7-Layer Redis Cache routes 80% of routine radio clearance turns through in-memory RAM, dropping unit cost down to **\$0.000287 (₹0.024) per turn** — an **87.7% cost reduction**.
+- **36.5% Annual Infrastructure Cost Savings:** By pairing browser-native STT fallback with Deepgram Nova-3, we eliminate third-party STT overhead on standard phraseology, saving **₹3,09,924 (\$3,689) annually** and dropping total monthly operational burn from ₹70,740 to **₹44,913 / month**.
+- **Rapid Scalability & High Investor ROI:** With a customer payback period of **1.1 months** and a **28.5x B2B LTV:CAC ratio**, the business scales from **\$524k ARR in Year 1** to **\$11.85M ARR in Year 3** at a **91.10% net EBITDA margin**.
 
----
-
-### 1. Executive Pitch Dashboard
-
-```
-┌───────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 EXECUTIVE FINANCIAL & OPERATIONAL DASHBOARD                               │
-├───────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ METRIC                           VALUE (USD)              VALUE (INR)             INDUSTRY BENCHMARK      │
-├───────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ Target Market Size (TAM)         $4.2B Aviation Training  ₹35,280 Cr              Flight School & Airlines│
-│ Average B2C Monthly Price        $15.00 – $30.00 / mo     ₹1,260 – ₹2,520 / mo    Legacy Sim: $150–$300/hr│
-│ B2B Academy Seat Price           $50.00 / student / mo    ₹4,200 / student / mo   Flight School Budget    │
-│ B2B Enterprise Contract Value    $50,000 / year           ₹42,00,000 / year       Airline Training Budget │
-│ Average Gross Margin             91.8%                    91.8%                   SaaS Benchmark: 75-80%  │
-│ Unit Cost per Fast-Path Turn     $0.000287 / turn         ₹0.02408 / turn         Standard Voice AI: $0.08│
-│ End-to-End Radio Voice Latency   <280 ms                  <280 ms                 Standard LLM RAG: ~2.6s │
-│ Fixed Monthly Cluster Overhead   $267.84 / mo             ₹22,498.56 / mo         Fixed EKS/DB Base Load  │
-│ EBITDA Breakeven User Count      10 Pro Users OR 1 Enterprise Contract            6 Months Run Rate       │
-│ LTV : CAC Ratio (B2C / B2B)      14.2x (B2C) / 28.5x (B2B)14.2x / 28.5x          Venture Standard: >3.0x │
-│ Customer Payback Period          1.1 Months               1.1 Months              SaaS Target: <12 Months │
-└───────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-```
+> 📄 *For the full investor deck, vendor pricing card formulas, cohort P&L statements, and competitive moat defense strategies, read [**`docs/business_architecture.md`**](docs/business_architecture.md).*
 
 ---
 
-### 2. Technical & Cost Moat Matrix
+## 🤝 Credits & Ecosystem Partners
 
-Standard AI voice platforms execute remote vector database lookups, LLM inference, and TTS audio synthesis on **every single turn**. Our **7-Layer Redis Architecture** converts expensive, high-latency cloud operations into sub-5 millisecond in-memory lookups for **80% of routine phraseology turns**.
+We extend our sincere gratitude and shout-out to our core technology partners empowering the real-time AI voice simulation, vector search, streaming analytics, and cloud infrastructure ecosystem:
 
-```
-┌───────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ COST & LATENCY MOAT COMPARISON MATRIX (PER 1,000 RADIO TURNS)                                             │
-├───────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ PARAMETER                   TRADITIONAL AI VOICE PIPELINE       OUR 7-LAYER REDIS ENGINE      SAVINGS %   │
-├───────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ End-to-End Latency          2,600 ms (Slow & Artificial)        <280 ms (Real-Time Aviation)  89.2% Faster│
-│ Vector DB Queries           1,000 Qdrant Calls ($0.38)          20 Calls (980 L2 Cache Hits)  98.0% Cost ↓│
-│ LLM Inference Tokens        1.2M Tokens ($0.96)                 120k Tokens (L1 Fast-Path)    90.0% Tokens↓│
-│ TTS Character Generation    150k Chars ($3.00)                  15k Chars (L7 Audio Cache)    90.0% TTS ↓ │
-│ STT Voice Capture           1,000 Deepgram Calls ($0.29)        1,000 Deepgram Calls ($0.29)  Optimized VAD│
-├───────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ TOTAL COST PER 1,000 TURNS  $4.63 (₹388.92)                     $0.57 (₹47.88)                87.7% CHEAPER│
-│ COST PER SINGLE TURN        $0.00463 (₹0.3889)                  $0.00057 (₹0.0478)            87.7% CHEAPER│
-└───────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-```
+- 🤝 **Pathway** — Real-time event streaming, continuous data processing, and telemetry analytics pipeline.
+- 🤝 **Rime** — Ultra-low latency, neural text-to-speech (TTS) voice synthesis engine delivering realistic aviation controller radio audio.
+- 🤝 **Weya** — Enterprise AI cloud infrastructure and high-performance GPU compute ecosystem.
+- 🤝 **Qdrant** — High-performance vector database engine hosting 1,912 chunks of FAA JO 7110.65 and ICAO Doc 4444 phraseology regulations.
 
----
-
-### 3. API Vendor Rate Cards & Exact Cost Accounting Formulas
-
-#### Vendor Benchmark Rate Cards (Baseline Conversion: $1 USD = ₹95.00 INR)
-
-| API / Service | Metric | USD Rate Card | INR Converted Rate |
-|---|---|---|---|
-| **Deepgram Nova-3 STT** | Per Minute | `$0.0043 / min` | `₹0.3612 / min` |
-| | Per Second | `$0.00007167 / sec` | `₹0.006020 / sec` |
-| **Rime TTS (Voice: grove)** | Per Character | `$0.00002000 / char` | `₹0.001680 / char` |
-| | Per 1k Chars | `$0.020000 / 1k chars` | `₹1.680000 / 1k chars` |
-| **Mistral Embed** | Input Tokens | `$0.100 / 1M tokens` | `₹0.00000840 / token` |
-| **Mistral Small Latest** | Input Tokens | `$0.200 / 1M tokens` | `₹0.00001680 / token` |
-| | Output Tokens | `$0.600 / 1M tokens` | `₹0.00005040 / token` |
-| **Mistral Large Latest** | Input Tokens | `$2.000 / 1M tokens` | `₹0.00016800 / token` |
-| | Output Tokens | `$6.000 / 1M tokens` | `₹0.00050400 / token` |
-
----
-
-#### Exact Cost Accounting Formulas Per Radio Operation
-
-##### A. Standard Clearance Turn — Fast Path (7-Layer Redis L1/L2/L7 Cached)
-* **STT Capture**: 4-second PTT audio clip via Deepgram Nova-3.
-* **LLM Generation**: **₹0.00** (Bypassed via L1/L4 Redis template engine).
-* **TTS Output**: **₹0.00** (Bypassed via L7 Redis Audio Cache / pre-rendered base64 audio).
-
-$$\text{STT Cost} = 4\ \text{sec} \times ₹0.006020 = ₹0.02408$$
-$$\text{LLM Cost} = 0 \times ₹0 = ₹0.00000$$
-$$\text{TTS Cost} = 0 \times ₹0 = ₹0.00000$$
-$$\mathbf{Total\ Fast\ Path\ Turn\ Cost} = ₹0.02408 + ₹0.00 + ₹0.00 = \mathbf{₹0.02408} \approx \text{2.41 paise (\$0.000287)}$$
-
-> *Note: ~80% of routine scenario readback turns hit this Fast Path, producing sub-280ms latency at minimal cost.*
-
-##### B. Readback Validation Turn — Slow Path (LLM Slot Extraction)
-* **STT Capture**: 5-second PTT audio clip via Deepgram Nova-3.
-* **LLM Slot Extraction (`mistral-small-latest`)**: 800 input tokens + 120 output tokens JSON.
-* **TTS Output (`Rime TTS grove`)**: 130 characters synthesized (controller hearback verification).
-
-$$\text{STT Cost} = 5\ \text{sec} \times ₹0.006020 = ₹0.03010$$
-$$\text{LLM Input Cost} = 800 \times ₹0.00001680 = ₹0.01344$$
-$$\text{LLM Output Cost} = 120 \times ₹0.00005040 = ₹0.00605$$
-$$\text{TTS Cost} = 130\ \text{chars} \times ₹0.001680 = ₹0.21840$$
-$$\mathbf{Total\ Validation\ Turn\ Cost} = ₹0.03010 + ₹0.01344 + ₹0.00605 + ₹0.21840 = \mathbf{₹0.26799} \approx \text{26.80 paise (\$0.003190)}$$
-
-##### C. RAG Airborne Inquiry / General ATC Question (Qdrant + Mistral Large)
-* **STT Capture**: 6-second PTT audio clip via Deepgram Nova-3.
-* **Embedding Search (`mistral-embed`)**: 150 input tokens embedded to 1024-dim vector.
-* **Vector DB Lookup**: Qdrant 1,912-chunk search (FAA JO 7110.65 & ICAO Doc 4444 context).
-* **LLM Answer (`mistral-large-latest`)**: 2,500 input tokens + 250 output tokens.
-* **TTS Output (`Rime TTS grove`)**: 220 characters synthesized.
-
-$$\text{STT Cost} = 6\ \text{sec} \times ₹0.006020 = ₹0.03612$$
-$$\text{Embedding Cost} = 150 \times ₹0.00000840 = ₹0.00126$$
-$$\text{LLM Input Cost} = 2,500 \times ₹0.00016800 = ₹0.42000$$
-$$\text{LLM Output Cost} = 250 \times ₹0.00050400 = ₹0.12600$$
-$$\text{TTS Cost} = 220\ \text{chars} \times ₹0.001680 = ₹0.36960$$
-$$\mathbf{Total\ RAG\ Inquiry\ Cost} = ₹0.03612 + ₹0.00126 + ₹0.42000 + ₹0.12600 + ₹0.36960 = \mathbf{₹0.95298} \approx \text{95.30 paise (\$0.011345)}$$
-
-##### D. Session Debrief & Telemetry Scoring
-* **LLM Debrief Scoring (`mistral-small-latest`)**: 3,200 input tokens + 400 output tokens.
-* **TTS Output**: ₹0.00 (Rendered visually as interactive UI dashboard cards).
-
-$$\text{LLM Input Cost} = 3,200 \times ₹0.00001680 = ₹0.05376$$
-$$\text{LLM Output Cost} = 400 \times ₹0.00005040 = ₹0.02016$$
-$$\mathbf{Total\ Cost\ Per\ Debrief} = ₹0.05376 + ₹0.02016 = \mathbf{₹0.07392} \approx \text{7.39 paise (\$0.000880)}$$
-
----
-
-### 4. Fixed Infrastructure & Dynamic Compute Costs
-
-#### 24/7 Fixed Base Load Cluster Overhead (AWS EKS Production Setup)
-
-| Infrastructure Component | Specification | USD / Month | INR / Month |
-|---|---|---|---|
-| **AWS EKS Control Plane** | Managed Kubernetes Cluster Fee | `$73.00` | `₹6,132.00` |
-| **EKS System Node 1 (t3.medium)** | 2 vCPU, 4GB RAM (Ingress & Auth) | `$30.37` | `₹2,551.08` |
-| **EKS System Node 2 (t3.medium)** | 2 vCPU, 4GB RAM (Backend & Workers) | `$30.37` | `₹2,551.08` |
-| **System EBS Storage (gp3)** | 2 × 30GB Root + 50GB Vector Storage | `$11.00` | `₹924.00` |
-| **MongoDB Atlas Cluster (M10)** | 3-Node Replica Set (Auth/AI DBs) | `$57.00` | `₹4,788.00` |
-| **Redis ElastiCache Cluster** | 7-Layer Caching Engine | `$24.00` | `₹2,016.00` |
-| **Qdrant Vector Cloud / Pod** | 1,912 Chunks (FAA/ICAO RAG Index) | `$25.00` | `₹2,100.00` |
-| **AWS S3 Audio Storage** | 200 GB Raw PTT Logs & Backups | `$4.60` | `₹386.40` |
-| **Egress Data & WebSockets** | 100 GB High-Throughput Stream | `$9.00` | `₹756.00` |
-| **AWS Route53 & CloudFront** | CDN & Low-Latency DNS Routing | `$3.50` | `₹294.00` |
-| **TOTAL FIXED MONTHLY OVERHEAD** | **24/7 Production Base Load** | **`$267.84`** | **`₹22,498.56`** |
-
-#### Dynamic Session Compute Costs (AWS EKS Worker Nodes)
-* **Worker Node Type**: `t3.large` (2 vCPU, 8 GB RAM) = **$0.0832 / hour = ₹6.9888 / hour**.
-* **Node Bin-Packing**: 1 `t3.large` node packs **4 active concurrent simulator pods**.
-* **Hourly Compute Cost Per Active Simulator Session**: $\frac{₹6.9888}{4} = \mathbf{₹1.7472}\ \text{per active hour (\$0.0208/hr)}$.
-
----
-
-### 5. Multi-Tiered Unit Economics & Margin Accounting
-
-```
-┌───────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ MULTI-TIERED PRICING & MARGIN SUMMARY MATRIX                                                              │
-├───────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ TIER / PRODUCT             MONTHLY PRICE      DIRECT COST / USER    NET MARGIN / USER     GROSS MARGIN %  │
-├───────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ B2C Freemium Cadet         $0.00 (₹0.00)      $0.076 (₹6.36)        -$0.076 (-₹6.36)      Funnel Acquisition│
-│ B2C Cadet Standard         $15.00 (₹1,260.00) $1.13 (₹94.92)        +$13.87 (+₹1,165.08)  92.47% MARGIN   │
-│ B2C Cadet Pro              $30.00 (₹2,520.00) $2.77 (₹232.44)       +$27.23 (+₹2,287.56)  90.78% MARGIN   │
-│ B2B Academy Student Seat   $50.00 (₹4,200.00) $2.18 (₹183.35)       +$47.82 (+₹4,016.65)  95.63% MARGIN   │
-│ B2B Enterprise Airline Contract$4,166.67 (₹3.5L)$716.65 (₹60,198.87)  +$3,450.02 (+₹2.90L) 82.80% MARGIN   │
-└───────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-* **Tier 1B (B2C Cadet Standard @ $15.00/mo = ₹1,260.00/mo)**: Direct variable cost = ₹94.92/mo $\rightarrow$ **92.47% Gross Margin**.
-* **Tier 1C (B2C Cadet Pro @ $30.00/mo = ₹2,520.00/mo)**: Direct variable cost = ₹232.44/mo $\rightarrow$ **90.78% Gross Margin**.
-* **Tier 2 (B2B Academy @ $50.00/seat/mo = ₹4,200.00/mo)**: Direct variable cost = ₹183.35/seat/mo $\rightarrow$ **95.63% Gross Margin**. *(A single 50-student flight academy campus yields +₹2,00,832.50 net monthly profit).*
-* **Tier 3 (B2B Enterprise @ $50,000/yr = ₹42L/yr)**: Direct variable cost = ₹60,198.87/mo $\rightarrow$ **82.80% Gross Margin**.
-
----
-
-### 6. Launch Cohort Financial Statement (August 1 P&L)
-
-Assumed Launch Cohort: 100 Free Users, 30 B2C Standard Users, 10 B2C Pro Users, 1 B2B Academy (40 Students), 1 B2B Enterprise Contract ($50k/yr).
-
-```
-┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│ REVENUE & EXPENSE ACCOUNTING STATEMENT (EARLY ACCESS LAUNCH COHORT)          AMOUNT (INR)│
-├──────────────────────────────────────────────────────────────────────────────────────────┤
-│ REVENUE                                                                                  │
-│ - 30 B2C Cadet Standard Subscriptions (30 × ₹1,260.00)                       ₹37,800.00 │
-│ - 10 B2C Cadet Pro Subscriptions (10 × ₹2,520.00)                            ₹25,200.00 │
-│ - 1 B2B Academy Contract (40 Students × ₹4,200.00)                         ₹1,68,000.00 │
-│ - 1 B2B Enterprise Airline Contract (Monthly Pro-Rated)                    ₹3,50,000.00 │
-│ TOTAL GROSS MONTHLY REVENUE                                                ₹5,81,000.00 │
-├──────────────────────────────────────────────────────────────────────────────────────────┤
-│ DIRECT VARIABLE EXPENSES                                                                 │
-│ - 100 B2C Free Users Variable Cost (100 × ₹6.36)                                ₹636.00 │
-│ - 30 B2C Cadet Standard Variable Cost (30 × ₹94.92)                            ₹2,847.60 │
-│ - 10 B2C Cadet Pro Variable Cost (10 × ₹232.44)                                ₹2,324.40 │
-│ - 40 B2B Academy Student Seats Cost (40 × ₹183.35)                             ₹7,334.00 │
-│ - 1 B2B Enterprise Direct Operational Cost                                    ₹60,198.87 │
-│ TOTAL DIRECT VARIABLE EXPENSES                                                ₹73,340.87 │
-├──────────────────────────────────────────────────────────────────────────────────────────┤
-│ CONTRIBUTION MARGIN (GROSS REVENUE - DIRECT EXPENSES)                       +₹5,07,659.13 │
-│ CONTRIBUTION MARGIN RATIO                                                         87.38% │
-├──────────────────────────────────────────────────────────────────────────────────────────┤
-│ FIXED MONTHLY INFRASTRUCTURE OVERHEAD                                         ₹22,498.56 │
-├──────────────────────────────────────────────────────────────────────────────────────────┤
-│ NET LAUNCH COHORT MONTHLY OPERATING PROFIT (EBITDA)                         +₹4,85,160.57 │
-│ NET OPERATING MARGIN                                                              83.50% │
-└──────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### 7. 3-Year Investor ROI & Scale Forecast
-
-```
-┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│ FINANCIAL FORECAST & SCALE METRICS             YEAR 1               YEAR 2        YEAR 3 │
-├──────────────────────────────────────────────────────────────────────────────────────────┤
-│ Active B2C Subscribers (Standard + Pro)       1,200                8,500         35,000  │
-│ Active B2B Academy Student Seats              500                  3,200         12,000  │
-│ Active B2B Enterprise Contracts               2                    8             25      │
-├──────────────────────────────────────────────────────────────────────────────────────────┤
-│ Annual Gross Revenue (ARR)                    $524,000             $3,120,000    $11,850,000│
-│ Annual Direct Operational Costs               $46,200              $265,000      $980,000│
-│ Annual Fixed Infra & Support Costs            $9,600               $28,000       $75,000 │
-├──────────────────────────────────────────────────────────────────────────────────────────┤
-│ ANNUAL NET OPERATING PROFIT (EBITDA)          $468,200             $2,827,000    $10,795,000│
-│ NET EBITDA MARGIN                             89.35%               90.61%        91.10%  │
-└──────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### 8. Frequently Asked Questions (FAQ) & Technical Defense Strategy
-
-#### Q1: "AI Voice apps are notorious for high API costs. What happens when users spam the push-to-talk button?"
-> **Platform Answer**: "We built a 2-tier defense: First, our **7-Layer Redis Cache** serves 80% of routine phraseology turns from in-memory RAM at ₹0.024 ($0.00028) per turn without calling any LLM. Second, our `ai-service` enforces sliding-window rate limiting (`rl:ip:${ip}`) and WebSocket VAD silence truncation, automatically dropping invalid audio clips before API execution."
-
-#### Q2: "Flight schools are conservative. How do you justify $50/student/month?"
-> **Platform Answer**: "Flight simulator instructor time costs **$150 to $300 per hour**. A student practicing radio calls with a human instructor consumes hundreds of dollars per week. At $50/month, our platform offers unlimited 24/7 phraseology practice for less than the cost of 20 minutes of human instructor time, while giving flight schools full analytics and curriculum tracking."
-
-#### Q3: "What is your moat against Microsoft Flight Simulator (MSFS) or VATSIM?"
-> **Platform Answer**: "VATSIM relies on voluntary human controllers who are rarely online at regional airports, and MSFS built-in ATC uses rigid tree-based scripts without speech evaluation or readback hearback validation. We provide **FAA JO 7110.65 / ICAO Doc 4444 RAG compliance**, real-time readback accuracy scoring, and structured curriculum progress telemetry specifically built for accredited pilot training."
-
----
-
-### 9. Operational Engineering Controls
-
-1. **Enforce 80%+ Fast Path Target via Redis 7-Layer Architecture**:
-   Ensure pre-templated scenario steps strictly resolve via L1/L4 Redis caches. Trigger automated alert probes if Fast Path hit rate drops below 75%.
-2. **Configure 15-Minute Pod Auto-Sleep**:
-   Configure `ai-service` WebSocket connection monitors to tear down dynamic simulator container instances after 15 minutes of PTT inactivity.
-3. **Deploy Deepgram Silence Truncation & PTT Guard**:
-   Incorporate Web Audio API VAD on the React frontend to strip silent padding before sending audio buffers to `stt.service.js`, reducing Deepgram billing seconds by up to 25%.
-4. **Razorpay & Stripe Webhook Idempotency Verification**:
-   Enforce HMAC-SHA256 signature validation and idempotency checking on incoming payment webhooks to prevent duplicate credit issuance.
-
----
-
-### 10. Cost Optimization Infographic (OLD vs NEW Cost Structure)
-
-> [!TIP]
-> **36.5% Direct Cost Improvement Highlight:** By implementing browser-native STT fallback (WebSpeech API) alongside Deepgram Nova-3, monthly operational infrastructure costs drop by **₹25,827 / month** (**₹3,09,924 / year saved**), reducing total monthly system burn from ₹70,740 down to **₹44,913 / month**.
-
-![Old vs New Monthly Cost Structure Infographic](docs/assets/old_vs_new_cost_structure.png)
-
-#### Detailed Cost Structure Comparison Table
-
-| Component | OLD Cost (With Deepgram) | NEW Cost (Without Deepgram STT Fallback) | Monthly Change (INR) | % Change |
-|---|---|---|---|---|
-| 🎙️ **STT Engine (Deepgram Nova-3)** | `₹25,827 / mo` (47.7%) | `₹0 / mo` (WebSpeech Fallback) | **`-₹25,827`** | **-100% (Removed)** |
-| 🗄️ **Databases (MongoDB Atlas + Redis)** | `₹14,013 / mo` | `₹14,013 / mo` | `₹0` | **No change** |
-| ☸️ **K8s Compute Nodes & Bandwidth** | `₹12,716 / mo` | `₹12,716 / mo` | `₹0` | **No change** |
-| 🧠 **LLM Inference (Mistral AI)** | `₹11,093 / mo` | `₹11,093 / mo` | `₹0` | **No change** |
-| 🔊 **TTS Synthesis (Rime, Cached)** | `₹4,872 / mo` | `₹4,872 / mo` | `₹0` | **No change** |
-| 🔍 **Vector RAG Engine (Qdrant Cloud)** | `₹2,219 / mo` | `₹2,219 / mo` | `₹0` | **No change** |
-| 💰 **TOTAL MONTHLY OPERATING COST** | **`₹70,740 / mo`** | **`₹44,913 / mo`** | **`-₹25,827`** | 📉 **-36.5% COST REDUCTION** |
-| 📅 **TOTAL ANNUAL OPERATING COST** | **`₹8,48,880 / yr`** | **`₹5,38,956 / yr`** | **`-₹3,09,924`** | 📉 **-36.5% ANNUAL SAVINGS** |
-
-> **Key Financial Takeaway for Stakeholders & Investors:** By eliminating third-party STT overhead on standard phraseology turns, the platform achieves a **36.5% overall cost reduction**, saving **₹3,09,924 annually** ($3,689.57/yr) while maintaining sub-280ms voice latency.
-
----
-
-### 11. Core Business Logic & Enterprise Value Rationale
-
-> [!IMPORTANT]
-> **Why This Product Is Financially & Operationally Successful:**
-
-1. **SaaS Unit Economics Arbitrage (91.8% Gross Margin):**
-   Human flight simulator instructors cost **$150 to $300 per hour**. At **$50/student/month** for B2B Flight Academies, flight schools save thousands of dollars in instructor hours while our platform operates at a **95.6% gross margin per seat** (costing only $2.18/student/mo to serve).
-
-2. **Fast-Path Architectural Cost Moat:**
-   By routing 80% of routine radio clearance turns through our **7-Layer Redis Cache**, unit cost per turn drops from $0.00463 down to **$0.000287 / turn** (₹0.02408 / turn). This 87.7% cost reduction allows us to offer unlimited student practice tiers without eroding margins.
-
-3. **Curriculum Lock-In & B2B Retention Engine:**
-   Unlike casual flight simulators, our AI service evaluates pilot readback accuracy against official **FAA JO 7110.65** and **ICAO Doc 4444** regulatory standards. Automated phonetic mistake heatmaps and progress telemetry integrate into flight academy LMS software, driving high renewal rates and zero customer churn.
-
-4. **Enterprise Scale & Airline Recurring Revenue:**
-   Commercial airlines spend tens of millions annually on pilot recurrent training. Contracting 100-seat enterprise packages ($50,000/year) delivers predictable ARR with **82.80% net monthly operating margin**, creating a scalable path to **$11.85M ARR by Year 3**.
-
----

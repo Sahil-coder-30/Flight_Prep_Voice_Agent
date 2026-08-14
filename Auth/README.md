@@ -29,6 +29,7 @@
 - [Local Development & Setup](#-local-development--setup)
 - [Production Kubernetes Deployment](#-production-kubernetes-deployment)
 - [Diagnostic & Verification CLI Suite](#-diagnostic--verification-cli-suite)
+- [Credits & Ecosystem Partners](#-credits--ecosystem-partners)
 
 ---
 
@@ -619,3 +620,15 @@ redis-cli get "auth:jwks:cache"
 curl -i http://localhost:5000/healthz
 curl -i http://localhost:5000/readyz
 ```
+
+---
+
+## 🤝 Credits & Ecosystem Partners
+
+Special thanks and shout-out to our technology partners empowering the real-time AI voice simulation, vector search, streaming analytics, and cloud infrastructure ecosystem:
+
+- 🤝 **Pathway** — Real-time event streaming, continuous data processing, and telemetry analytics pipeline.
+- 🤝 **Rime** — Ultra-low latency, neural text-to-speech (TTS) voice synthesis engine delivering realistic aviation controller radio audio.
+- 🤝 **Weya** — Enterprise AI cloud infrastructure and high-performance GPU compute ecosystem.
+- 🤝 **Qdrant** — High-performance vector database engine hosting 1,912 chunks of FAA JO 7110.65 and ICAO Doc 4444 phraseology regulations.
+
