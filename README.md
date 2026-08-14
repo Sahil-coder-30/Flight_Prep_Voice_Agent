@@ -69,6 +69,50 @@ OPTIMIZED REDIS PLATFORM LATENCY = <280ms (REAL-TIME AVIATION RADIO EMULATION �
 
 ---
 
+### 🏛️ High-Level System Architecture (HLD)
+
+The following diagram illustrates how incoming student requests route from the **NGINX Ingress Controller** across our 4 decoupled domain microservices (`Auth`, `Backend`, `Ai-service`, `Frontend`) and persistent data stores (Redis Cluster, Qdrant Vector DB, MongoDB Atlas):
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer ["Client & Ingress Layer"]
+        Student["Student Pilot / Browser SPA"]
+        NGINX["NGINX Ingress Controller<br/>(Path Routing & SSL Termination)"]
+    end
+
+    subgraph Microservices ["Microservices Cluster (Kubernetes Pods)"]
+        Auth["🔑 Auth Service<br/>Port 5000<br/>(OAuth2 & RS256 Token Signer)"]
+        Backend["⚙️ Core Backend<br/>Port 5001<br/>(Scenarios & Telemetry)"]
+        AIService["🧠 AI Service Engine<br/>Port 5002<br/>(LangGraph & Voice Inference)"]
+        Frontend["🎨 Frontend SPA<br/>Port 5173 / WebGL<br/>(3D MetallicOrb Visualizer)"]
+    end
+
+    subgraph DataInfra ["Persistence & Caching Infrastructure"]
+        Redis["⚡ Redis Cluster<br/>(7-Layer Cache & L5 JWKS Public Key Cache)"]
+        Qdrant["📚 Qdrant Vector DB<br/>(1,912 Phraseology Chunks)"]
+        Mongo["💾 MongoDB Atlas<br/>(Users, Scenarios, Telemetry)"]
+    end
+
+    Student -->|HTTP / WebSocket| NGINX
+    NGINX -->|/api/auth| Auth
+    NGINX -->|/api/backend| Backend
+    NGINX -->|/api/ai & /ws/simulator| AIService
+    NGINX -->|/| Frontend
+
+    Auth -->|Stores Refresh Tokens| Mongo
+    Auth -->|Publishes Public Keys| Redis
+
+    Backend -->|Local RS256 Auth ~1ms| Redis
+    Backend -->|Scenarios & Analytics| Mongo
+
+    AIService -->|Local RS256 Auth ~1ms| Redis
+    AIService -->|L1-L7 Fast-Path Cache| Redis
+    AIService -->|RAG Vector Retrieval| Qdrant
+    AIService -->|Session Telemetry| Mongo
+```
+
+---
+
 ## ⚡ Quick Start & Microservices Directory
 
 > [!TIP]
@@ -103,6 +147,7 @@ Click any guide below to read the comprehensive technical and business specifica
 |---|---|---|
 | 📈 **Business Architecture, ROI & Financial Model** | **91.8% Gross Margin Unit Economics**, TAM Analysis ($4.2B), B2C/B2B Pricing, API Vendor Rate Cards, 3-Year P&L Forecast | 📄 [**`docs/business_architecture.md`**](docs/business_architecture.md) |
 | ⚡ **7-Layer Redis & 1,912-Chunk RAG Architecture** | **Sub-280ms Voice Latency (<89.2% Speedup)**, Complete Code Blocks (L1–L7), Redis Key Patterns, Qdrant Vector RAG Pipeline | 📄 [**`docs/redis_7_layer_architecture.md`**](docs/redis_7_layer_architecture.md) |
+| 🔑 **Microservices Zero-Trust Auth Architecture** | **RS256 Asymmetric Key Pairs**, Zero-Latency Local Verification (~1ms L5 Cache), OAuth2 Google Flow, Threat Model | 📄 [**`Auth/README.md`**](Auth/README.md) |
 
 ---
 
@@ -585,11 +630,53 @@ Here is the exact benchmark comparison demonstrating how the 7-Layer Redis Engin
 
 ## 🏗️ Why Microservices Architecture?
 
-We specifically decoupled our platform into **4 distinct domain microservices** (`Auth`, `Backend`, `Ai-service`, `Frontend`) rather than building a monolithic application. Here is why this architectural choice was mandatory:
+> 📄 *Detailed microservices security & RS256 JWKS authentication specification available in [`Auth/README.md`](Auth/README.md)*
+
+We specifically decoupled our platform into **4 distinct domain microservices** (`Auth`, `Backend`, `Ai-service`, `Frontend`) rather than building a monolithic application. Here is the High-Level System Architecture (HLD) demonstrating how incoming traffic routes from the **NGINX Ingress Controller** across our microservices and persistence layers:
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer ["Client & Ingress Layer"]
+        Student["Student Pilot / Browser SPA"]
+        NGINX["NGINX Ingress Controller<br/>(Path Routing & SSL Termination)"]
+    end
+
+    subgraph Microservices ["Microservices Cluster (Kubernetes Pods)"]
+        Auth["🔑 Auth Service<br/>Port 5000<br/>(OAuth2 & RS256 Token Signer)"]
+        Backend["⚙️ Core Backend<br/>Port 5001<br/>(Scenarios & Telemetry)"]
+        AIService["🧠 AI Service Engine<br/>Port 5002<br/>(LangGraph & Voice Inference)"]
+        Frontend["🎨 Frontend SPA<br/>Port 5173 / WebGL<br/>(3D MetallicOrb Visualizer)"]
+    end
+
+    subgraph DataInfra ["Persistence & Caching Infrastructure"]
+        Redis["⚡ Redis Cluster<br/>(7-Layer Cache & L5 JWKS Public Key Cache)"]
+        Qdrant["📚 Qdrant Vector DB<br/>(1,912 Phraseology Chunks)"]
+        Mongo["💾 MongoDB Atlas<br/>(Users, Scenarios, Telemetry)"]
+    end
+
+    Student -->|HTTP / WebSocket| NGINX
+    NGINX -->|/api/auth| Auth
+    NGINX -->|/api/backend| Backend
+    NGINX -->|/api/ai & /ws/simulator| AIService
+    NGINX -->|/| Frontend
+
+    Auth -->|Stores Refresh Tokens| Mongo
+    Auth -->|Publishes Public Keys| Redis
+
+    Backend -->|Local RS256 Auth ~1ms| Redis
+    Backend -->|Scenarios & Analytics| Mongo
+
+    AIService -->|Local RS256 Auth ~1ms| Redis
+    AIService -->|L1-L7 Fast-Path Cache| Redis
+    AIService -->|RAG Vector Retrieval| Qdrant
+    AIService -->|Session Telemetry| Mongo
+```
+
+### Key Benefits of Microservices Decoupling
 
 1. **Workload Isolation & Non-Blocking Event Loops:** The `Ai-service` executes heavy asynchronous audio processing, vector embeddings, persistent WebSockets, and state machine transitions. Separating it ensures that CPU-intensive audio parsing or external API timeouts in `Ai-service` never block user logins in `Auth` or scenario browsing in `Backend`.
 2. **Horizontal Pod Autoscaling (HPA):** Under peak student pilot training loads, Kubernetes scales `ai-service` deployment replicas independently (e.g. scaling from 2 to 20 pods) based on active WebSocket connections and RAM usage, without wasting cloud resources scaling authentication databases.
-3. **Stateless Auth Verification (RS256 JWKS):** By storing RSA-4096 public keys in Redis Layer 5, both `Backend` and `Ai-service` verify student JWT access tokens locally in ~1ms without making blocking HTTP network calls back to `Auth`.
+3. **Stateless Zero-Trust Auth Verification (RS256 JWKS):** By caching RSA-4096 public keys in Redis Layer 5 (`auth:jwks:cache`), both `Backend` and `Ai-service` verify student JWT access tokens locally in ~1ms without making blocking HTTP network calls back to `Auth`. Read the full specification in [`Auth/README.md`](Auth/README.md).
 4. **Fault Tolerance & Resiliency:** If external LLM APIs experience outages, the core authentication system, scenario browsing, and student progress telemetry remain 100% operational.
 
 ---
