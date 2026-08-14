@@ -79,7 +79,7 @@ OPTIMIZED REDIS PLATFORM LATENCY = <280ms (REAL-TIME AVIATION RADIO EMULATION �
 
 ### 🏛️ High-Level System Architecture (HLD)
 
-The following diagram illustrates how incoming student requests route from the **NGINX Ingress Controller** across our 4 decoupled domain microservices (`Auth`, `Backend`, `Ai-service`, `Frontend`) and persistent data stores (Redis Cluster, Qdrant Vector DB, MongoDB Atlas):
+The following diagram illustrates how incoming student requests route from the **NGINX Ingress Controller** across our 3 decoupled domain microservices (`Auth`, `Backend`, `Ai-service`) and persistent data stores (Redis Cluster, Qdrant Vector DB, MongoDB Atlas):
 
 ```mermaid
 flowchart TD
