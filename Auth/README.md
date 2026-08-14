@@ -22,6 +22,7 @@
 - [Refresh Token Family Rotation & Reuse Defense](#-refresh-token-family-rotation--reuse-defense)
 - [Redis Layer 5 (`L5`) & In-Memory Resilience](#-redis-layer-5-l5--in-memory-resilience)
 - [Dynamic Key Rotation & `kid` Recovery](#-dynamic-key-rotation--kid-recovery)
+- [Client-Side Token Storage & Interceptor Architecture](#-client-side-token-storage--interceptor-architecture)
 - [Built Features & API Endpoint Matrix](#-built-features--api-endpoint-matrix)
 - [Zero-Trust Threat Model & Security Defense Matrix](#-zero-trust-threat-model--security-defense-matrix)
 - [Environment Variables](#-environment-variables)
@@ -340,6 +341,168 @@ When security policies require rotating the Auth service RSA key pair:
 1. `Auth-service` deploys a new RSA key pair with `kid: "auth-rsa-v2"`.
 2. Existing student tokens signed with `auth-rsa-v1` continue to authenticate against `auth-rsa-v1` in the cached JWKS set.
 3. When a student receives a newly signed token (`auth-rsa-v2`), downstream services detect that `auth-rsa-v2` is missing from their current cache, trigger `fetchJwks(true)` once, update their cache, and verify the token without throwing false authentication errors.
+
+---
+
+## 🎨 Client-Side Token Storage & Interceptor Architecture
+
+* **Concerned File:** [`Frontend/src/services/apiClient.js`](../Frontend/src/services/apiClient.js)
+
+### 1. Dual-Storage Token Security Model
+To deliver 100% security against Cross-Site Scripting (XSS) and Cross-Site Request Forgery (CSRF) while supporting seamless, zero-reload session persistence:
+
+- **Access Token (Short-Lived: 15 mins):** Kept strictly inside **JavaScript Module Memory (`_accessToken`)** in [`Frontend/src/services/apiClient.js`](../Frontend/src/services/apiClient.js). Never saved in `localStorage` or `sessionStorage`. If a malicious script attempts XSS DOM scanning, it cannot read the access token from web storage.
+- **Refresh Token (Long-Lived: 30 days):** Stored in an **HttpOnly, Secure, SameSite=Lax Cookie** bound strictly to path `/api/auth/refresh`. JavaScript cannot access `document.cookie` for this token, rendering XSS token theft impossible.
+
+---
+
+### 2. Client-Side Silent Token Refresh Sequence Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor React as React SPA (In-Memory Access Token)
+    participant Interceptor as Axios Response Interceptor (apiClient.js)
+    participant Auth as Auth Service (Port 5000)
+    participant Cookie as Browser Cookie Store (HttpOnly)
+
+    Note over React, Interceptor: 1. Student performs action (Access Token Expired)
+    React->>Interceptor: Request A: GET /api/backend/scenarios
+    React->>Interceptor: Request B: POST /api/ai/sessions/123/turn (Parallel Call)
+
+    Interceptor->>Auth: Request A with expired Bearer token
+    Auth-->>Interceptor: 401 Unauthorized
+
+    Note over Interceptor: 2. Mutex Lock & Queue Management
+    Interceptor->>Interceptor: Set isRefreshing = true
+    Interceptor->>Interceptor: Push Request B promise resolver to failedQueue
+
+    Note over Interceptor, Auth: 3. Background Silent Token Refresh
+    Interceptor->>Auth: POST /api/auth/refresh (withCredentials: true)
+    Cookie-->>Auth: Automatically attaches HttpOnly refreshToken cookie
+    Auth->>Auth: Verify Refresh Token & Issue New RS256 Token Pair
+    Auth-->>Interceptor: 200 OK { accessToken: "eyJhbG..." }
+
+    Note over Interceptor, React: 4. Memory Update & Queue Processing
+    Interceptor->>Interceptor: Update Module Memory setAccessToken(newToken)
+    Interceptor->>Interceptor: Process failedQueue with newToken
+    Interceptor->>Auth: Resend Request A with New Bearer Token
+    Interceptor->>Auth: Resend Request B with New Bearer Token
+    Auth-->>React: 200 OK Data (Zero UI disruption / Zero reloads)
+```
+
+---
+
+### 3. Axios Interceptors Code Implementation (`Frontend/src/services/apiClient.js`)
+
+```javascript
+// File: Frontend/src/services/apiClient.js
+
+import axios from 'axios';
+import { store } from '../store';
+import { clearAuth } from '../features/auth/slice/auth.slice';
+
+let _accessToken = null;
+
+export const setAccessToken = (token) => { _accessToken = token; };
+export const clearAccessToken = () => { _accessToken = null; };
+export const getAccessToken = () => _accessToken;
+
+export const apiClient = axios.create({ withCredentials: true });
+
+// 1. REQUEST INTERCEPTOR: Inject Bearer token from JS memory
+apiClient.interceptors.request.use(
+  (config) => {
+    if (_accessToken) {
+      if (config.headers && typeof config.headers.set === 'function') {
+        config.headers.set('Authorization', `Bearer ${_accessToken}`);
+      } else {
+        config.headers = config.headers || {};
+        config.headers['Authorization'] = `Bearer ${_accessToken}`;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// 2. RESPONSE INTERCEPTOR: Transparent token refresh queue on 401
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => (error ? prom.reject(error) : prom.resolve(token)));
+  failedQueue = [];
+};
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error?.config;
+    if (!originalRequest) return Promise.reject(error);
+
+    const isAuthEndpoint =
+      originalRequest.url?.includes('/api/auth/refresh') ||
+      originalRequest.url?.includes('/api/auth/logout') ||
+      originalRequest.url?.includes('/api/auth/google');
+
+    if (error?.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+      if (isRefreshing) {
+        // Queue parallel requests until refresh completes
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          if (originalRequest.headers && typeof originalRequest.headers.set === 'function') {
+            originalRequest.headers.set('Authorization', `Bearer ${token}`);
+          } else {
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+          }
+          return apiClient(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Silent refresh request with HttpOnly cookie automatically sent by browser
+        const refreshRes = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+        const newToken = refreshRes.data?.accessToken;
+
+        if (!newToken) throw new Error('No access token returned from refresh endpoint');
+
+        setAccessToken(newToken);
+        processQueue(null, newToken);
+
+        if (originalRequest.headers && typeof originalRequest.headers.set === 'function') {
+          originalRequest.headers.set('Authorization', `Bearer ${newToken}`);
+        } else {
+          originalRequest.headers = originalRequest.headers || {};
+          originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+        }
+        return apiClient(originalRequest);
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        clearAccessToken();
+        store.dispatch(clearAuth()); // Log student out cleanly if refresh token is expired or revoked
+        return Promise.reject(refreshErr);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+```
+
+---
+
+### 4. Race Condition & Stampede Prevention Highlights
+- **`isRefreshing` Mutex Flag:** Guarantees that only **one single HTTP POST `/api/auth/refresh` request** is fired even if 10 API calls fail simultaneously upon token expiration.
+- **`failedQueue` Array:** Holds unresolved promises for concurrent requests until the new token is acquired, preventing unnecessary server load and API errors.
+- **Zero Disruptive Page Reloads:** The student pilot never sees an authentication glitch or loading spinner during radio transmissions — the token rotates silently in the background.
 
 ---
 
