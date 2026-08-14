@@ -17,7 +17,9 @@
 
 ## 📖 Table of Contents
 - [Executive Overview & Core Vision](#-executive-overview--core-vision)
+- [Quick Start & Microservices Directory](#-quick-start--microservices-directory)
 - [3D MetallicOrb Audio Reactivity & Visualizer](#-3d-metallicorb-audio-reactivity--visualizer)
+- [Frontend Architecture & Technical Differentiators](#-frontend-architecture--technical-differentiators-why-we-stand-out)
 - [The Main Selling Proposition (MSP): 7-Layer Redis Caching Architecture](#-the-main-selling-proposition-msp-7-layer-redis-caching-architecture)
   - [1. Simplest Language Explanation (Why Redis & Why Latency Drop Matters)](#1-simplest-language-explanation-why-redis--why-latency-drop-matters)
   - [2. The 7-Layer Architecture Matrix](#2-the-7-layer-architecture-matrix)
@@ -32,6 +34,7 @@
 - [Monorepo Directory Layout](#-monorepo-directory-layout)
 - [Global API & WebSocket Reference](#-global-api--websocket-reference)
 - [Market & Business Model Analysis (Investor Brief & Financial Deck)](#-market--business-model-analysis-investor-brief--financial-deck)
+  - [Executive Business Summary (TL;DR)](#-executive-summary--business--financial-model-tldr)
   - [1. Executive Pitch Dashboard](#1-executive-pitch-dashboard)
   - [2. Technical & Cost Moat Matrix](#2-technical--cost-moat-matrix)
   - [3. API Vendor Rate Cards & Exact Cost Accounting Formulas](#3-api-vendor-rate-cards--exact-cost-accounting-formulas)
@@ -39,7 +42,7 @@
   - [5. Multi-Tiered Unit Economics & Margin Accounting](#5-multi-tiered-unit-economics--margin-accounting)
   - [6. Launch Cohort Financial Statement (August 1 P&L)](#6-launch-cohort-financial-statement-august-1-pl)
   - [7. 3-Year Investor ROI & Scale Forecast](#7-3-year-investor-roi--scale-forecast)
-  - [8. Frequently Asked Questions (FAQ) & Judge Defense Strategy](#8-frequently-asked-questions-faq--judge-defense-strategy)
+  - [8. Frequently Asked Questions (FAQ) & Technical Defense Strategy](#8-frequently-asked-questions-faq--technical-defense-strategy)
   - [9. Operational Engineering Controls](#9-operational-engineering-controls)
   - [10. Cost Optimization Infographic (OLD vs NEW Cost Structure)](#10-cost-optimization-infographic-old-vs-new-cost-structure)
   - [11. Core Business Logic & Enterprise Value Rationale](#11-core-business-logic--enterprise-value-rationale)
@@ -66,15 +69,94 @@ OPTIMIZED REDIS PLATFORM LATENCY = <280ms (REAL-TIME AVIATION RADIO EMULATION �
 
 ---
 
+## ⚡ Quick Start & Microservices Directory
+
+> [!TIP]
+> **Short on time?** Here is the 60-second summary and rapid local launch guide. If you want to explore dedicated technical and business architecture documentation or dive directly into individual microservices, click any of the curated documentation links below:
+
+### 🚀 60-Second Rapid Local Launch
+
+```bash
+# 1. Clone Repository & Navigate
+git clone https://github.com/Sahil-coder-30/Flight_Prep_Voice_Agent.git
+cd Flight_Prep_Voice_Agent
+
+# 2. Setup Local Kubernetes Secrets
+cp k8s/secrets.yml.example k8s/secrets.yml
+
+# 3. Deploy Local Kubernetes Microservices Cluster (Requires Docker Desktop with Kubernetes)
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.1/deploy/static/provider/cloud/deploy.yaml
+skaffold dev
+
+# 4. In a second terminal, launch the Frontend SPA
+cd Frontend
+npm install && npm run dev
+```
+
+---
+
+### 📚 Core System & Business Architecture Guides
+
+Click any guide below to read the comprehensive technical and business specifications:
+
+| Architectural Specification Document | Focus Area & Key Technical Highlights | Dedicated Document Link |
+|---|---|---|
+| 📈 **Business Architecture, ROI & Financial Model** | **91.8% Gross Margin Unit Economics**, TAM Analysis ($4.2B), B2C/B2B Pricing, API Vendor Rate Cards, 3-Year P&L Forecast | 📄 [**`docs/business_architecture.md`**](docs/business_architecture.md) |
+| ⚡ **7-Layer Redis & 1,912-Chunk RAG Architecture** | **Sub-280ms Voice Latency (<89.2% Speedup)**, Complete Code Blocks (L1–L7), Redis Key Patterns, Qdrant Vector RAG Pipeline | 📄 [**`docs/redis_7_layer_architecture.md`**](docs/redis_7_layer_architecture.md) |
+
+---
+
+### 📂 Service-Specific Documentation Directory
+
+Click any microservice below to jump directly to its dedicated README documentation file:
+
+| Microservice Component | Port / Path | Primary Responsibilities & Architectural Moat | Dedicated README |
+|---|---|---|---|
+| 🧠 **AI Service (`ai-service`)** | `Port 5002` | **7-Layer Redis Cache (<280ms latency)**, LangGraph State Machine, 1,912-chunk Qdrant Vector RAG, Deepgram STT, Rime TTS | 📄 [**`Ai-service/README.md`**](Ai-service/README.md) |
+| 🔑 **Auth Service (`auth-service`)** | `Port 5000` | Google OAuth2 Authentication, RS256 JWKS Key Pair Generation & Token Signing, User Management | 📄 [**`Auth/README.md`**](Auth/README.md) |
+| ⚙️ **Core Backend (`backend-service`)** | `Port 5001` | Scenario Catalog Engine, Active Simulation Session Telemetry, Student Performance Scoring | 📄 [**`Backend/README.md`**](Backend/README.md) |
+| 🎨 **Frontend SPA (`frontend`)** | `Port 5173` | React 18, Redux Toolkit, Web Audio API Push-To-Talk Analyzer, **3D MetallicOrb WebGL Visualizer** | 📄 [**`Frontend/README.md`**](Frontend/README.md) |
+
+---
 
 ## 🔮 3D MetallicOrb Audio Reactivity & Visualizer
 
-The simulator interface features a custom interactive **3D MetallicOrb** built with Three.js and WebGL. It reacts in real-time to microphone audio levels during student transmissions and morphs state dynamically based on WebSocket telemetry emitted by the AI service controller:
+The simulator interface features an enterprise-grade, custom interactive **3D MetallicOrb** built using **React Three Fiber (`@react-three/fiber`)**, **Three.js**, custom **WebGL Shaders**, and **GSAP (`@gsap/react`)**. It reacts in real-time at 60 FPS to student microphone frequency input and morphs state dynamically based on WebSocket telemetry emitted by the AI service controller:
 
 ![3D MetallicOrb Simulator Visualizer](docs/assets/3d_metallic_orb_simulator.png)
 
-* **Push-To-Talk (PTT) Gating:** Holding the Spacebar locks microphone audio input, preventing race conditions while real-time Web Audio API frequency analyzers drive vertex shader wave displacement on the MetallicOrb.
-* **Controller Voice Activity:** When the AI controller transmits speech, WebSocket events (`ATC_SPEAKING_START` / `ATC_SPEAKING_END`) morph the MetallicOrb into active audio emission modes (`SWARM CLOUD`, `RADAR SWEEP`, `LATTICE MATRIX`, `AVIATION HEADSET`).
+### Core 3D Rendering & Animation Stack:
+* 🌐 **React Three Fiber (`@react-three/fiber`) & Three.js:** Declarative WebGL scene graph managing icosahedron geometry, PBR metallic-roughness materials, dynamic point lights, and blooming post-processing filters.
+* 🎙️ **Real-Time Web Audio API Analyzer:** Connects to student microphone streams using `AudioContext` and `AnalyserNode`. Fast Fourier Transform (FFT) frequency byte data is calculated on every frame and fed directly into GLSL vertex shader uniforms (`uAudioFrequency`), generating organic liquid wave displacement across the MetallicOrb's surface during Push-To-Talk (PTT) transmissions.
+* ⚡ **GSAP (`@gsap/react`) Timeline Physics:** Smooth spring physics and linear interpolation (lerp) powered by GSAP handle state morphing when switching between radio visualizer modes (`SWARM CLOUD`, `RADAR SWEEP`, `LATTICE MATRIX`, `AVIATION HEADSET`).
+* 📡 **WebSocket State Synchronization:** Listens to real-time `ATC_SPEAKING_START` and `ATC_SPEAKING_END` events emitted by `ai-service`, triggering animated audio emission shockwaves when the AI controller speaks.
+
+---
+
+## 🎨 Frontend Architecture & Technical Differentiators (Why We Stand Out)
+
+> [!TIP]
+> **Production-Grade Design Systems & Frontend Engineering:** Unlike standard hackathon React apps built as monolithic component dumps, our frontend is engineered with enterprise scalability, offline resiliency, and strict design system consistency.
+
+### 1. 🏗️ Domain-Driven Feature-Based Architecture
+Our React 18 frontend is organized into modular feature domains (`src/features/simulator`, `src/features/scenarios`, `src/features/auth`, `src/features/analytics`) rather than flat component folders. Each feature encapsulates its own Redux Toolkit slices, custom hooks (`useSimulatorWebSocket`, `useAudioRecorder`), WebGL viewports, and local state machines — allowing parallel feature development without merge friction.
+
+### 2. 💾 Offline-First Resiliency via Dexie.js (IndexedDB Engine)
+To ensure pilots can train even in low-connectivity environments (e.g. flight school aprons or in-flight practice), we implemented **Dexie.js** over browser IndexedDB:
+* **Audio Buffer Caching:** Synthesized ATC voice responses and aviation sound effects are stored locally in IndexedDB, preventing redundant network downloads.
+* **FAA Phraseology Reference Manuals:** Pre-indexes 1,912 Qdrant regulatory chunks offline for instant search without internet connection.
+* **Telemetry Sync Queue:** Student simulation transcripts and readback accuracy scores are saved locally and automatically synced back to `backend-service` when connection resumes.
+
+### 3. 🎨 Cohesive Single Color Palette & Aviation Typography System
+To deliver a state-of-the-art pilot cockpit feel, the entire application strictly enforces a single unified design system using Vanilla CSS variables:
+* **Color System:** HSL-tailored dark mode palette featuring deep cockpit black (`hsl(222, 47%, 7%)`), glowing radar cyan (`hsl(187, 100%, 50%)`), and alert amber (`hsl(38, 100%, 50%)`).
+* **Typography Hierarchy:** Modern display typography using **Outfit** for clean UI navigation paired with **JetBrains Mono** for authentic avionics radio readouts and frequency telemetry.
+* **Micro-Animations & Glassmorphism:** CSS backdrop filters, glassmorphic card containers, and smooth 200ms transition states deliver an ultra-premium visual aesthetic.
+
+### 4. 🎛️ Dual-Engine Audio Fallback Architecture
+Prevents voice playback failure across different browser engines (Chrome, Safari, Firefox) by utilizing a dual-engine player:
+* **Primary Engine (HTML5 Audio + Web Audio API):** High-fidelity Rime TTS MP3 audio stream with Web Audio API frequency analysis.
+* **Fallback Engine (WebSpeech API Synthesis):** Instant local synthesis fallback if remote TTS audio fails or network latency spikes, ensuring 100% uninterrupted simulation turns.
 
 ---
 
@@ -86,7 +168,7 @@ The simulator interface features a custom interactive **3D MetallicOrb** built w
 ### 1. Simplest Language Explanation (Why Redis & Why Latency Drop Matters)
 
 > [!IMPORTANT]
-> **Key Hackathon Pitch Point for Judges:** "In aviation, a 2.5-second radio delay breaks pilot muscle memory and simulates a dangerous environment. Our 7-Layer Redis Engine slashes voice latency by **89.2%** — turning a 2,595ms cloud roundtrip into a `<280ms` instant response."
+> **Key Platform Performance Advantage:** "In aviation, a 2.5-second radio delay breaks pilot muscle memory and simulates a dangerous environment. Our 7-Layer Redis Engine slashes voice latency by **89.2%** — turning a 2,595ms cloud roundtrip into a `<280ms` instant response."
 
 Imagine going through an airport. In a **traditional AI architecture**, every time the pilot says *"Roger"* on the radio, they have to park their car, line up at the ticket counter, show physical paper documents, get their baggage searched, and go through full manual customs clearance. That takes minutes (or 2.5+ seconds in AI processing time).
 
@@ -105,13 +187,13 @@ flowchart TD
     end
 
     subgraph Service ["AI Service Pipeline"]
-        L6["L6: Rate Limiter Counter (15m Window)\n[rl:ip:{ipAddress}]"]
-        L5["L5: JWKS Key Cache (RS256 Validation)\n[auth:jwks:cache]"]
-        L3["L3: LangGraph Checkpoint (Session Re-hydration)\n[sess:cp:{sessionId}]"]
-        L4["L4: Dynamic Session Slot Cache (Wind/Squawk)\n[sess:slots:{sessionId}]"]
-        L1["L1: Template Embedding Cache (Mistral Vectors)\n[emb:tmpl:{templateId}]"]
-        L2["L2: Qdrant Grounding Cache (ICAO Rules)\n[gnd:tmpl:{templateId}]"]
-        L7["L7: TTS Audio Base64 Cache (Static Audio)\n[tts:{sha256(text)}]"]
+        L6["L6: Rate Limiter Counter (15m Window)<br/>Key: rl:ip:ipAddress"]
+        L5["L5: JWKS Key Cache (RS256 Validation)<br/>Key: auth:jwks:cache"]
+        L3["L3: LangGraph Checkpoint (Session Re-hydration)<br/>Key: sess:cp:sessionId"]
+        L4["L4: Dynamic Session Slot Cache (Wind/Squawk)<br/>Key: sess:slots:sessionId"]
+        L1["L1: Template Embedding Cache (Mistral Vectors)<br/>Key: emb:tmpl:templateId"]
+        L2["L2: Qdrant Grounding Cache (ICAO Rules)<br/>Key: gnd:tmpl:templateId"]
+        L7["L7: TTS Audio Base64 Cache (Static Audio)<br/>Key: tts:sha256(text)"]
     end
 
     PTT --> L6
@@ -796,7 +878,7 @@ ATC/
 ├── docs/                               ← Architecture & Technical Specifications
 │   ├── assets/                         ← 3D MetallicOrb & UI Screenshots
 │   ├── redis_7_layer_architecture.md   ← 7-Layer Redis Technical Specification
-│   └── redis_presentation_judge_guide.md← Judge Presentation & Defense Strategy
+│   └── redis_presentation_judge_guide.md← Technical Defense & Architecture Guide
 ├── helpers/                            ← PDF Manuals & Extractor scripts
 │   └── Roger AI - Financial & Business Model Brief.pdf ← Financial & Business Brief
 ├── k8s/                                ← Kubernetes Manifests (Ingress, Deployments, Secrets)
@@ -833,6 +915,17 @@ ATC/
 ## 📊 Market & Business Model Analysis (Investor Brief & Financial Deck)
 
 > 📄 *Extracted & synthesized from [`helpers/Roger AI - Financial & Business Model Brief.pdf`](helpers/Roger%20AI%20-%20Financial%20%26%20Business%20Model%20Brief.pdf)*
+
+### 📌 Executive Summary — Business & Financial Model (TL;DR)
+
+> [!IMPORTANT]
+> **Key Business Highlights & Unit Economics at a Glance:**
+> 1. **High-Margin B2B/B2C SaaS Model (91.8% Gross Margin):** Traditional flight simulator instructor time costs **$150 to $300 per hour**. We provide 24/7 unlimited radio phraseology training at **$15–$30/mo for B2C cadets** and **$50/seat/mo for B2B flight academies**, delivering 10x savings to flight schools while maintaining an **87.38% contribution margin**.
+> 2. **Sub-280ms Redis Fast-Path Cost Moat:** Standard AI voice agents cost **$0.08 per turn** and take **~2.6 seconds**. Our 7-Layer Redis Cache routes 80% of routine radio clearance turns through in-memory RAM, dropping unit cost down to **$0.000287 (₹0.024) per turn** — an **87.7% cost reduction**.
+> 3. **36.5% Annual Infrastructure Cost Savings:** By pairing browser-native STT fallback with Deepgram Nova-3, we eliminate third-party STT overhead on standard phraseology, saving **₹3,09,924 ($3,689) annually** and dropping total monthly operational burn from ₹70,740 to **₹44,913 / month**.
+> 4. **Rapid Scalability & High Investor ROI:** With a customer payback period of **1.1 months** and a **28.5x B2B LTV:CAC ratio**, the business scales from **$524k ARR in Year 1** to **$11.85M ARR in Year 3** at a **91.10% net EBITDA margin**.
+
+---
 
 ### 1. Executive Pitch Dashboard
 
@@ -909,7 +1002,7 @@ Standard AI voice platforms execute remote vector database lookups, LLM inferenc
 $$\text{STT Cost} = 4\ \text{sec} \times ₹0.006020 = ₹0.02408$$
 $$\text{LLM Cost} = 0 \times ₹0 = ₹0.00000$$
 $$\text{TTS Cost} = 0 \times ₹0 = ₹0.00000$$
-$$\mathbf{Total\ Fast\ Path\ Turn\ Cost} = ₹0.02408 + ₹0.00 + ₹0.00 = \mathbf{₹0.02408}\ \text{(\approx 2.41\ paise / \$0.000287)}$$
+$$\mathbf{Total\ Fast\ Path\ Turn\ Cost} = ₹0.02408 + ₹0.00 + ₹0.00 = \mathbf{₹0.02408} \approx \text{2.41 paise (\$0.000287)}$$
 
 > *Note: ~80% of routine scenario readback turns hit this Fast Path, producing sub-280ms latency at minimal cost.*
 
@@ -922,7 +1015,7 @@ $$\text{STT Cost} = 5\ \text{sec} \times ₹0.006020 = ₹0.03010$$
 $$\text{LLM Input Cost} = 800 \times ₹0.00001680 = ₹0.01344$$
 $$\text{LLM Output Cost} = 120 \times ₹0.00005040 = ₹0.00605$$
 $$\text{TTS Cost} = 130\ \text{chars} \times ₹0.001680 = ₹0.21840$$
-$$\mathbf{Total\ Validation\ Turn\ Cost} = ₹0.03010 + ₹0.01344 + ₹0.00605 + ₹0.21840 = \mathbf{₹0.26799}\ \text{(\approx 26.80\ paise / \$0.003190)}$$
+$$\mathbf{Total\ Validation\ Turn\ Cost} = ₹0.03010 + ₹0.01344 + ₹0.00605 + ₹0.21840 = \mathbf{₹0.26799} \approx \text{26.80 paise (\$0.003190)}$$
 
 ##### C. RAG Airborne Inquiry / General ATC Question (Qdrant + Mistral Large)
 * **STT Capture**: 6-second PTT audio clip via Deepgram Nova-3.
@@ -936,7 +1029,7 @@ $$\text{Embedding Cost} = 150 \times ₹0.00000840 = ₹0.00126$$
 $$\text{LLM Input Cost} = 2,500 \times ₹0.00016800 = ₹0.42000$$
 $$\text{LLM Output Cost} = 250 \times ₹0.00050400 = ₹0.12600$$
 $$\text{TTS Cost} = 220\ \text{chars} \times ₹0.001680 = ₹0.36960$$
-$$\mathbf{Total\ RAG\ Inquiry\ Cost} = ₹0.03612 + ₹0.00126 + ₹0.42000 + ₹0.12600 + ₹0.36960 = \mathbf{₹0.95298}\ \text{(\approx 95.30\ paise / \$0.011345)}$$
+$$\mathbf{Total\ RAG\ Inquiry\ Cost} = ₹0.03612 + ₹0.00126 + ₹0.42000 + ₹0.12600 + ₹0.36960 = \mathbf{₹0.95298} \approx \text{95.30 paise (\$0.011345)}$$
 
 ##### D. Session Debrief & Telemetry Scoring
 * **LLM Debrief Scoring (`mistral-small-latest`)**: 3,200 input tokens + 400 output tokens.
@@ -944,7 +1037,7 @@ $$\mathbf{Total\ RAG\ Inquiry\ Cost} = ₹0.03612 + ₹0.00126 + ₹0.42000 + �
 
 $$\text{LLM Input Cost} = 3,200 \times ₹0.00001680 = ₹0.05376$$
 $$\text{LLM Output Cost} = 400 \times ₹0.00005040 = ₹0.02016$$
-$$\mathbf{Total\ Cost\ Per\ Debrief} = ₹0.05376 + ₹0.02016 = \mathbf{₹0.07392}\ \text{(\approx 7.39\ paise / \$0.000880)}$$
+$$\mathbf{Total\ Cost\ Per\ Debrief} = ₹0.05376 + ₹0.02016 = \mathbf{₹0.07392} \approx \text{7.39 paise (\$0.000880)}$$
 
 ---
 
@@ -969,7 +1062,7 @@ $$\mathbf{Total\ Cost\ Per\ Debrief} = ₹0.05376 + ₹0.02016 = \mathbf{₹0.07
 #### Dynamic Session Compute Costs (AWS EKS Worker Nodes)
 * **Worker Node Type**: `t3.large` (2 vCPU, 8 GB RAM) = **$0.0832 / hour = ₹6.9888 / hour**.
 * **Node Bin-Packing**: 1 `t3.large` node packs **4 active concurrent simulator pods**.
-* **Hourly Compute Cost Per Active Simulator Session**: $\frac{₹6.9888}{4} = \mathbf{₹1.7472\ \text{per active hour}}$ ($0.0208 / hour).
+* **Hourly Compute Cost Per Active Simulator Session**: $\frac{₹6.9888}{4} = \mathbf{₹1.7472}\ \text{per active hour (\$0.0208/hr)}$.
 
 ---
 
@@ -1052,16 +1145,16 @@ Assumed Launch Cohort: 100 Free Users, 30 B2C Standard Users, 10 B2C Pro Users, 
 
 ---
 
-### 8. Frequently Asked Questions (FAQ) & Judge Defense Strategy
+### 8. Frequently Asked Questions (FAQ) & Technical Defense Strategy
 
 #### Q1: "AI Voice apps are notorious for high API costs. What happens when users spam the push-to-talk button?"
-> **Judge Defense**: "We built a 2-tier defense: First, our **7-Layer Redis Cache** serves 80% of routine phraseology turns from in-memory RAM at ₹0.024 ($0.00028) per turn without calling any LLM. Second, our `ai-service` enforces sliding-window rate limiting (`rl:ip:${ip}`) and WebSocket VAD silence truncation, automatically dropping invalid audio clips before API execution."
+> **Platform Answer**: "We built a 2-tier defense: First, our **7-Layer Redis Cache** serves 80% of routine phraseology turns from in-memory RAM at ₹0.024 ($0.00028) per turn without calling any LLM. Second, our `ai-service` enforces sliding-window rate limiting (`rl:ip:${ip}`) and WebSocket VAD silence truncation, automatically dropping invalid audio clips before API execution."
 
 #### Q2: "Flight schools are conservative. How do you justify $50/student/month?"
-> **Judge Defense**: "Flight simulator instructor time costs **$150 to $300 per hour**. A student practicing radio calls with a human instructor consumes hundreds of dollars per week. At $50/month, our platform offers unlimited 24/7 phraseology practice for less than the cost of 20 minutes of human instructor time, while giving flight schools full analytics and curriculum tracking."
+> **Platform Answer**: "Flight simulator instructor time costs **$150 to $300 per hour**. A student practicing radio calls with a human instructor consumes hundreds of dollars per week. At $50/month, our platform offers unlimited 24/7 phraseology practice for less than the cost of 20 minutes of human instructor time, while giving flight schools full analytics and curriculum tracking."
 
 #### Q3: "What is your moat against Microsoft Flight Simulator (MSFS) or VATSIM?"
-> **Judge Defense**: "VATSIM relies on voluntary human controllers who are rarely online at regional airports, and MSFS built-in ATC uses rigid tree-based scripts without speech evaluation or readback hearback validation. We provide **FAA JO 7110.65 / ICAO Doc 4444 RAG compliance**, real-time readback accuracy scoring, and structured curriculum progress telemetry specifically built for accredited pilot training."
+> **Platform Answer**: "VATSIM relies on voluntary human controllers who are rarely online at regional airports, and MSFS built-in ATC uses rigid tree-based scripts without speech evaluation or readback hearback validation. We provide **FAA JO 7110.65 / ICAO Doc 4444 RAG compliance**, real-time readback accuracy scoring, and structured curriculum progress telemetry specifically built for accredited pilot training."
 
 ---
 
@@ -1098,7 +1191,7 @@ Assumed Launch Cohort: 100 Free Users, 30 B2C Standard Users, 10 B2C Pro Users, 
 | 💰 **TOTAL MONTHLY OPERATING COST** | **`₹70,740 / mo`** | **`₹44,913 / mo`** | **`-₹25,827`** | 📉 **-36.5% COST REDUCTION** |
 | 📅 **TOTAL ANNUAL OPERATING COST** | **`₹8,48,880 / yr`** | **`₹5,38,956 / yr`** | **`-₹3,09,924`** | 📉 **-36.5% ANNUAL SAVINGS** |
 
-> **Key Financial Takeaway for Judges & Investors:** By eliminating third-party STT overhead on standard phraseology turns, the platform achieves a **36.5% overall cost reduction**, saving **₹3,09,924 annually** ($3,689.57/yr) while maintaining sub-280ms voice latency.
+> **Key Financial Takeaway for Stakeholders & Investors:** By eliminating third-party STT overhead on standard phraseology turns, the platform achieves a **36.5% overall cost reduction**, saving **₹3,09,924 annually** ($3,689.57/yr) while maintaining sub-280ms voice latency.
 
 ---
 
