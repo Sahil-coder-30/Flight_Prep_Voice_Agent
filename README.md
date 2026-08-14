@@ -22,7 +22,7 @@
 > **Mission Statement:** Eliminating pilot radio anxiety ("mic fright") and democratizing flight training with sub-280ms AI voice simulation.
 
 > [!TIP]
-> 📺 **Product Demo:** Watch the live product walkthrough and interactive ATC simulation demo: [**Google Drive Product Demo Video**](https://drive.google.com/file/d/1ZcEv2r2W9IuRClMPy-Tv5-ten1NBiCam/view?usp=sharing)
+> 📺 **Product Setup Demo:** Watch the live product setup walkthrough and interactive ATC simulation demo: [**Google Drive Product Setup Demo Video**](https://drive.google.com/file/d/1ZcEv2r2W9IuRClMPy-Tv5-ten1NBiCam/view?usp=sharing)
 
 | Core Dimension | Executive Summary | Key Impact Metric |
 |---|---|---|
